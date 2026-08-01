@@ -1,0 +1,185 @@
+"""Shared fixtures for the A1111 / Forge / ReForge live-API integration tests.
+
+These tests talk to a **real** WebUI instance. They assume:
+
+* The server is running and reachable (default ``http://127.0.0.1:7860``; override
+  with the ``SD_API_URL`` environment variable, or ``SD_API_PORT`` to change only
+  the port).
+* If the server has ``--api-auth`` enabled, credentials are supplied through the
+  ``SD_UNAME`` / ``SD_PASS`` environment variables.
+
+Config isolation
+----------------
+``Cache`` / ``AppConfig`` are process-wide singletons that otherwise persist to the
+shared IntraPaint per-user data directory. To avoid reading or clobbering the real
+user config, we instantiate both against a throwaway temp directory *before* any
+other code can create them (importing this conftest happens first). The
+``DiffusionRequestBody`` code path calls the no-arg ``Cache()`` / ``AppConfig()``,
+which return these isolated singletons.
+
+Running
+-------
+Fast, read-only metadata tests run by default::
+
+    pytest tests/
+
+The generation tests (txt2img / img2img / upscale / interrogate) actually invoke
+diffusion and need a checkpoint loaded. They are gated behind an opt-in flag::
+
+    pytest tests/ --run-generation
+    # or
+    RUN_SD_GENERATION=1 pytest tests/
+"""
+import os
+import tempfile
+
+import pytest
+
+# --- Config isolation: must happen before anything instantiates the singletons. ---
+_TMP_CONFIG_DIR = tempfile.mkdtemp(prefix='sd_api_it_config_')
+
+from intrapaint_api.config.application_config import AppConfig  # noqa: E402
+from intrapaint_api.config.cache import Cache  # noqa: E402
+
+# Win the singleton race with isolated, disposable config files.
+AppConfig(os.path.join(_TMP_CONFIG_DIR, 'config.json'))
+Cache(os.path.join(_TMP_CONFIG_DIR, 'cache.json'))
+
+from intrapaint_api.api.a1111_webservice import A1111Webservice, AuthError  # noqa: E402
+
+DEFAULT_PORT = 7860
+
+
+def pytest_addoption(parser):
+    parser.addoption(
+        '--run-generation',
+        action='store_true',
+        default=False,
+        help='Run the slow generation tests that actually invoke diffusion (needs a loaded checkpoint).',
+    )
+
+
+def pytest_configure(config):
+    config.addinivalue_line('markers', 'integration: talks to a live WebUI instance.')
+    config.addinivalue_line('markers', 'generation: invokes real diffusion; slow, needs a loaded checkpoint.')
+    config.addinivalue_line('markers', 'controlnet: requires the ControlNet extension to be installed.')
+
+
+def pytest_collection_modifyitems(config, items):
+    if config.getoption('--run-generation') or os.environ.get('RUN_SD_GENERATION'):
+        return
+    skip_gen = pytest.mark.skip(reason='generation tests are opt-in: use --run-generation or RUN_SD_GENERATION=1')
+    for item in items:
+        if 'generation' in item.keywords:
+            item.add_marker(skip_gen)
+
+
+@pytest.fixture(scope='session')
+def api_url() -> str:
+    """Base URL of the WebUI server under test."""
+    if os.environ.get('SD_API_URL'):
+        return os.environ['SD_API_URL'].rstrip('/')
+    port = os.environ.get('SD_API_PORT', str(DEFAULT_PORT))
+    return f'http://127.0.0.1:{port}'
+
+
+@pytest.fixture(scope='session')
+def credentials():
+    """(username, password) from SD_UNAME / SD_PASS, or None if unset."""
+    uname = os.environ.get('SD_UNAME')
+    password = os.environ.get('SD_PASS')
+    if uname is None or password is None:
+        return None
+    return uname, password
+
+
+@pytest.fixture(scope='session')
+def controlnet_available(service):
+    """Skip dependent tests unless the ControlNet extension is installed and responding.
+
+    Gated on ``/controlnet/model_list`` (the reliable "extension present" signal) rather
+    than ``/controlnet/version``, which some forks (e.g. ReForge) drop.
+    """
+    try:
+        models = service.get_controlnet_models()
+    except RuntimeError as err:
+        pytest.skip(f'ControlNet extension not installed: {err}')
+    if 'model_list' not in models:
+        pytest.skip(f'Unexpected /controlnet/model_list response: {models!r}')
+    return service
+
+
+@pytest.fixture(scope='session')
+def controlnet_pairing(controlnet_available):
+    """A valid (module, model) ControlNet pairing discovered from /controlnet/control_types.
+
+    Prefers Canny (edge control works well with the synthetic high-contrast test image),
+    then falls back to any category exposing a non-"None" default module and model.
+    """
+    control_types = controlnet_available.get_controlnet_control_types()['control_types']
+
+    def usable(entry):
+        module = entry.get('default_option')
+        model = entry.get('default_model')
+        return module and model and module.lower() != 'none' and model.lower() != 'none'
+
+    if 'Canny' in control_types and usable(control_types['Canny']):
+        entry = control_types['Canny']
+    else:
+        entry = next((e for e in control_types.values() if usable(e)), None)
+    if entry is None:
+        pytest.skip('No ControlNet category exposes a usable default module + model pairing.')
+    return entry['default_option'], entry['default_model']
+
+
+@pytest.fixture(scope='session')
+def output_dir() -> str:
+    """Directory where generation tests save PNGs for visual fidelity inspection.
+
+    Defaults to ``tests/output/`` next to this file; override with ``SD_TEST_OUTPUT_DIR``.
+    """
+    path = os.environ.get('SD_TEST_OUTPUT_DIR') or os.path.join(os.path.dirname(__file__), 'output')
+    os.makedirs(path, exist_ok=True)
+    return path
+
+
+@pytest.fixture(scope='session')
+def auth_enforced(api_url) -> bool:
+    """Whether the server actually enforces API auth (was launched with ``--api-auth``).
+
+    Detected by hitting a protected endpoint with no credentials and checking for a
+    401. A WebUI started without ``--api-auth`` still serves a ``/login`` page that
+    returns 200 for any input, so this probe (not the login response) is the reliable
+    signal. Skips the session if the server is unreachable.
+    """
+    probe = A1111Webservice(api_url, credentials_provider=None)
+    try:
+        probe.get('/sdapi/v1/samplers', fail_on_auth_error=True)
+        return False
+    except RuntimeError as err:
+        if '401' in str(err):
+            return True
+        pytest.skip(f'No WebUI server reachable at {api_url}: {err}')
+    finally:
+        probe.disconnect()
+
+
+@pytest.fixture(scope='session')
+def service(api_url, credentials) -> A1111Webservice:
+    """A live, authenticated A1111Webservice.
+
+    Skips the entire session if the server is unreachable, and fails clearly if it
+    requires auth but no SD_UNAME / SD_PASS were provided.
+    """
+    client = A1111Webservice(api_url, credentials_provider=lambda: credentials)
+    try:
+        # A cheap call that also transparently drives the login flow on a 401.
+        client.get_samplers()
+    except AuthError as err:
+        pytest.fail(
+            f'Server at {api_url} requires authentication but SD_UNAME / SD_PASS were not usable: {err}'
+        )
+    except RuntimeError as err:
+        pytest.skip(f'No WebUI server reachable at {api_url}: {err}')
+    yield client
+    client.disconnect()

@@ -139,24 +139,6 @@ class WebService:
         if headers is None:
             headers = {}
         try:
-            if body is not None and body_format == JSON_DATA_TYPE:
-                from copy import deepcopy
-                dbgbody = deepcopy(body)
-                def prune(data):
-                    if isinstance(data, dict):
-                        for k in data:
-                            if isinstance(data[k], (dict, list)):
-                                prune(data[k])
-                            elif isinstance(data[k], str) and len(data[k]) > 500:
-                                data[k] = data[k][:50] + 'TRUNCATED'
-                    elif isinstance(data, list):
-                        for i in range(len(data)):
-                            if isinstance(data[i], (dict, list)):
-                                prune(data[i])
-                            elif isinstance(data[i], str) and len(data[i]) > 500:
-                                data[i] = data[i][:50] + 'TRUNCATED'
-                prune(dbgbody)
-                print(dbgbody)
             if method == 'GET':
                 res = self._session.get(address, timeout=timeout, headers=headers)
             elif method == 'POST':
