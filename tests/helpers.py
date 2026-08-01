@@ -43,6 +43,32 @@ def make_edge_image(width: int = TEST_SIZE, height: int = TEST_SIZE) -> Image.Im
     return image
 
 
+def make_structured_image(width: int = TEST_SIZE, height: int = TEST_SIZE) -> Image.Image:
+    """A textured, non-flat RGBA source for inpainting tests.
+
+    A flat color barely changes under inpainting unless denoising is cranked, and gives
+    nothing to visually compare. This combines a diagonal color gradient with geometric
+    shapes so inpainted regions are obvious and per-region diffs are meaningful.
+    """
+    image = Image.new('RGBA', (width, height))
+    pixels = image.load()
+    for y in range(height):
+        for x in range(width):
+            pixels[x, y] = (int(255 * x / width), int(255 * y / height),
+                            int(255 * (x + y) / (width + height)), 255)
+    draw = ImageDraw.Draw(image)
+    draw.rectangle([width // 6, height // 6, width * 5 // 6, height * 5 // 6],
+                   outline=(255, 255, 255, 255), width=5)
+    draw.ellipse([width // 3, height // 3, width * 2 // 3, height * 2 // 3],
+                 outline=(0, 0, 0, 255), width=5)
+    return image
+
+
+def region_mean_diff(a: Image.Image, b: Image.Image, box: tuple[int, int, int, int]) -> float:
+    """Mean per-pixel difference between two images within a crop box (left, top, right, bottom)."""
+    return images_differ(a.crop(box), b.crop(box))
+
+
 def images_differ(a: Image.Image, b: Image.Image) -> float:
     """Mean per-pixel absolute difference between two images (0.0 == identical).
 

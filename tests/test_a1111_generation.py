@@ -8,8 +8,8 @@ a handful of steps) so a round-trip is as cheap as possible.
 import pytest
 from PIL import Image
 
-from .helpers import (configure_fast_cache, fast_request_body, make_mask, make_test_image,
-                      save_output, TEST_SIZE)
+from .helpers import (configure_fast_cache, fast_request_body, images_differ, make_mask,
+                      make_structured_image, make_test_image, region_mean_diff, save_output, TEST_SIZE)
 
 pytestmark = [pytest.mark.integration, pytest.mark.generation]
 
@@ -51,40 +51,64 @@ def test_txt2img_batch_returns_multiple_images(service, output_dir):
 
 def test_img2img_round_trip(service, output_dir):
     body = fast_request_body('turn this into a landscape painting')
-    body.denoising_strength = 0.6
-    source = make_test_image()
+    body.denoising_strength = 0.75  # enough to visibly transform the textured source
+    source = make_structured_image(TEST_SIZE, TEST_SIZE)
     response = service.img2img(source, request_body=body)
     assert len(response['images']) >= 1
-    _assert_valid_image(response['images'][0])
-    save_output(output_dir, 'img2img', response['images'][0])
+    result = response['images'][0]
+    _assert_valid_image(result)
+    save_output(output_dir, 'img2img_source', source)
+    save_output(output_dir, 'img2img_result', result)
+    assert images_differ(source, result.resize(source.size)) >= 10.0, \
+        'img2img returned an image nearly identical to its source'
 
 
-def test_img2img_inpaint_with_mask(service, output_dir):
+def test_img2img_inpaint_respects_mask(service, output_dir):
+    """Inpainting must change the masked region while preserving the rest.
+
+    A1111's mask polarity is the intuitive one (verified empirically): the white mask
+    region is inpainted and the black region is preserved (composited back pixel-for-pixel
+    with inpainting_mask_invert=0). Uses a textured source and full denoising so the change
+    is unmistakable, and asserts region-aware behavior rather than just "an image came back".
+    """
     body = fast_request_body('a bright flower')
-    body.denoising_strength = 0.75
+    body.denoising_strength = 1.0
     body.inpainting_fill = 1  # original
     body.inpaint_full_res = False
     body.inpainting_mask_invert = 0
-    source = make_test_image()
-    mask = make_mask()
+    body.mask_blur = 0  # crisp region boundary so per-region diffs are clean
+    source = make_structured_image(TEST_SIZE, TEST_SIZE)
+    mask = make_mask()  # white center (edited) on black (preserved)
     response = service.img2img(source, mask=mask, request_body=body)
     assert len(response['images']) >= 1
+    result = response['images'][0].resize(source.size)
     _assert_valid_image(response['images'][0])
     save_output(output_dir, 'inpaint_source', source)
     save_output(output_dir, 'inpaint_mask', mask)
     save_output(output_dir, 'inpaint_result', response['images'][0])
+
+    center_box = (TEST_SIZE // 4, TEST_SIZE // 4, TEST_SIZE * 3 // 4, TEST_SIZE * 3 // 4)
+    border_box = (0, 0, TEST_SIZE, TEST_SIZE // 8)
+    edited_diff = region_mean_diff(source, result, center_box)
+    preserved_diff = region_mean_diff(source, result, border_box)
+    assert edited_diff >= 20.0, f'masked region barely changed (diff {edited_diff:.2f}); inpainting may be a no-op'
+    assert preserved_diff <= 5.0, (
+        f'inpainting did not respect the mask: the preserved region changed (diff {preserved_diff:.2f}). '
+        f'Inspect inpaint_source.png / inpaint_mask.png / inpaint_result.png in {output_dir}.'
+    )
 
 
 def test_upscale_basic(service, output_dir):
     # Uses the plain "extra-single-image" upscaler path (no SD upscaling / ControlNet),
     # driven by the isolated fast cache profile.
     configure_fast_cache()
-    source = make_test_image(128, 128)
+    source = make_structured_image(128, 128)
     response = service.upscale(source, 256, 256)
     assert len(response['images']) == 1
     result = response['images'][0]
     assert isinstance(result, Image.Image)
     assert result.width >= 200 and result.height >= 200
+    save_output(output_dir, 'upscale_source', source)
     save_output(output_dir, 'upscale_result', result)
 
 

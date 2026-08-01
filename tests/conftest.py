@@ -46,8 +46,10 @@ AppConfig(os.path.join(_TMP_CONFIG_DIR, 'config.json'))
 Cache(os.path.join(_TMP_CONFIG_DIR, 'cache.json'))
 
 from intrapaint_api.api.a1111_webservice import A1111Webservice, AuthError  # noqa: E402
+from intrapaint_api.api.comfyui_webservice import ComfyUiWebservice  # noqa: E402
 
 DEFAULT_PORT = 7860
+COMFY_DEFAULT_PORT = 8188
 
 
 def pytest_addoption(parser):
@@ -91,6 +93,53 @@ def credentials():
     if uname is None or password is None:
         return None
     return uname, password
+
+
+# --------------------------------------------------------------------------- #
+# ComfyUI backend
+# --------------------------------------------------------------------------- #
+
+@pytest.fixture(scope='session')
+def comfy_url() -> str:
+    """Base URL of the ComfyUI server under test."""
+    if os.environ.get('COMFYUI_API_URL'):
+        return os.environ['COMFYUI_API_URL'].rstrip('/')
+    port = os.environ.get('COMFYUI_API_PORT', str(COMFY_DEFAULT_PORT))
+    return f'http://127.0.0.1:{port}'
+
+
+@pytest.fixture(scope='session')
+def comfy_service(comfy_url) -> ComfyUiWebservice:
+    """A live ComfyUiWebservice, skipping the session if the server is unreachable.
+
+    ComfyUI has no authentication, so (unlike the A1111 client) there are no credentials
+    or login flow to wire up.
+    """
+    client = ComfyUiWebservice(comfy_url)
+    try:
+        client.get_system_stats()
+    except RuntimeError as err:
+        pytest.skip(f'No ComfyUI server reachable at {comfy_url}: {err}')
+    yield client
+    client.disconnect()
+
+
+@pytest.fixture(scope='session')
+def comfy_checkpoint(comfy_service) -> str:
+    """Name of a checkpoint to generate with, preferring a small SD1.5 model.
+
+    Skips dependent tests if the server has no checkpoints installed.
+    """
+    checkpoints = comfy_service.get_sd_checkpoints()
+    if not checkpoints:
+        pytest.skip('No checkpoints installed on the ComfyUI server.')
+    # Prefer a non-inpainting SD1.5 model when we can identify one; fall back to the first.
+    sd15_hints = ('deliberate_v3.safetensors', 'cyberrealistic', 'dreamshaper', 'v1-5', 'sd15', 'sd-v1')
+    for hint in sd15_hints:
+        match = next((c for c in checkpoints if hint in c.lower() and 'inpaint' not in c.lower()), None)
+        if match:
+            return match
+    return checkpoints[0]
 
 
 @pytest.fixture(scope='session')

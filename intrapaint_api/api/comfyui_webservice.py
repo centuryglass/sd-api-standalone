@@ -556,7 +556,7 @@ class ComfyUiWebservice(WebService):
         """Upscale an image using an upscaling model and/or a latent updcaling workflow."""
         cache = Cache()
 
-        upscale_multiplier = max(width / image.width(), height / image.height())
+        upscale_multiplier = max(width / image.width, height / image.height)
         assert upscale_multiplier > 1.0
 
         image_reference = self.upload_image(image)
