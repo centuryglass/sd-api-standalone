@@ -1,0 +1,485 @@
+{
+    "style": {
+        "label": "Style:",
+        "category": "Interface",
+        "subcategory": "Appearance",
+        "description": "Qt style to use for the user interface",
+        "type": "string",
+        "default": "fusion",
+        "options": ["fusion"],
+        "saved": true
+    },
+    "theme": {
+        "label": "Theme:",
+        "category": "Interface",
+        "subcategory": "Appearance",
+        "description": "Theme to use for the user interface (may require restart)",
+        "type": "string",
+        "default": "None",
+        "options": ["None"],
+        "saved": true
+    },
+    "font_point_size": {
+        "label": "Font size:",
+        "category": "Interface",
+        "subcategory": "Appearance",
+        "description": "Font point size to use for user interface text (may require restart)",
+        "type": "int",
+        "default": 10,
+        "saved": true,
+        "range_options": {
+            "min": 1,
+            "max": 100,
+            "step": 1
+        }
+    },
+    "tab_font_point_size": {
+        "label": "Tab font size:",
+        "category": "Interface",
+        "subcategory": "Appearance",
+        "description": "Font point size to use for user interface tab labels (may require restart)",
+        "type": "int",
+        "default": 12,
+        "saved": true,
+        "range_options": {
+            "min": 1,
+            "max": 100,
+            "step": 1
+        }
+    },
+    "key_hint_font_size": {
+        "label": "Key hint font size:",
+        "category": "Interface",
+        "subcategory": "Appearance",
+        "description": "Font point size to use for key hint labels.",
+        "type": "int",
+        "default": 8,
+        "saved": true,
+        "range_options": {
+            "min": 1,
+            "max": 100,
+            "step": 1
+        }
+    },
+    "toolbar_tool_button_count": {
+        "label": "Recent tool toolbar icon count:",
+        "category": "Interface",
+        "subcategory": "Layout",
+        "description": "Number of tool selection buttons to show on the toolbar when the tool tab is closed or inactive.",
+        "type": "int",
+        "default": 4,
+        "saved": true,
+        "range_options": {
+            "min": 0,
+            "max": 99,
+            "step": 1
+        }
+    },
+    "show_tool_control_hints": {
+        "label": "Show active tool control hints:",
+        "category": "Interface",
+        "subcategory": "Layout",
+        "description": "Show control hints for the active tool below the image.",
+        "type": "bool",
+        "default": true,
+        "saved": true
+    },
+    "animate_selection_outline": {
+        "label": "Animate selected content outlines",
+        "category": "Interface",
+        "description": "Enable or disable animated selection outlines",
+        "type": "bool",
+        "default": false,
+        "saved": true
+    },
+    "animate_outlines_and_previews": {
+        "label": "Animate area outlines and preview lines",
+        "category": "Interface",
+        "description": "Enable or disable animation on the image generation area outline, selected content area outline, and line previews.",
+        "type": "bool",
+        "default": true,
+        "saved": true
+    },
+    "animate_selection_fill": {
+        "label": "Animate selected content overlay:",
+        "category": "Interface",
+        "description": "Enable or disable selection overlay animation",
+        "type": "bool",
+        "default": true,
+        "saved": true
+    },
+    "selection_color": {
+        "label": "Selection overlay color:",
+        "category": "Interface",
+        "description": "Overlay color used to highlight selected image areas",
+        "type": "string",
+        "default": "#55ff0000",
+        "saved": true
+    },
+    "show_selections_in_generation_options": {
+        "label": "Show selections in generated image options:",
+        "category": "Interface",
+        "description": "Draw the selection borders when choosing inpainted image options.",
+        "type": "bool",
+        "default": true,
+        "saved": true
+    },
+    "selection_screen_zooms_to_changed": {
+        "label": "Show generated images zoomed to changes:",
+        "category": "Interface",
+        "description": "When zooming in on individual inpainting options, focus the change region.",
+        "type": "bool",
+        "default": false,
+        "saved": true
+    },
+    "show_options_full_resolution": {
+        "label": "Show generated image options at original size",
+        "category": "Interface",
+        "description": "Preview AI-generated image options at their original size, instead of the size they would be scaled to if inserted into the generation area..",
+        "type": "bool",
+        "default": false,
+        "saved": true
+    },
+    "opengl_acceleration": {
+        "label": "OpenGL acceleration:",
+        "category": "Developer",
+        "description": "Use OpenGL to accelerate image rendering.  Currently somewhat buggy, breaks several layer rendering modes.",
+        "type": "bool",
+        "default": false,
+        "saved": true
+    },
+    "default_image_size": {
+        "label": "Default image size:",
+        "category": "Editing",
+        "subcategory": "Size",
+        "description": "Default size when creating new images",
+        "type": "Size",
+        "default": "1024x1024",
+        "saved": true
+    },
+    "max_image_size": {
+        "label": "Maximum image size:",
+        "category": "Editing",
+        "subcategory": "Size",
+        "description": "Maximum size to allow when creating or resizing images",
+        "type": "Size",
+        "default": "10000x10000",
+        "saved": true
+    },
+    "max_edit_size": {
+        "label": "Maximum editing size:",
+        "category": "Editing",
+        "subcategory": "Size",
+        "description": "Maximum size in pixels of the area selected for editing",
+        "type": "Size",
+        "default": "10240x10240",
+        "saved": true
+    },
+    "min_edit_size": {
+        "label": "Minimum generation area size:",
+        "category": "Editing",
+        "subcategory": "Size",
+        "description": "Minimum size in pixels of the AI image generation area",
+        "type": "Size",
+        "default": "8x8",
+        "saved": true
+    },
+    "max_generation_size": {
+        "label": "Maximum generation area size:",
+        "category": "Editing",
+        "subcategory": "Size",
+        "description": "Maximum size in pixels of the AI image generation area",
+        "type": "Size",
+        "default": "2048x2048",
+        "saved": true
+    },
+    "min_generation_size": {
+        "label": "Minimum generation resolution:",
+        "category": "Editing",
+        "subcategory": "Size",
+        "description": "Minimum size in pixels allowed for AI image generation",
+        "type": "Size",
+        "default": "256x256",
+        "saved": true
+    },
+    "brush_favorites": {
+        "label": "Favorite MyPaint brushes:",
+        "category": "Editing",
+        "description": "Brushes to list in the 'Favorites' tab of the brush selection window",
+        "type": "list",
+        "default": [
+            "experimental/basic",
+            "classic/pencil",
+            "classic/kabura",
+            "classic/marker_small",
+            "classic/bulk",
+            "classic/knife",
+            "classic/blend+paint",
+            "classic/blending_knife",
+            "deevad/detail_brush_large",
+            "deevad/kneaded_eraser",
+            "deevad/basic_digital_brush",
+            "deevad/basic_digital_brush_smudging",
+            "deevad/only_water_fringe",
+            "deevad/soft-dip-pen",
+            "deevad/liner",
+            "deevad/blending",
+            "tanda/acrylic-03-with-water",
+            "tanda/acrylic-04-with-water"
+        ],
+        "saved": true
+    },
+    "max_undo": {
+        "label": "Maximum undo count:",
+        "category": "Editing",
+        "description": "Number of actions that can be reversed using the 'undo' option.",
+        "type": "int",
+        "default": 30,
+        "saved": true
+    },
+    "undo_merge_interval": {
+        "label": "Undo merge interval (seconds):",
+        "category": "Editing",
+        "description": "Similar actions will be combined in the undo history if the time between them is less than this.",
+        "type": "float",
+        "default": 0.2,
+        "saved": true
+    },
+    "speed_modifier_multiplier": {
+        "label": "'Speed modifier' key multiplier:",
+        "category": "Editing",
+        "description": "Controls how much faster keyboard and mouse wheel changes happen when the 'speed modifier' key is held down",
+        "type": "int",
+        "default": 5,
+        "saved": true
+    },
+    "saved_colors": {
+        "label": "Saved colors:",
+        "category": "Editing",
+        "description": "List of saved custom color values, used in the color picker tool's custom palette section.",
+        "type": "list",
+        "default": [],
+        "saved": true
+    },
+    "pil_upscale_mode": {
+        "label": "Upscale mode:",
+        "category": "Editing",
+        "description": "Upscaling mode used when the inpainting resolution doesn't match the image generation area size.",
+        "type": "string",
+        "default": "Lanczos",
+        "options":  [],
+        "saved": true
+    },
+    "pil_downscale_mode": {
+        "label": "Downscale mode:",
+        "category": "Editing",
+        "description": "Downscaling mode used when the inpainting resolution doesn't match the image generation area size.",
+        "type": "string",
+        "default": "Lanczos",
+        "options": [],
+        "saved": true
+    },
+    "tablet_pressure_curve": {
+        "label": "Pen tablet pressure curve:",
+        "category": "Drawing tablet settings",
+        "description": "Controls how pen tablet pressure values are applied. The x-axis represents the pressure value reported by the drawing tablet, and the y-axis represents the actual pressure value IntraPaint will register when it receives that value.",
+        "type": "list",
+        "default": [],
+        "saved": true
+    },
+    "interrogate_model": {
+        "label": "Image interrogation model (WebUI only):",
+        "category": "Stable Diffusion",
+        "description": "Model used when auto-generating appropriate prompts using the 'interrogate' button. Supported values will vary based on what extensions you've installed into the stable-generation-webui, but 'clip' should always be accepted.",
+        "type": "string",
+        "default": "clip",
+        "saved": true
+    },
+    "mask_blur": {
+        "label": "Mask blur:",
+        "category": "Stable Diffusion",
+        "description": "Pixel radius to blur in the inpainting mask to smoothly combine edited and original image content.",
+        "type": "int",
+        "default": 4,
+        "range_options": {
+            "min": 0,
+            "max": 64,
+            "step": 1
+        },
+        "saved": true
+    },
+    "glid_model_path": {
+        "label": "GLID-3-XL model path:",
+        "category": "GLID-3-XL",
+        "subcategory": "Models",
+        "description": "Path to the main GLID-3-XL model file",
+        "type": "string",
+        "default": "models/inpaint.pt",
+        "saved": true
+    },
+    "bert_model_path": {
+        "label": "BERT model path:",
+        "category": "GLID-3-XL",
+        "subcategory": "Models",
+        "description": "Path to the BERT language model file",
+        "type": "string",
+        "default": "models/bert.pt",
+        "saved": true
+    },
+    "glid_vae_model_path": {
+        "label": "GLID-3-XL VAE model path:",
+        "category": "GLID-3-XL",
+        "subcategory": "Models",
+        "description": "Path to the VAE latent image encoding/decoding model file",
+        "type": "string",
+        "default": "models/kl-f8.pt",
+        "saved": true
+    },
+    "clip_model_name": {
+        "label": "CLIP model name:",
+        "category": "GLID-3-XL",
+        "subcategory": "Models",
+        "description": "Name of the CLIP language model to use.",
+        "type": "string",
+        "default": "ViT-L/14",
+        "saved": true
+    },
+    "use_error_handler": {
+        "label": "Enable global error handler:",
+        "category": "Developer",
+        "description": "Attempt to catch and report global application errors instead of crashing. Disabling this makes it easier to debug certain errors.",
+        "type": "bool",
+        "default": true,
+        "saved": true
+    },
+    "warn_on_key_error": {
+        "label": "Warn about keybinding issues:",
+        "category": "Alerts",
+        "description": "Show an alert when keybinding issues are found on startup.",
+        "type": "bool",
+        "default": true,
+        "saved": true
+    },
+    "warn_before_layerless_save": {
+        "label": "Warn when saving without layers:",
+        "category": "Alerts",
+        "description": "Show a warning popup when saving a multi-layer image in a format that discards layer data.",
+        "type": "bool",
+        "default": true,
+        "saved": true
+    },
+    "warn_before_rgb_save": {
+        "label": "Warn when saving without transparency:",
+        "category": "Alerts",
+        "description": "Show a warning popup when saving an image with transparency in a format that doesn't support it.",
+        "type": "bool",
+        "default": true,
+        "saved": true
+    },
+    "warn_before_save_without_metadata": {
+        "label": "Warn when saving without metadata:",
+        "category": "Alerts",
+        "description": "Show a warning popup when saving an image in a format that discards metadata.",
+        "type": "bool",
+        "default": true,
+        "saved": true
+    },
+    "warn_before_write_only_save": {
+        "label": "Warn when saving in a format that cannot be loaded:",
+        "category": "Alerts",
+        "description": "Show a warning popup when saving an image in a format that can't be loaded.",
+        "type": "bool",
+        "default": true,
+        "saved": true
+    },
+    "warn_before_fixed_size_save": {
+        "label": "Warn when saving in a format that changes image size:",
+        "category": "Alerts",
+        "description": "Show a warning popup when saving an image in a format requires a specific resolution.",
+        "type": "bool",
+        "default": true,
+        "saved": true
+    },
+    "warn_before_color_loss": {
+        "label": "Warn when saving in a format that removes color:",
+        "category": "Alerts",
+        "description": "Show a warning popup when saving an image in a format that does not support color.",
+        "type": "bool",
+        "default": true,
+        "saved": true
+    },
+    "warn_on_libmypaint_error": {
+        "label": "Warn when loading libmypaint fails:",
+        "category": "Alerts",
+        "description": "Show a warning popup when the brush tool cannot be used because of missing libraries.",
+        "type": "bool",
+        "default": true,
+        "saved": true
+    },
+    "always_init_metadata_on_save": {
+        "label": "Always save metadata:",
+        "category": "Alerts",
+        "description": "Always save metadata when no previous metadata exists(confirm), never do that(cancel), or ask every time(always_ask).",
+        "type": "string",
+        "default": "always_ask",
+        "options": [
+            "confirm",
+            "cancel",
+            "always_ask"
+        ],
+        "saved": true
+    },
+    "always_update_metadata_on_save": {
+        "label": "Always update metadata:",
+        "category": "Alerts",
+        "description": "Always update metadata when images are saved(confirm), never do that(cancel), or ask every time(always_ask).",
+        "type": "string",
+        "default": "always_ask",
+        "options": [
+            "confirm",
+            "cancel",
+            "always_ask"
+        ],
+        "saved": true
+    },
+    "warn_when_crop_deletes_layers": {
+        "label": "Warn when cropping deletes layers:",
+        "category": "Alerts",
+        "description": "Warn when cropping the image or a layer group deletes one or more layers.",
+        "type": "bool",
+        "default": true,
+        "saved": true
+    },
+    "warn_when_lock_forces_layer_create": {
+        "label": "Warn when layer lock or visibility forces new layer creation",
+        "category": "Alerts",
+        "description": "Warn when image generation creates a new layer because it cannot insert into the active layer.",
+        "type": "bool",
+        "default": true,
+        "saved": true
+    },
+    "added_font_dir": {
+        "label": "Added font directory:",
+        "category": "Files",
+        "description": "Directory to search for additional font files to load",
+        "type": "string",
+        "default": "",
+        "saved": true
+    },
+    "added_mypaint_brush_dir": {
+        "label": "Added MyPaint brush directory:",
+        "category": "Files",
+        "description": "Directory to search for additional MyPaint brush files to load",
+        "type": "string",
+        "default": "",
+        "saved": true
+    },
+    "libmypaint_library_dir": {
+        "label": "libmypaint library directory:",
+        "category": "Files",
+        "description": "Directory to search for libmypaint library files if unable to load default libraries",
+        "type": "string",
+        "default": "",
+        "saved": true
+    }
+}

@@ -1,0 +1,4 @@
+pillow
+requests
+platformdirs
+websocket-client
