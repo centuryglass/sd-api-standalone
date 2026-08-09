@@ -1,9 +1,7 @@
 """WebUI API response data formats."""
-from typing import Any, TypeAlias, Optional
+from typing import Any, TypeAlias, Optional, TypedDict
 
 from pydantic import BaseModel
-
-from intrapaint_api.api.webui.request_formats import Txt2ImgRequestBody, Img2ImgRequestBody
 
 
 class ProgressStateDict(BaseModel):
@@ -28,44 +26,24 @@ class ProgressResponseBody(BaseModel):
     textinfo: Optional[str]
 
 
-# LoRA model data:
-class LoraMetadata(BaseModel):
-    """Extra metadata associated with a LoRA model.  TODO: I've left out a lot of parameters, fix that."""
-    ss_sd_model_name: str  # Model used for training
-    ss_sd_model_hash: str
-    ss_resolution: str  # str(tuple(width, height))
-    ss_clip_skip: str  # int string, or "None"
-    ss_num_train_images: str  # int string
-    ss_dataset_dirs: dict[str, dict[str, int]]  # Training data directories
-    ss_enable_bucket: str  # bool string
-    ss_epoch: str  # int string
-
-    # Bucket data structure: it's potentially useful to see what sizes the LoRA is trained on.
-    # bucket_idx: { "resolution": [width, height], "count": num_images }
-    ss_bucket_info: dict[str, Any]  # Training image resolution groups
-
-    # Training tags: potentially useful for constructing LoRA prompts.
-    ss_tag_frequency: dict[str, dict[str, int]]
-
-    sshs_model_hash: str
-
-
 class LoraInfo(BaseModel):
     """Data used to define a LoRA model in WebUI API responses from the /sdapi/v1/loras endpoint."""
     name: str
     alias: str
     path: str  # NOTE: this is an absolute path
-    metadata: LoraMetadata
+    # Open-ended `ss_*` training metadata (often absent / an empty dict); we don't consume it, so keep it opaque
+    # rather than modeling the hundreds of possible keys.
+    metadata: dict[str, Any] = {}
 
 
 class ModelInfo(BaseModel):
     """Data used to define Stable Diffusion models in WebUI API responses from the /sdapi/v1/sd-models endpoint."""
     title: str
     model_name: str
-    hash: str
-    sha256: str
+    hash: Optional[str] = None  # null for models the server hasn't hashed
+    sha256: Optional[str] = None
     filename: str
-    config: Optional[str]
+    config: Optional[str] = None
 
 
 class VaeInfo(BaseModel):
@@ -141,17 +119,20 @@ class GenerationInfoData(BaseModel):
     version: str
 
 
-class Txt2ImgResponse(BaseModel):
+# These response wrappers are TypedDicts, not validated models: we only read `images` and `info`, while the echoed
+# `parameters` and other extra fields vary by fork and endpoint (e.g. /controlnet/detect omits `parameters`). A
+# TypedDict documents the shape without a strict runtime schema that would reject those variations.
+class Txt2ImgResponse(TypedDict):
     """WebUI API response for a successful /sdapi/v1/txt2img request."""
     images: list[str]  # base64 image list
-    parameters: Txt2ImgRequestBody  # Sends back the unchanged request parameters
+    parameters: dict[str, Any]  # Opaque echo of the submitted request parameters.
     info: str  # Serialized JSON, parses as GenerationInfoData
 
 
-class Img2ImgResponse(BaseModel):
+class Img2ImgResponse(TypedDict):
     """WebUI API response for a successful /sdapi/v1/img2img request."""
     images: list[str]  # base64 image list
-    parameters: Img2ImgRequestBody  # Sends back the unchanged request parameters
+    parameters: dict[str, Any]  # Opaque echo of submitted params.
     info: str  # Serialized JSON, parses as GenerationInfoData
 
 

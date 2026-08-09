@@ -51,10 +51,10 @@ class ControlNetUnit(BaseModel):
     """ControlNet strength, ranges from 0.0 to 2.0."""
 
     control_start: float = 0.0
-    """Fraction of the total diffusion step count to finish the ControlNet is enabled."""
+    """The point where the ControlNet is enabled, as a fraction of total diffusion step count."""
 
-    control_end: float = 0.0
-    """Fraction of the total diffusion step count that should pass before the ControlNet is disabled."""
+    control_end: float = 1.0
+    """The point where the ControlNet is disabled, as a fraction of total diffusion step count."""
 
     low_vram: bool = False
     """WebUI-specific low VRAM toggle"""

@@ -12,7 +12,7 @@ Opt-in (real diffusion): run with ``--run-generation`` / ``RUN_SD_GENERATION=1``
 import pytest
 from PIL import Image
 
-from .helpers import (add_controlnet_unit, controlnet_unit_dict, fast_request_body,
+from .helpers import (add_controlnet_unit, make_controlnet_unit, fast_request_body,
                       images_differ, make_edge_image, save_output)
 
 pytestmark = [pytest.mark.integration, pytest.mark.controlnet, pytest.mark.generation]
@@ -57,7 +57,7 @@ def test_controlnet_alters_output(service, controlnet_available, controlnet_pair
 
     controlled_body = fast_request_body(prompt)
     controlled_body.seed = seed
-    add_controlnet_unit(controlled_body, controlnet_unit_dict(module, model, control_image))
+    add_controlnet_unit(controlled_body, make_controlnet_unit(module, model, control_image))
     controlled = service.txt2img(controlled_body)['images'][0]
     save_output(output_dir, f'controlnet_with_{module}', controlled)
 

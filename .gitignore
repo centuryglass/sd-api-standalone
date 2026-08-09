@@ -1,3 +1,9 @@
 __pycache__
 tests/output/
 .pytest_cache
+
+# JetBrains IDE files
+.idea/
+
+# Local integration-test credentials (never commit)
+tests/local.env

@@ -1,10 +1,7 @@
 """Typedefs for WebUI API data."""
 import logging
-import os.path
 from enum import Enum
 from typing import Any, Optional
-
-from PIL import Image
 
 from intrapaint_api.api.shared_data.diffusion_params import DiffusionParams
 from intrapaint_api.api.webui.controlnet_webui_constants import CONTROLNET_SCRIPT_KEY, ControlNetUnitDict
@@ -221,19 +218,15 @@ class DiffusionRequestBody(DiffusionParams):
         elif CONTROLNET_SCRIPT_KEY in self.alwayson_scripts:
             self.alwayson_scripts[CONTROLNET_SCRIPT_KEY] = {'args': []}  # Make sure to clear any old ControlNet defs
         for control_unit in self.controlnet_units:
-            control_unit_dict = ControlNetUnitDict()
-            control_image = control_unit.image
-            if control_image is not None:
-                control_unit_dict.image = image_to_base64(control_image, include_prefix=True)
-                control_unit_dict.pixel_perfect = control_unit.pixel_perfect
-            # TODO: finish copying over params - probably better to use some clever pydantic nonsense
-            #       you'll have to figure out how to correctly process parameter keys - switch on type.name?
+            control_unit_dict = ControlNetUnitDict.from_unit(control_unit)
             if CONTROLNET_SCRIPT_KEY not in self.alwayson_scripts:
                 self.alwayson_scripts[CONTROLNET_SCRIPT_KEY] = {'args': []}
-            self.alwayson_scripts[CONTROLNET_SCRIPT_KEY]['args'].append(control_unit_dict.model_dump())
+            # exclude_none: omit unset optionals (processor_res / threshold_a / threshold_b) rather than sending them
+            # as null, which the ControlNet extension chokes on (e.g. `unit.processor_res < 0`). The server defaults them.
+            self.alwayson_scripts[CONTROLNET_SCRIPT_KEY]['args'].append(control_unit_dict.model_dump(exclude_none=True))
         data = super().to_dict()
-        if 'controlNet_units' in data:
-            del data['controlNet_units']  # Include only under scripts
+        if 'controlnet_units' in data:
+            del data['controlnet_units']  # Include only under scripts
         # Ensure images are prefixed base64:
         if 'init_images' in data:
             images = data['init_images']

@@ -327,9 +327,7 @@ class DiffusionWorkflowBuilder:
         if model_node is None and model_name is not None:
             model_node = LoadControlNetNode(model_name)
         if preprocessor_node is None and preprocessor is not None:
-            control_inputs = {}
-            for parameter in preprocessor.parameters:
-                control_inputs[parameter.key] = parameter.value
+            control_inputs = dict(preprocessor.parameter_values)
             preprocessor_node = DynamicPreprocessorNode(preprocessor.typedef.name, control_inputs,
                                                         preprocessor.typedef.has_image_input,
                                                         preprocessor.typedef.has_mask_input)
@@ -552,12 +550,12 @@ class DiffusionWorkflowBuilder:
         self.steps = diffusion_params.steps
         self.cfg_scale = diffusion_params.cfg_scale
         self.image_size = Size(diffusion_params.width, diffusion_params.height)
-        sampler = diffusion_params.sampler_name
-        if sampler != '':
-            self.sampler = sampler
-        # TODO: put scheduler in diffusion_params?
-        #if scheduler != '':
-        #    self.scheduler = scheduler
+        # Use the ComfyUI-specific sampler/scheduler names, not the WebUI-style `sampler_name` (e.g. 'Euler a'),
+        # which ComfyUI's KSampler rejects.
+        if diffusion_params.sampler != '':
+            self.sampler = diffusion_params.sampler
+        if diffusion_params.scheduler != '':
+            self.scheduler = diffusion_params.scheduler
         seed = diffusion_params.seed
         if seed < 0:
             seed = random_seed()
@@ -611,6 +609,7 @@ class DiffusionWorkflowBuilder:
             else:
                 self.negative_prompt = re.sub(extension_model_pattern, '', prompt)
 
-            if diffusion_params.init_images is not None and len(diffusion_params.init_images) > 0:
+            if diffusion_params.init_images is not None and len(diffusion_params.init_images) > 0 \
+                    and diffusion_params.denoising_strength is not None:
                 self.denoising_strength = diffusion_params.denoising_strength
             self.model_config_path = diffusion_params.sd_model_config

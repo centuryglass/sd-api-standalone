@@ -67,10 +67,10 @@ def wait_for_comfy_images(service: ComfyUiWebservice, response, timeout: float =
 
     Raises on submission errors, task failure, or timeout.
     """
-    if 'prompt_id' not in response:
-        raise RuntimeError(f'ComfyUI rejected the workflow: {response.get("node_errors") or response}')
-    prompt_id = response['prompt_id']
-    task_number = response['number']
+    if response.prompt_id is None:
+        raise RuntimeError(f'ComfyUI rejected the workflow: {response.node_errors or response}')
+    prompt_id = response.prompt_id
+    task_number = response.number
     deadline = time.monotonic() + timeout
     while time.monotonic() < deadline:
         progress = service.check_queue_entry(prompt_id, task_number)

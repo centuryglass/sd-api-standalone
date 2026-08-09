@@ -29,18 +29,16 @@ def test_controlnet_version(controlnet_available):
 
 def test_controlnet_models(controlnet_available):
     models = controlnet_available.get_controlnet_models()
-    assert 'model_list' in models
-    assert isinstance(models['model_list'], list) and len(models['model_list']) > 0
+    assert isinstance(models.model_list, list) and len(models.model_list) > 0
     # "None" is always offered as the no-op model choice.
-    assert any(name.lower() == 'none' for name in models['model_list'])
+    assert any(name.lower() == 'none' for name in models.model_list)
 
 
 def test_controlnet_modules(controlnet_available):
     modules = controlnet_available.get_controlnet_modules()
-    assert 'module_list' in modules
-    assert isinstance(modules['module_list'], list) and len(modules['module_list']) > 0
+    assert isinstance(modules.module_list, list) and len(modules.module_list) > 0
     # "none" is always an available preprocessor module.
-    assert any(name.lower() == 'none' for name in modules['module_list'])
+    assert any(name.lower() == 'none' for name in modules.module_list)
 
 
 def test_controlnet_control_types(controlnet_available):

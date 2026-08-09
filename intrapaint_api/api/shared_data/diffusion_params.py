@@ -6,14 +6,16 @@ from PIL import Image
 from pydantic import BaseModel, ConfigDict
 
 from intrapaint_api.api.shared_data.controlnet.controlnet_unit import ControlNetUnit
-from intrapaint_api.util.visual.image_utils import image_to_base64
 
 logger = logging.getLogger(__name__)
 
 
 class DiffusionParams(BaseModel):
     """Request body format for image generation (all types)"""
-    model_config = ConfigDict(arbitrary_types_allowed=True)
+    # use_enum_values: store/serialize enum fields (e.g. WebUI ResizeMode, InpaintFillOption) as their underlying
+    # values, so model_dump() produces the JSON-serializable ints the APIs expect. validate_default ensures enum
+    # *defaults* (e.g. inpainting_fill=InpaintFillOption.ORIGINAL) are converted too, not just explicitly-set values.
+    model_config = ConfigDict(arbitrary_types_allowed=True, use_enum_values=True, validate_default=True)
 
     ### Basic image generation:
     sd_model_name: str = ''

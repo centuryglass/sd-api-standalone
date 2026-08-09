@@ -3,11 +3,10 @@ import os
 
 from PIL import Image, ImageChops, ImageDraw
 
-from intrapaint_api.api.webui.controlnet_webui_constants import CONTROLNET_SCRIPT_KEY
+from intrapaint_api.api.shared_data.controlnet.controlnet_model import ControlNetModel
+from intrapaint_api.api.shared_data.controlnet.controlnet_preprocessor import ControlNetPreprocessor, PreprocessorParams
+from intrapaint_api.api.shared_data.controlnet.controlnet_unit import ControlNetUnit
 from intrapaint_api.api.webui.diffusion_request_body import DiffusionRequestBody
-from intrapaint_api.config.cache import Cache
-from intrapaint_api.util.geometry import Size
-from intrapaint_api.util.visual.image_utils import image_to_base64
 
 # Keep generation cheap: tiny canvas, minimal steps, single image.
 TEST_SIZE = 256
@@ -85,29 +84,23 @@ def images_differ(a: Image.Image, b: Image.Image) -> float:
     return total / pixel_count if pixel_count else 0.0
 
 
-def controlnet_unit_dict(module: str, model: str, control_image: Image.Image,
-                        weight: float = 1.0) -> dict:
-    """A minimal ControlNet unit payload for alwayson_scripts, mirroring what the WebUI API expects."""
-    return {
-        'enabled': True,
-        'module': module,
-        'model': model,
-        'weight': weight,
-        'image': image_to_base64(control_image, include_prefix=True),
-        'resize_mode': 'Crop and Resize',
-        'processor_res': TEST_SIZE,
-        'guidance_start': 0.0,
-        'guidance_end': 1.0,
-        'control_mode': 0,
-        'pixel_perfect': True,
-    }
+def make_controlnet_unit(module: str, model: str, control_image: Image.Image,
+                         weight: float = 1.0) -> ControlNetUnit:
+    """A minimal ControlNetUnit for the controlnet_units interface (serialized to WebUI by DiffusionRequestBody)."""
+    return ControlNetUnit(
+        image=control_image,
+        model=ControlNetModel(model),
+        preprocessor=PreprocessorParams(typedef=ControlNetPreprocessor(name=module)),
+        control_strength=weight,
+        control_start=0.0,
+        control_end=1.0,
+    )
 
 
-def add_controlnet_unit(body: DiffusionRequestBody, unit: dict) -> None:
-    """Attach a ControlNet unit to a request body's alwayson_scripts."""
-    if body.alwayson_scripts is None:
-        body.alwayson_scripts = {}
-    body.alwayson_scripts[CONTROLNET_SCRIPT_KEY] = {'args': [unit]}
+def add_controlnet_unit(body: DiffusionRequestBody, unit: ControlNetUnit) -> None:
+    """Attach a ControlNet unit to a request body via the controlnet_units interface, which DiffusionRequestBody
+       serializes into alwayson_scripts on send."""
+    body.controlnet_units.append(unit)
 
 
 def save_output(output_dir: str, name: str, image: Image.Image) -> str:
@@ -135,14 +128,3 @@ def fast_request_body(prompt: str = 'a red apple on a table') -> DiffusionReques
     return body
 
 
-def configure_fast_cache() -> None:
-    """Point the (isolated) cache at a small, fast generation profile."""
-    cache = Cache()
-    cache.set(Cache.PROMPT, 'a red apple on a table')
-    cache.set(Cache.NEGATIVE_PROMPT, '')
-    cache.set(Cache.SAMPLING_STEPS, TEST_STEPS)
-    cache.set(Cache.BATCH_SIZE, 1)
-    cache.set(Cache.BATCH_COUNT, 1)
-    cache.set(Cache.GENERATION_SIZE, Size(TEST_SIZE, TEST_SIZE))
-    # "Lanczos" is a built-in upscaler present on every WebUI build (see test_get_upscalers).
-    cache.set(Cache.SCALING_MODE, 'Lanczos')

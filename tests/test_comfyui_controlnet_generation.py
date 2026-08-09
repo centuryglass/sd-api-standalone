@@ -13,8 +13,8 @@ import os
 import pytest
 from PIL import Image
 
-from intrapaint_api.api.comfyui.comfyui_diffusion_params import ComfyUIDiffusionParams
 from intrapaint_api.api.shared_data.controlnet.controlnet_model import ControlNetModel
+from intrapaint_api.api.shared_data.controlnet.controlnet_preprocessor import PreprocessorParams
 from intrapaint_api.api.shared_data.controlnet.controlnet_unit import ControlNetUnit
 from .comfy_helpers import find_canny_model, find_canny_preprocessor, wait_for_comfy_images, build_comfy_params
 from .helpers import images_differ, make_edge_image, save_output
@@ -33,7 +33,8 @@ def canny(comfy_service) -> ControlNetUnit:
         pytest.skip('No Canny preprocessor node installed (comfyui_controlnet_aux?).')
     if model is None:
         pytest.skip('No Canny ControlNet model installed.')
-    return ControlNetUnit(model=ControlNetModel(model), preprocessor=preprocessor)
+    return ControlNetUnit(model=ControlNetModel(model),
+                          preprocessor=PreprocessorParams(typedef=preprocessor))
 
 
 def test_controlnet_preprocessor_preview(comfy_service, canny, output_dir):
@@ -41,11 +42,13 @@ def test_controlnet_preprocessor_preview(comfy_service, canny, output_dir):
     controlnet_unit = canny
     source = make_edge_image()
     save_output(output_dir, 'comfy_controlnet_input', source)
+    assert controlnet_unit.preprocessor is not None
     response = comfy_service.controlnet_preprocessor_preview(source, source, controlnet_unit.preprocessor.typedef)
     images = wait_for_comfy_images(comfy_service, response)
     assert len(images) >= 1
     preview = images[0]
     assert isinstance(preview, Image.Image)
+    assert controlnet_unit.preprocessor is not None
     save_output(output_dir, f'comfy_controlnet_preview_{controlnet_unit.preprocessor.typedef.name}', preview)
     extrema = preview.convert('L').getextrema()
     assert extrema[0] != extrema[1], 'preprocessor preview is a flat image — preprocessing did nothing'

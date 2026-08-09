@@ -3,9 +3,12 @@ import re
 from copy import deepcopy
 from typing import Optional, cast
 
-from intrapaint_api.api.shared_data.controlnet.controlnet_constants import STATIC_CONTROL_TYPE_DEFS, , StaticControlTypeDef
+from intrapaint_api.api.shared_data.controlnet.controlnet_constants import STATIC_CONTROL_TYPE_DEFS, StaticControlTypeDef
 from intrapaint_api.api.webui.controlnet_webui_constants import ControlTypeDef, ControlTypeResponse, PREPROCESSOR_MODEL_FREE
 
+# TODO: temp constants, remove or relocate after figuring out how to properly reduce the use of 'None' strings to minimum
+PREPROCESSOR_NONE = 'None'
+CONTROLNET_MODEL_NONE = 'None'
 
 class ControlNetCategoryBuilder:
     """Sorts ControlNet models and preprocessors into categories, automatically filtering out unavailable options."""

@@ -44,7 +44,7 @@ def image_to_base64(image: Union[Image.Image, str], include_prefix: bool = False
     return image_str
 
 
-def image_from_base64(image_str: str, validate=True) -> Image.Image:
+def image_from_base64(image_str: str) -> Image.Image:
     """Return a PIL image (RGBA) from base64-encoded string data, tolerating an optional data-URI prefix."""
     if image_str.startswith(BASE_64_PREFIX):
         image_str = image_str[len(BASE_64_PREFIX):]

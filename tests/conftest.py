@@ -34,14 +34,11 @@ import os
 import tempfile
 
 import pytest
+from pydantic import ValidationError
 
 # --- Config isolation: must happen before anything instantiates the singletons. ---
 _TMP_CONFIG_DIR = tempfile.mkdtemp(prefix='sd_api_it_config_')
 
-from intrapaint_api.config.cache import Cache  # noqa: E402
-
-# Win the singleton race with isolated, disposable config files.
-Cache(os.path.join(_TMP_CONFIG_DIR, 'cache.json'))
 
 from intrapaint_api.api.a1111_webservice import A1111Webservice, AuthError  # noqa: E402
 from intrapaint_api.api.comfyui_webservice import ComfyUiWebservice  # noqa: E402
@@ -149,9 +146,9 @@ def controlnet_available(service):
     """
     try:
         models = service.get_controlnet_models()
-    except RuntimeError as err:
-        pytest.skip(f'ControlNet extension not installed: {err}')
-    if 'model_list' not in models:
+    except (RuntimeError, ValidationError) as err:
+        pytest.skip(f'ControlNet extension not installed or returned an unexpected response: {err}')
+    if not models.model_list:
         pytest.skip(f'Unexpected /controlnet/model_list response: {models!r}')
     return service
 

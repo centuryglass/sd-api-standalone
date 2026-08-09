@@ -16,6 +16,6 @@ def random_seed() -> int:
 
 def image_ref_to_str(image_ref: ImageFileReference) -> str:
     """Converts an uploaded image/mask file reference to an API-compatible string representation."""
-    if 'subfolder' in image_ref and image_ref['subfolder'] != '':
-        return f'{image_ref["subfolder"]}/{image_ref["filename"]}'
-    return image_ref['filename']
+    if image_ref.subfolder is not None and image_ref.subfolder != '':
+        return f'{image_ref.subfolder}/{image_ref.filename}'
+    return image_ref.filename

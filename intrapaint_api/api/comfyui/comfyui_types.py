@@ -47,27 +47,28 @@ class ParamDef(BaseModel):
 
 class IntParamDef(ParamDef):
     """Defines int parameter ranges, step size, and default value."""
+    # min/max/step are omitted by some ComfyUI nodes (e.g. KSampler's `steps` and `seed` carry no `step`).
     default: int
-    min: int
-    max: int
-    step: int
+    min: Optional[int] = None
+    max: Optional[int] = None
+    step: Optional[int] = None
     display: Optional[DisplayType] = None
 
 
 class FloatParamDef(ParamDef):
     """Defines float parameter ranges, step size, and default value."""
     default: float
-    min: float
-    max: float
-    step: float
+    min: Optional[float] = None
+    max: Optional[float] = None
+    step: Optional[float] = None
     round: Optional[float] = None
 
 
 class StrParamDef(ParamDef):
     """Defines string parameter requirements."""
     default: Optional[str] = None
-    multiline: bool
-    dynamicPrompts: bool
+    multiline: bool = False
+    dynamicPrompts: bool = False
 
 
 class BoolParamDef(ParamDef):
@@ -75,13 +76,10 @@ class BoolParamDef(ParamDef):
     default: bool
 
 
-IntParam: TypeAlias = tuple[Literal['INT'], IntParamDef]
-BoolParam: TypeAlias = tuple[Literal['BOOLEAN'], BoolParamDef]
-FloatParam: TypeAlias = tuple[Literal['FLOAT'], FloatParamDef]
-StrOptionParam: TypeAlias = tuple[list[str]] | tuple[list[str], ParamDef]
-CustomTypedParam: TypeAlias = tuple[ComplexInputType] | tuple[ComplexInputType, ParamDef]
-InputParam: TypeAlias = IntParam | FloatParam | BoolParam | StrOptionParam \
-                        | CustomTypedParam
+# A node input is a tuple of (type-name-or-option-list, optional param-def dict). The exact per-type shape varies
+# widely across core and custom nodes, and consumers only index [0]/[1] (re-validating [1] as the appropriate
+# ParamDef when they need it), so keep this permissive rather than modeling every variant as a strict union.
+InputParam: TypeAlias = tuple[Any, ...]
 
 
 class InputTypeDef(BaseModel):
@@ -162,13 +160,15 @@ class SystemStatResponse(BaseModel):
 class NodeInfoResponse(BaseModel):
     """Response defining a ComfyUI node."""
     input: InputTypeDef
-    input_order: dict[Literal['required', 'optional'], list[str]]
-    output: tuple[NodeReturnType]
+    input_order: dict[str, list[str]]  # keys are 'required' / 'optional' / 'hidden'
+    # One entry per output; each is a type-name string, or a list of names for a COMBO output. Kept permissive
+    # because get_controlnet_preprocessors validates every installed node, including arbitrary custom ones.
+    output: list[Any]
     output_is_list: list[bool]  # length should match output
     output_name: list[str]  # Length should match output
     name: str
-    display_name: str
-    description: str
+    display_name: Optional[str] = None  # get_all_preprocessors falls back to `name` when absent
+    description: Optional[str] = None
     python_module: str
     category: str
     output_node: bool
@@ -179,8 +179,10 @@ class NodeInfoResponse(BaseModel):
 # QUEUED PROMPT/TASK DATA:
 
 # Entry structure: (task_number, UUID, workflow, optional_extra_data)
-QueueEntry: TypeAlias = tuple[int, str, dict[str, dict[str, Any]]] \
-                        | tuple[int, str, dict[str, dict[str, Any]], dict[str, Any]]
+# TODO: this is ugly, analyze the queue structure and make a pydantic class.
+# A queue entry is (number, prompt_id, prompt, extra_data, outputs_to_execute); ComfyUI's exact arity varies by
+# version, and we only read [0] (number) and [1] (prompt_id), so keep it a permissive variable-length tuple.
+QueueEntry: TypeAlias = tuple[Any, ...]
 
 ACTIVE_QUEUE_KEY = 'queue_running'
 PENDING_QUEUE_KEY = 'queue_pending'
@@ -219,9 +221,9 @@ class NodeErrorEntry(BaseModel):
 class QueueAdditionResponse(BaseModel):
     """Response structure used when a new job is queued."""
     prompt_id: Optional[str] = None  # UUID, omitted on error
-    number: Optional[int]  # Queue number/priority, omitted on error
+    number: Optional[int] = None  # Queue number/priority, omitted on error
     error: Optional[str | ErrorEntry] = None
-    node_errors: list[NodeErrorEntry]
+    node_errors: dict[str, NodeErrorEntry] = {}  # keyed by node id; empty on success
 
     # IntraPaint extensions:
     # These properties won't ever be set by ComfyUI, they're additions that IntraPaint uses to simplify passing data
@@ -263,7 +265,7 @@ class PromptExecOutputs(BaseModel):
 class PromptHistory(BaseModel):
     """Prompt execution data from the /history endpoint."""
     prompt: QueueEntry
-    outputs: dict[str, dict[str, PromptExecOutputs]]  # keys are output node ids
+    outputs: dict[str, PromptExecOutputs]  # keys are output node ids
     status: PromptExecStatus
 
 

@@ -21,27 +21,27 @@ def test_get_samplers(service):
     samplers = service.get_samplers()
     assert isinstance(samplers, list) and len(samplers) > 0
     for sampler in samplers:
-        assert 'name' in sampler and isinstance(sampler['name'], str)
-        assert 'aliases' in sampler
+        assert isinstance(sampler.name, str) and sampler.name
+        assert isinstance(sampler.aliases, list)
 
 
 def test_get_upscalers(service):
     upscalers = service.get_upscalers()
     assert isinstance(upscalers, list) and len(upscalers) > 0
-    names = [u['name'] for u in upscalers]
+    names = [u.name for u in upscalers]
     # "None" and "Lanczos" are built in and always present.
     assert 'Lanczos' in names
     for upscaler in upscalers:
-        assert 'name' in upscaler
-        assert 'scale' in upscaler
+        assert upscaler.name
+        assert upscaler.scale is not None
 
 
 def test_get_models(service):
     models = service.get_models()
     assert isinstance(models, list) and len(models) > 0, 'no checkpoints installed on the server'
     for model in models:
-        assert 'title' in model
-        assert 'model_name' in model
+        assert model.title
+        assert model.model_name
 
 
 def test_get_vae_with_forge_fallback(service):
@@ -55,7 +55,7 @@ def test_get_loras(service):
     loras = service.get_loras()
     assert isinstance(loras, list)
     for lora in loras:
-        assert 'name' in lora
+        assert lora.name
 
 
 def test_get_hypernetworks(service):
@@ -78,25 +78,22 @@ def test_get_styles(service):
 
 def test_get_scripts(service):
     scripts = service.get_scripts()
-    assert 'txt2img' in scripts
-    assert 'img2img' in scripts
-    assert isinstance(scripts['txt2img'], list)
-    assert isinstance(scripts['img2img'], list)
+    assert isinstance(scripts.txt2img, list)
+    assert isinstance(scripts.img2img, list)
 
 
 def test_get_script_info(service):
     info = service.get_script_info()
     assert isinstance(info, list)
     if info:
-        assert 'name' in info[0]
+        assert info[0].name
 
 
 def test_progress_check_shape(service):
     progress = service.progress_check()
-    assert 'progress' in progress
-    assert 'state' in progress
-    assert isinstance(progress['progress'], (int, float))
-    assert 'sampling_steps' in progress['state']
+    assert isinstance(progress.progress, (int, float))
+    assert progress.state is not None
+    assert isinstance(progress.state.sampling_steps, int)
 
 
 def test_refresh_checkpoints(service):

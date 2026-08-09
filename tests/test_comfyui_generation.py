@@ -8,9 +8,8 @@ Results are saved under the output dir for visual fidelity inspection.
 import pytest
 from PIL import Image
 
-
 from .comfy_helpers import (COMFY_SIZE, build_comfy_params, make_comfy_mask, wait_for_comfy_images)
-from .helpers import (images_differ, make_structured_image, make_test_image, region_mean_diff,
+from .helpers import (images_differ, make_structured_image, region_mean_diff,
                       save_output)
 
 pytestmark = [pytest.mark.integration, pytest.mark.generation]
@@ -96,21 +95,18 @@ def test_inpaint_respects_mask(comfy_service, comfy_checkpoint, output_dir):
     )
 
 
-def test_upscale(comfy_service, comfy_checkpoint, output_dir):
+def test_upscale(comfy_service, output_dir):
     from intrapaint_api.api.comfyui_webservice import ComfyModelType
-    from intrapaint_api.config.cache import Cache
+    from intrapaint_api.api.shared_data.api_datatypes import DiffusionUpscalingParams
 
     upscale_models = comfy_service.get_models(ComfyModelType.UPSCALING)
     if not upscale_models:
         pytest.skip('No upscale models installed on the ComfyUI server.')
-    params = build_comfy_params(comfy_checkpoint)
-    # Basic (non-SD) upscaling path: needs a valid upscale model registered in the cache.
-    Cache().set(Cache.GENERATOR_SCALING_MODES, upscale_models)
-    Cache().set(Cache.SCALING_MODE, upscale_models[0], add_missing_options=True)
-    Cache().set(Cache.USE_STABLE_DIFFUSION_UPSCALING, False)
+    # Basic (non-SD) upscaling path, driven by an explicit upscaler model.
+    upscale_params = DiffusionUpscalingParams(upscaling_mode=upscale_models[0])
 
     source = make_structured_image(128, 128)
-    response = comfy_service.upscale(source, 256, 256)
+    response = comfy_service.upscale(source, 256, 256, upscale_params)
     images = wait_for_comfy_images(comfy_service, response)
     assert len(images) >= 1
     result = images[0]

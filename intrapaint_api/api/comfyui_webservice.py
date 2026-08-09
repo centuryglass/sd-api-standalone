@@ -13,13 +13,13 @@ from typing import cast, Optional, Any, Generator
 import binascii
 import websocket
 from PIL import Image
-from pydantic import BaseModel
+from pydantic import BaseModel, ValidationError
 
 from intrapaint_api.api.comfyui.basic_upscale_workflow_builder import build_basic_upscaling_workflow
 from intrapaint_api.api.comfyui.comfyui_types import QueueAdditionRequest, QueueAdditionResponse, QueueDeletionRequest, \
-    ImageFileReference, PromptExecOutputs, NodeInfoResponse, SystemStatResponse, ImageUploadParams, \
+    ImageFileReference, PromptExecOutputs, NodeInfoResponse, SystemStatResponse, ImageUploadParams, MaskUploadParams, \
     IMAGE_UPLOAD_FILE_NAME, ImageUploadResponse, QueueInfoResponse, ACTIVE_QUEUE_KEY, \
-    PENDING_QUEUE_KEY, QueueHistoryResponse, FreeMemoryRequest
+    PENDING_QUEUE_KEY, QueueHistoryResponse, PromptHistory, FreeMemoryRequest
 from intrapaint_api.api.comfyui.controlnet_comfyui_utils import get_all_preprocessors
 from intrapaint_api.api.comfyui.diffusion_workflow_builder import DiffusionWorkflowBuilder
 from intrapaint_api.api.comfyui.latent_upscale_workflow_builder import LatentUpscaleWorkflowBuilder
@@ -152,20 +152,22 @@ class ComfyUiWebservice(WebService):
         """Gets the list of sampling method names from KSampler node info."""
         ksampler_info = self._get_ksampler_info_caching()
         required_inputs = ksampler_info.input.required
-        assert SAMPLER_OPTION_KEY in required_inputs and isinstance(required_inputs[SAMPLER_OPTION_KEY], list)
+        # After validation the option param is a tuple whose first element is the list of option names.
+        assert SAMPLER_OPTION_KEY in required_inputs and isinstance(required_inputs[SAMPLER_OPTION_KEY], tuple)
         return cast(list[str], required_inputs[SAMPLER_OPTION_KEY][0])
 
     def get_scheduler_names(self) -> list[str]:
         """Gets the list of sampling scheduler names from KSampler node info."""
         ksampler_info = self._get_ksampler_info_caching()
         required_inputs = ksampler_info.input.required
-        assert SCHEDULER_OPTION_KEY in required_inputs and isinstance(required_inputs[SCHEDULER_OPTION_KEY], list)
+        assert SCHEDULER_OPTION_KEY in required_inputs and isinstance(required_inputs[SCHEDULER_OPTION_KEY], tuple)
         return cast(list[str], required_inputs[SCHEDULER_OPTION_KEY][0])
 
     def is_node_available(self, node_name: str) -> bool:
         """Checks if a node with the given name is available."""
         info_endpoint = f'{ComfyEndpoints.OBJECT_INFO}/{node_name}'
-        node_info = cast(dict[str, NodeInfoResponse], self.get(info_endpoint).json())
+        # Only the presence of the node key matters here, so keep the raw response as a plain dict.
+        node_info: dict[str, Any] = self.get(info_endpoint).json()
         return node_name in node_info
 
     def get_embeddings(self) -> list[str]:
@@ -182,7 +184,7 @@ class ComfyUiWebservice(WebService):
 
     def get_system_stats(self) -> SystemStatResponse:
         """Returns information about the system and device running Stable Diffusion."""
-        return cast(SystemStatResponse,
+        return SystemStatResponse.model_validate(
                     self.get(ComfyEndpoints.SYSTEM_STATS, timeout=DEFAULT_TIMEOUT).json())
 
     def get_models(self, model_type: ComfyModelType) -> list[str]:
@@ -213,8 +215,15 @@ class ComfyUiWebservice(WebService):
     def get_controlnet_preprocessors(self, update_cache=False) -> list[ControlNetPreprocessor]:
         """Scans all nodes for valid preprocessor nodes, and returns the list of parameterized options."""
         if update_cache or self._preprocessor_cache is None:
-            node_data = cast(dict[str, NodeInfoResponse],
-                             self.get(ComfyEndpoints.OBJECT_INFO, timeout=DEFAULT_TIMEOUT).json())
+            raw_node_data = self.get(ComfyEndpoints.OBJECT_INFO, timeout=DEFAULT_TIMEOUT).json()
+            node_data = {}
+            for name, info in raw_node_data.items():
+                try:
+                    node_data[name] = NodeInfoResponse.model_validate(info)
+                except ValidationError as err:
+                    # ComfyUI installs an open-ended set of core + custom nodes; those that don't match the schema
+                    # can't be usable ControlNet preprocessors anyway, so skip them instead of failing discovery.
+                    logger.debug(f'Skipping node {name!r}, does not match NodeInfoResponse schema: {err}')
             self._preprocessor_cache = get_all_preprocessors(node_data)
         assert self._preprocessor_cache is not None
         return deepcopy(self._preprocessor_cache)
@@ -239,7 +248,8 @@ class ComfyUiWebservice(WebService):
                            image: Image.Image | str,
                            endpoint:str, name: Optional[str] = None,
                            subfolder: Optional[str] = None,
-                           temp=False, overwrite=True) -> ImageFileReference:
+                           temp=False, overwrite=True,
+                           original_ref: Optional[ImageFileReference] = None) -> ImageFileReference:
         if isinstance(image, str):
             if os.path.isfile(image):
                 with open(image, 'rb') as image_file:
@@ -253,8 +263,15 @@ class ComfyUiWebservice(WebService):
         image_key = get_image_key(image)
         if image_key in self._uploaded_images:
             return self._uploaded_images[image_key]
-        body = ImageUploadParams(type='temp' if temp else 'input',
-                                 subfolder=subfolder if subfolder is not None else INTRAPAINT_UPLOAD_SUBFOLDER)
+        resolved_subfolder = subfolder if subfolder is not None else INTRAPAINT_UPLOAD_SUBFOLDER
+        if original_ref is not None:
+            # Mask uploads must reference the original image via `original_ref` (a JSON string), which ComfyUI's
+            # /upload/mask endpoint json.loads(); omitting it makes the server fail on json.loads(None).
+            body: ImageUploadParams = MaskUploadParams(type='temp' if temp else 'input',
+                                                       subfolder=resolved_subfolder,
+                                                       original_ref=original_ref.model_dump_json(exclude_none=True))
+        else:
+            body = ImageUploadParams(type='temp' if temp else 'input', subfolder=resolved_subfolder)
         if overwrite:
             body.overwrite = '1'
         image_data = image_to_png_bytes(image)
@@ -301,7 +318,7 @@ class ComfyUiWebservice(WebService):
                    to invert mask images before using them here.
         """
         return self._upload_image_file(mask, ComfyEndpoints.MASK_UPLOAD, f'mask_{ref_image.filename}',
-                                       subfolder, False, overwrite)
+                                       subfolder, False, overwrite, original_ref=ref_image)
 
 
     def download_images(self, image_refs: list[ImageFileReference]) -> list[Image.Image]:
@@ -395,7 +412,7 @@ class ComfyUiWebservice(WebService):
             self._prepare_controlnet_data(workflow_builder, diffusion_params.controlnet_units)
         prompt = workflow_builder.build_workflow().get_workflow_dict()
         body = QueueAdditionRequest(prompt=prompt, client_id=self._client_id)
-        res = QueueAdditionResponse.model_validate(self.post(ComfyEndpoints.PROMPT, body=body,
+        res = QueueAdditionResponse.model_validate(self.post(ComfyEndpoints.PROMPT, body=body.model_dump(exclude_none=True),
                                                     timeout=DEFAULT_TIMEOUT).json())
         res.seed = workflow_builder.seed
         return res
@@ -413,7 +430,7 @@ class ComfyUiWebservice(WebService):
             self._prepare_controlnet_data(workflow_builder, diffusion_params.controlnet_units)
         prompt = workflow_builder.build_workflow().get_workflow_dict()
         body = QueueAdditionRequest(prompt=prompt, client_id=self._client_id)
-        res = QueueAdditionResponse.model_validate(self.post(ComfyEndpoints.PROMPT, body=body.model_dump(),
+        res = QueueAdditionResponse.model_validate(self.post(ComfyEndpoints.PROMPT, body=body.model_dump(exclude_none=True),
                                                    timeout=DEFAULT_TIMEOUT).json())
         res.seed = workflow_builder.seed
         return res
@@ -466,7 +483,7 @@ class ComfyUiWebservice(WebService):
         workflow = workflow_builder.build_workflow(image_reference, mask_reference)
         prompt = workflow.get_workflow_dict()
         body = QueueAdditionRequest(prompt=prompt, client_id=self._client_id)
-        return QueueAdditionResponse.model_validate(self.post(ComfyEndpoints.PROMPT, body=body.model_dump(),
+        return QueueAdditionResponse.model_validate(self.post(ComfyEndpoints.PROMPT, body=body.model_dump(exclude_none=True),
                                                     timeout=DEFAULT_TIMEOUT).json())
 
     def upscale(self, image: Image.Image, width: int, height: int,
@@ -513,7 +530,7 @@ class ComfyUiWebservice(WebService):
 
         prompt = workflow_node_graph.get_workflow_dict()
         body = QueueAdditionRequest(prompt=prompt, client_id=self._client_id)
-        res = QueueAdditionResponse.model_validate(self.post(ComfyEndpoints.PROMPT, body=body,
+        res = QueueAdditionResponse.model_validate(self.post(ComfyEndpoints.PROMPT, body=body.model_dump(exclude_none=True),
                                                     timeout=DEFAULT_TIMEOUT).json())
         return res
 
@@ -527,14 +544,14 @@ class ComfyUiWebservice(WebService):
             queue_list = res_body[queue_key]
             assert isinstance(queue_list, list)
             res_body[queue_key] = [tuple(queue_entry) for queue_entry in queue_list]
-        return cast(QueueInfoResponse, res_body)
+        return QueueInfoResponse.model_validate(res_body)
 
     def check_queue_entry(self, entry_uuid: str, task_number: int) -> AsyncTaskProgress:
         """Returns the status of a queued task, along with associated data when relevant."""
         endpoint = f'{ComfyEndpoints.HISTORY}/{entry_uuid}'
-        history_response = cast(QueueHistoryResponse, self.get(endpoint, timeout=DEFAULT_TIMEOUT).json())
+        history_response = self.get(endpoint, timeout=DEFAULT_TIMEOUT).json()
         if entry_uuid in history_response:
-            entry_history = history_response[entry_uuid]
+            entry_history = PromptHistory.model_validate(history_response[entry_uuid])
             if entry_history.status.status_str == 'error':
                 return AsyncTaskProgress(status=AsyncTaskStatus.FAILED)
             if entry_history.status.completed:

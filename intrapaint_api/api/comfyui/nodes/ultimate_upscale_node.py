@@ -1,5 +1,5 @@
 """A ComfyUI node used to apply the 'Ultimate SD Upscale' script."""
-from typing import TypedDict, NotRequired, cast, Any, Literal, Optional
+from typing import cast, Any, Literal, Optional
 
 from pydantic import BaseModel
 

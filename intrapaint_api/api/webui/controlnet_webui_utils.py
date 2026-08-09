@@ -2,15 +2,14 @@
 import logging
 from typing import Optional
 
-from intrapaint_api.api.shared_data.controlnet.control_parameter import ControlParameter
 from intrapaint_api.api.shared_data.controlnet.controlnet_preprocessor import ControlNetPreprocessor, ParameterDef
-from intrapaint_api.api.webui.controlnet_webui_constants import RESIZE_MODE_PARAM_KEY, RESIZE_MODE_LABEL, RESIZE_MODE_DEFAULT, \
+from intrapaint_api.api.webui.controlnet_webui_constants import RESIZE_MODE_PARAM_KEY, RESIZE_MODE_LABEL, \
+    RESIZE_MODE_DEFAULT, \
     RESIZE_MODE_OPTIONS, ModuleDetail, PREPROCESSOR_NO_CONTROL_MODE, CONTROL_MODE_PARAM_KEY, CONTROL_MODE_LABEL, \
     CONTROL_MODE_DEFAULT, CONTROL_MODE_OPTIONS, FIRST_GENERIC_PARAMETER_KEY, SECOND_GENERIC_PARAMETER_KEY, \
     PREPROCESSOR_RES_PARAM_NAME, PREPROCESSOR_RES_PARAM_KEY, PREPROCESSOR_NO_RESOLUTION, PREPROCESSOR_RES_DEFAULT, \
     PREPROCESSOR_RES_DEFAULTS, PREPROCESSOR_RES_LABEL, PREPROCESSOR_RES_MIN, PREPROCESSOR_RES_MAX, \
-    PREPROCESSOR_RES_STEP, THRESHOLD_A_PARAMETER_NAMES, THRESHOLD_B_PARAMETER_NAMES, PREPROCESSOR_MODEL_FREE, \
-    ControlNetUnitDict
+    PREPROCESSOR_RES_STEP, THRESHOLD_A_PARAMETER_NAMES, THRESHOLD_B_PARAMETER_NAMES, PREPROCESSOR_MODEL_FREE
 
 logger = logging.getLogger(__name__)
 
@@ -21,6 +20,7 @@ def _resize_mode_parameter() -> ParameterDef:
     return ParameterDef(key=RESIZE_MODE_PARAM_KEY,
                         default_value=RESIZE_MODE_DEFAULT,
                         description=RESIZE_MODE_LABEL,
+                        required=True,
                         option_list=RESIZE_MODE_OPTIONS)
 
 
@@ -38,6 +38,7 @@ def get_all_preprocessors(preprocessor_names: list[str],
             control_type_param = ParameterDef(key=CONTROL_MODE_PARAM_KEY,
                                               default_value=CONTROL_MODE_DEFAULT,
                                               description=CONTROL_MODE_LABEL,
+                                              required=True,
                                               option_list=CONTROL_MODE_OPTIONS)
             parameters.append(control_type_param)
 
@@ -50,15 +51,16 @@ def get_all_preprocessors(preprocessor_names: list[str],
             # Iterate through parameter definitions.  Resolution parameter is identified by name, threshold_a and
             # threshold_b are identified by their order.
             for parameter_definition in preprocessor_dict.sliders:
-                name = parameter_definition['name']
+                name = parameter_definition.name
                 if name.lower() == PREPROCESSOR_RES_PARAM_NAME:
                     parameters.insert(resize_insert_index, _resize_mode_parameter())
                     res_param = ParameterDef(key=PREPROCESSOR_RES_PARAM_KEY,
                                              description=PREPROCESSOR_RES_LABEL,
-                                             default_value=parameter_definition['default'],
-                                             min_val=parameter_definition['min'],
-                                             max_val=parameter_definition['max'],
-                                             step_val=parameter_definition['step'])
+                                             default_value=parameter_definition.default,
+                                             required=True,
+                                             min_val=parameter_definition.min,
+                                             max_val=parameter_definition.max,
+                                             step_val=parameter_definition.step)
                     parameters.insert(resize_insert_index + 1, res_param)
                 else:
                     if next_threshold_key is None:
@@ -70,10 +72,11 @@ def get_all_preprocessors(preprocessor_names: list[str],
                         next_threshold_key = None
                     parameter = ParameterDef(key=key,
                                              description=name,
-                                             default_value=parameter_definition['default'],
-                                             min_val=parameter_definition['min'],
-                                             max_val=parameter_definition['max'],
-                                             step_val=parameter_definition['step'])
+                                             default_value=parameter_definition.default,
+                                             required=True,
+                                             min_val=parameter_definition.min,
+                                             max_val=parameter_definition.max,
+                                             step_val=parameter_definition.step)
                     parameters.append(parameter)
 
         else:  # No API preprocessor definition, use predefined constants:
@@ -84,6 +87,7 @@ def get_all_preprocessors(preprocessor_names: list[str],
                 parameters.append(ParameterDef(key=PREPROCESSOR_RES_PARAM_KEY,
                                                description=PREPROCESSOR_RES_LABEL,
                                                default_value=resolution_default,
+                                               required=True,
                                                min_val=PREPROCESSOR_RES_MIN,
                                                max_val=PREPROCESSOR_RES_MAX,
                                                step_val=PREPROCESSOR_RES_STEP))
@@ -95,6 +99,7 @@ def get_all_preprocessors(preprocessor_names: list[str],
                 parameters.append(ParameterDef(key=param_key,
                                                description=threshold_def.name,
                                                default_value=threshold_def.default,
+                                               required=True,
                                                min_val=threshold_def.min,
                                                max_val=threshold_def.max,
                                                step_val=threshold_def.step))

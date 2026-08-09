@@ -8,7 +8,7 @@ a handful of steps) so a round-trip is as cheap as possible.
 import pytest
 from PIL import Image
 
-from .helpers import (configure_fast_cache, fast_request_body, images_differ, make_mask,
+from .helpers import (fast_request_body, images_differ, make_mask,
                       make_structured_image, make_test_image, region_mean_diff, save_output, TEST_SIZE)
 
 pytestmark = [pytest.mark.integration, pytest.mark.generation]
@@ -99,9 +99,7 @@ def test_img2img_inpaint_respects_mask(service, output_dir):
 
 
 def test_upscale_basic(service, output_dir):
-    # Uses the plain "extra-single-image" upscaler path (no SD upscaling / ControlNet),
-    # driven by the isolated fast cache profile.
-    configure_fast_cache()
+    # Uses the plain "extra-single-image" upscaler path (no SD upscaling / ControlNet).
     source = make_structured_image(128, 128)
     response = service.upscale(source, 256, 256)
     assert len(response['images']) == 1

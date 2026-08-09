@@ -4,6 +4,8 @@ from typing import TypedDict, Dict, Optional, Literal
 from pydantic import BaseModel
 
 from intrapaint_api.api.shared_data.controlnet.controlnet_constants import ControlTypeDef
+from intrapaint_api.api.shared_data.controlnet.controlnet_unit import ControlNetUnit
+from intrapaint_api.util.visual.image_utils import image_to_base64
 
 # The `QCoreApplication.translate` context for strings in this file
 TR_ID = 'api.webui.controlnet_webui'
@@ -40,7 +42,7 @@ class ModuleDetail(BaseModel):
 class ControlNetModuleResponse(BaseModel):
     """Response format when loading ControlNet preprocessor options."""
     module_list: list[str]
-    module_details: Optional[Dict[str, ModuleDetail]]  # NOTE: not included in Forge.
+    module_details: Optional[Dict[str, ModuleDetail]] = None  # NOTE: not included in Forge, so must default to None.
 
 
 class ControlNetUnitDict(BaseModel):
@@ -55,7 +57,7 @@ class ControlNetUnitDict(BaseModel):
     model: str = 'None'
     weight: float= 1.0
     image: Optional[str] = None  # base64 image, usually necessary.
-    resize_mode: Literal['Just Resize', 'Crop and Resize', 'Resize and Fill'] = 'Just Resize'
+    resize_mode: Literal['Just Resize', 'Crop and Resize', 'Resize and Fill'] = 'Crop and Resize'
     guidance_start: float = 0.0
     guidance_end: float = 1.0
     control_mode: Optional[Literal['Balanced', 'My prompt is more important', 'ControlNet is more important']] = 'Balanced'
@@ -65,6 +67,33 @@ class ControlNetUnitDict(BaseModel):
     # Effects of threshold values (if any) vary based on preprocessor.
     threshold_a: Optional[float] = None
     threshold_b: Optional[float] = None
+
+    @classmethod
+    def from_unit(cls, unit: ControlNetUnit) -> 'ControlNetUnitDict':
+        """Build the WebUI wire format from a shared ControlNetUnit.
+
+        This is the single ControlNetUnit -> WebUI serialization point, so the shared data class stays free of
+        WebUI-specific details. Preprocessor parameter keys (`processor_res`, `threshold_a/b`, `control_mode`,
+        `resize_mode`) already match this model's field names, so any that correspond to a real field are copied
+        across; anything else is ignored.
+        """
+        preprocessor = unit.preprocessor
+        unit_dict = cls(
+            module=preprocessor.typedef.name if preprocessor is not None else 'None',
+            model=unit.model.full_model_name if unit.model is not None else 'None',
+            weight=float(unit.control_strength),
+            guidance_start=float(unit.control_start),
+            guidance_end=float(unit.control_end),
+            pixel_perfect=unit.pixel_perfect,
+            low_vram=unit.low_vram,
+        )
+        if unit.image is not None:
+            unit_dict.image = image_to_base64(unit.image, include_prefix=True)
+        if preprocessor is not None:
+            for key, value in preprocessor.parameter_values.items():
+                if key in cls.model_fields:
+                    setattr(unit_dict, key, value)
+        return unit_dict
 
 
 # Constants defining the "Control mode" option shared by most preprocessors:
@@ -90,7 +119,7 @@ RESIZE_MODE_DEFAULT = RESIZE_MODE_OPTIONS[1]
 
 CONTROL_WEIGHT_KEY = 'weight'
 START_STEP_KEY = 'guidance_start'
-END_STEP_KEY = 'guidance_start'
+END_STEP_KEY = 'guidance_end'
 
 # Generic keys used for setting preprocessor-specific values.
 FIRST_GENERIC_PARAMETER_KEY = 'threshold_a'

@@ -18,7 +18,7 @@ class PreprocessorPreviewWorkflowBuilder:
         self._preprocessor = preprocessor
         control_inputs = {}
         for parameter in preprocessor.parameters:
-            control_inputs[parameter.key] = parameter.value
+            control_inputs[parameter.key] = parameter.default_value
         self._preprocessor_node = DynamicPreprocessorNode(preprocessor.name, control_inputs,
                                                           preprocessor.has_image_input,
                                                           preprocessor.has_mask_input)

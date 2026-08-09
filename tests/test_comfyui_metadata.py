@@ -13,9 +13,9 @@ pytestmark = pytest.mark.integration
 
 def test_system_stats(comfy_service):
     stats = comfy_service.get_system_stats()
-    assert 'system' in stats
-    assert 'devices' in stats
-    assert isinstance(stats['devices'], list) and len(stats['devices']) > 0
+    assert stats.system is not None
+    assert stats.devices is not None
+    assert isinstance(stats.devices, list) and len(stats.devices) > 0
 
 
 def test_get_model_types(comfy_service):
@@ -81,7 +81,7 @@ def test_is_node_available(comfy_service):
 
 def test_get_queue_info(comfy_service):
     queue = comfy_service.get_queue_info()
-    assert 'queue_running' in queue
-    assert 'queue_pending' in queue
-    assert isinstance(queue['queue_running'], list)
-    assert isinstance(queue['queue_pending'], list)
+    assert queue.queue_running is not None
+    assert queue.queue_pending is not None
+    assert isinstance(queue.queue_running, list)
+    assert isinstance(queue.queue_pending, list)

@@ -12,16 +12,17 @@ from PIL import Image  # type: ignore
 from requests import Response
 
 from intrapaint_api.api.shared_data.controlnet.controlnet_category_builder import ControlNetCategoryBuilder
-from intrapaint_api.api.shared_data.controlnet.controlnet_preprocessor import ControlNetPreprocessor, PreprocessorParams
+from intrapaint_api.api.shared_data.controlnet.controlnet_preprocessor import ControlNetPreprocessor
 from intrapaint_api.api.shared_data.api_datatypes import DiffusionUpscalingParams
 from intrapaint_api.api.shared_data.controlnet.controlnet_unit import ControlNetUnit
 from intrapaint_api.api.webservice import WebService
 from intrapaint_api.api.webui.controlnet_webui_constants import (ControlNetModelResponse, ControlNetModuleResponse,
-                                                      ControlTypeDef, ControlTypeResponse, CONTROLNET_SCRIPT_KEY)
+                                                      ControlTypeDef, ControlTypeResponse, CONTROLNET_SCRIPT_KEY,
+                                                      ControlNetUnitDict)
 from intrapaint_api.api.webui.controlnet_webui_utils import get_all_preprocessors
 from intrapaint_api.api.webui.diffusion_request_body import DiffusionRequestBody
 from intrapaint_api.api.webui.request_formats import UpscalingRequestBody
-from intrapaint_api.api.webui.response_formats import GenerationInfoData, ProgressResponseBody, Img2ImgResponse, \
+from intrapaint_api.api.webui.response_formats import GenerationInfoData, ProgressResponseBody, \
     InterrogateResponse, PromptStyleData, SamplerInfo, UpscalerInfo, ModelInfo, VaeInfo, LoraInfo
 from intrapaint_api.api.webui.script_info_types import ScriptRequestData, ScriptResponseData, ScriptInfo
 from intrapaint_api.util.shared_constants import INTERROGATE_DEFAULT_MODEL
@@ -161,7 +162,8 @@ class A1111Webservice(WebService):
 
     def progress_check(self) -> ProgressResponseBody:
         """Checks the progress of an ongoing image operation."""
-        return cast(ProgressResponseBody, self.get(A1111Webservice.Endpoints.PROGRESS, timeout=DEFAULT_TIMEOUT).json())
+        return ProgressResponseBody.model_validate(
+            self.get(A1111Webservice.Endpoints.PROGRESS, timeout=DEFAULT_TIMEOUT).json())
 
     # Image manipulation:
     def img2img(self, image: Image.Image, mask: Optional[Image.Image] = None,
@@ -214,17 +216,15 @@ class A1111Webservice(WebService):
         return self._handle_image_response(res)
 
     def controlnet_preprocessor_preview(self, image: Image.Image, mask: Optional[Image.Image],
-                                        preprocessor: PreprocessorParams) -> Image.Image:
-        """Gets a preview image for a ControlNet preprocessor."""
+                                        preprocessor: ControlNetPreprocessor) -> Image.Image:
+        """Gets a preview image for a ControlNet preprocessor. The server applies its own parameter defaults."""
         input_images: list[str] = [image_to_base64(image, True)]
         if mask is not None:
             input_images.append(image_to_base64(mask, True))
         body: dict[str, int | float | str | list[str]] = {
-            'controlnet_module': preprocessor.typedef.name,
+            'controlnet_module': preprocessor.name,
             'controlnet_input_images': input_images
         }
-        for param in preprocessor.parameters:
-            body[param.key] = param.value
         res = self.post(A1111Webservice.Endpoints.CONTROLNET_PREVIEW, body)
         return self._handle_image_response(res)['images'][0]
 
@@ -252,7 +252,9 @@ class A1111Webservice(WebService):
             The generated image, plus accompanying image generation data if available.
         """
         upscale_options = [upscaler.name for upscaler in self.get_upscalers()]
-        upscaler: str = upscale_options[0]
+        # Default to the first real upscaler rather than upscale_options[0], which is the no-op 'None' upscaler that
+        # would leave the image unchanged.
+        upscaler: str = next((name for name in upscale_options if name.lower() != 'none'), upscale_options[0])
         if sd_upscale_params is not None and sd_upscale_params.upscaling_mode in upscale_options:
             upscaler = sd_upscale_params.upscaling_mode
 
@@ -282,13 +284,7 @@ class A1111Webservice(WebService):
                         tile_control_unit = None
             if tile_control_unit is not None and tile_control_unit.preprocessor is not None \
                         and tile_control_unit.model is not None:
-                control_unit_data = {
-                    'module': tile_control_unit.preprocessor.typedef.name,
-                    'model': tile_control_unit.model.full_model_name
-                }
-                for param in [tile_control_unit.control_start, tile_control_unit.control_end,
-                              tile_control_unit.control_strength, *tile_control_unit.preprocessor.parameter_values]:
-                    control_unit_data[param.key] = param.value  # type: ignore
+                control_unit_data = ControlNetUnitDict.from_unit(tile_control_unit).model_dump(exclude_none=True)
                 controlnet_script_data: ScriptRequestData = {'args': [control_unit_data]}
                 request_body.alwayson_scripts[CONTROLNET_SCRIPT_KEY] = controlnet_script_data
             if sd_upscale_params is not None and sd_upscale_params.use_stable_diffusion_upscaling:
@@ -369,18 +365,16 @@ class A1111Webservice(WebService):
         images = []
         info_data: Optional[GenerationInfoData] = None
         if 'images' in res_body:
-            img2img_res_body = cast(Img2ImgResponse, res.json())
-            info = img2img_res_body.info
-            if 'images' in img2img_res_body:
-                for image in img2img_res_body.images:
-                    images.append(image_from_base64(image))
+            for image in res_body['images']:
+                images.append(image_from_base64(image))
+            info = res_body.get('info')  # absent on some endpoints (e.g. /controlnet/detect)
             if isinstance(info, str):
                 try:
-                    info_data = cast(GenerationInfoData, json.loads(info))
+                    info_data = GenerationInfoData.model_validate(json.loads(info))
                 except json.JSONDecodeError:
                     logger.error(f'Image response info not valid JSON, got {info}')
                     info_data = None
-            else:
+            elif info is not None:
                 info_data = GenerationInfoData.model_validate(info)
         elif 'image' in res_body:  # basic upscaling result
             images = [image_from_base64(res_body['image'])]
@@ -411,7 +405,7 @@ class A1111Webservice(WebService):
         dict
             Response will have 'txt2img' and 'img2img' keys, each holding a list of scripts available for that mode.
         """
-        return cast(ScriptResponseData, self.get(A1111Webservice.Endpoints.SCRIPTS).json())
+        return ScriptResponseData.model_validate(self.get(A1111Webservice.Endpoints.SCRIPTS).json())
 
     def get_script_info(self) -> list[ScriptInfo]:
         """Returns information on expected script parameters
@@ -420,7 +414,7 @@ class A1111Webservice(WebService):
         list of dict
             Objects defining all parameters required by each script.
         """
-        return cast(list[ScriptInfo], self.get(A1111Webservice.Endpoints.SCRIPT_INFO).json())
+        return [ScriptInfo.model_validate(item) for item in self.get(A1111Webservice.Endpoints.SCRIPT_INFO).json()]
 
     def _get_name_list(self, endpoint: str) -> list[str]:
         res_body = self.get(endpoint, timeout=30).json()
@@ -428,11 +422,13 @@ class A1111Webservice(WebService):
 
     def get_samplers(self) -> list[SamplerInfo]:
         """Returns the list of image sampler algorithms available for image generation."""
-        return cast(list[SamplerInfo], self.get(A1111Webservice.Endpoints.SAMPLERS, timeout=DEFAULT_TIMEOUT).json())
+        return [SamplerInfo.model_validate(item)
+                for item in self.get(A1111Webservice.Endpoints.SAMPLERS, timeout=DEFAULT_TIMEOUT).json()]
 
     def get_upscalers(self) -> list[UpscalerInfo]:
         """Returns the list of image upscalers available."""
-        return cast(list[UpscalerInfo], self.get(A1111Webservice.Endpoints.UPSCALERS, timeout=DEFAULT_TIMEOUT).json())
+        return [UpscalerInfo.model_validate(item)
+                for item in self.get(A1111Webservice.Endpoints.UPSCALERS, timeout=DEFAULT_TIMEOUT).json()]
 
     def get_latent_upscale_modes(self) -> list[str]:
         """Returns the list of Stable Diffusion enhanced upscaling modes."""
@@ -451,7 +447,8 @@ class A1111Webservice(WebService):
 
         If available models may have changed, instead consider using the slower refresh_checkpoints method.
         """
-        return cast(list[ModelInfo], self.get(A1111Webservice.Endpoints.SD_MODELS, timeout=DEFAULT_TIMEOUT).json())
+        return [ModelInfo.model_validate(item)
+                for item in self.get(A1111Webservice.Endpoints.SD_MODELS, timeout=DEFAULT_TIMEOUT).json()]
 
     def get_vae(self) -> list[VaeInfo]:
         """Returns the list of available Stable Diffusion VAE models cached by the webui.
@@ -462,7 +459,7 @@ class A1111Webservice(WebService):
             vae_models = self.get(A1111Webservice.Endpoints.VAE_MODELS, timeout=DEFAULT_TIMEOUT).json()
         except RuntimeError:
             vae_models = self.get(A1111Webservice.ForgeEndpoints.SD_MODULES, timeout=DEFAULT_TIMEOUT).json()
-        return cast(list[VaeInfo], vae_models)
+        return [VaeInfo.model_validate(item) for item in vae_models]
 
     def get_controlnet_version(self) -> int:
         """
@@ -473,12 +470,12 @@ class A1111Webservice(WebService):
 
     def get_controlnet_models(self) -> ControlNetModelResponse:
         """Returns a dict defining the models available to the Stable Diffusion ControlNet extension."""
-        return cast(ControlNetModelResponse,
+        return ControlNetModelResponse.model_validate(
                     self.get(A1111Webservice.Endpoints.CONTROLNET_MODELS, timeout=DEFAULT_TIMEOUT).json())
 
     def get_controlnet_modules(self) -> ControlNetModuleResponse:
         """Returns a dict defining the modules available to the Stable Diffusion ControlNet extension."""
-        return cast(ControlNetModuleResponse,
+        return ControlNetModuleResponse.model_validate(
                     self.get(A1111Webservice.Endpoints.CONTROLNET_MODULES, timeout=DEFAULT_TIMEOUT).json())
 
     def get_controlnet_control_types(self) -> ControlTypeResponse:
@@ -519,7 +516,8 @@ class A1111Webservice(WebService):
 
         If available models may have changed, instead consider using the slower refresh_loras method.
         """
-        return cast(list[LoraInfo], self.get(A1111Webservice.Endpoints.LORA_MODELS, timeout=DEFAULT_TIMEOUT).json())
+        return [LoraInfo.model_validate(item)
+                for item in self.get(A1111Webservice.Endpoints.LORA_MODELS, timeout=DEFAULT_TIMEOUT).json()]
 
     def get_thumbnail(self, file_path: str) -> Optional[Image.Image]:
         """Attempts to load one of the extra model thumbnails given a path parameter."""

@@ -1,15 +1,9 @@
 """ComfyUI extended diffusion parameters"""
 import logging
-import os.path
 from enum import Enum
-from typing import Any, Optional
-
-from PIL import Image
+from typing import Optional
 
 from intrapaint_api.api.shared_data.diffusion_params import DiffusionParams
-from intrapaint_api.api.webui.controlnet_webui_constants import CONTROLNET_SCRIPT_KEY, ControlNetUnitDict
-from intrapaint_api.api.webui.script_info_types import ScriptRequestData
-from intrapaint_api.util.visual.image_utils import image_to_base64
 
 logger = logging.getLogger(__name__)
 

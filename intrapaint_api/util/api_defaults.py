@@ -1,7 +1,6 @@
 """
 Defines a set of sensible defaults for Stable Diffusion API fields.
 """
-from intrapaint_api.util.geometry import Size
 
 GENERATION_SIZE_DEFAULT = 512
 
