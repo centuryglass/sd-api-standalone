@@ -6,6 +6,7 @@ from dataclasses import dataclass
 from enum import Enum
 from typing import Optional
 
+from intrapaint_api.api.comfyui.comfyui_diffusion_params import ComfyUIDiffusionParams
 from intrapaint_api.api.comfyui.comfyui_types import ImageFileReference
 from intrapaint_api.api.comfyui.nodes.clip_skip_node import CLIPSkipNode
 from intrapaint_api.api.comfyui.nodes.comfy_node import ComfyNode
@@ -31,11 +32,9 @@ from intrapaint_api.api.comfyui.nodes.vae.vae_decode_tiled_node import VAEDecode
 from intrapaint_api.api.comfyui.nodes.vae.vae_encode_node import VAEEncodeNode
 from intrapaint_api.api.comfyui.nodes.vae.vae_encode_tiled_node import VAEEncodeTiledNode
 from intrapaint_api.api.comfyui.workflow_builder_utils import random_seed, image_ref_to_str
-from intrapaint_api.api.controlnet.controlnet_constants import CONTROLNET_MODEL_NONE, PREPROCESSOR_NONE
-from intrapaint_api.api.controlnet.controlnet_preprocessor import ControlNetPreprocessor
-from intrapaint_api.config.cache import Cache
+from intrapaint_api.api.shared_data.controlnet.controlnet_preprocessor import ControlNetPreprocessor, PreprocessorParams
+from intrapaint_api.api.shared_data.diffusion_params import DiffusionParams
 from intrapaint_api.util.geometry import Size
-from intrapaint_api.util.shared_constants import EDIT_MODE_TXT2IMG
 
 # Key used to reference a LoRA model's file path within cached LoRA metadata dicts (originally defined in IntraPaint's
 # extra_network_window UI, inlined here to keep the API standalone):
@@ -57,7 +56,7 @@ class ExtensionModelType(Enum):
 
 
 @dataclass
-class ControlNetUnitData:
+class ControlNetNodeData:
     """All nodes associated with a single ControlNet input."""
     model_node: Optional[LoadControlNetNode]
     preprocessor_node: Optional[DynamicPreprocessorNode]
@@ -93,7 +92,7 @@ class DiffusionWorkflowBuilder:
         self._mask: Optional[str] = None
 
         self._extension_model_nodes: list[LoraLoaderNode | HypernetLoaderNode] = []
-        self._controlnet_units: list[ControlNetUnitData] = []
+        self._controlnet_units: list[ControlNetNodeData] = []
 
     @property
     def batch_size(self) -> int:
@@ -303,15 +302,17 @@ class DiffusionWorkflowBuilder:
         return [*self._extension_model_nodes]
 
     @property
-    def controlnet_unit_nodes(self) -> list[ControlNetUnitData]:
+    def controlnet_unit_nodes(self) -> list[ControlNetNodeData]:
         """Returns the list of ControlNet unit nodes, with associated data."""
         return [*self._controlnet_units]
 
-    def add_controlnet_unit(self, model_name: str, preprocessor: ControlNetPreprocessor,
-                            control_image_ref: ImageFileReference,
+    def add_controlnet_unit(self,
+                            model_name: Optional[str],
+                            preprocessor: Optional[PreprocessorParams],
+                            control_image_ref: Optional[ImageFileReference],
                             strength: float, start_step: float, end_step: float) -> None:
         """Adds a new ControlNet unit to the workflow."""
-        control_image_str = image_ref_to_str(control_image_ref)
+        control_image_str = '' if control_image_ref is None else image_ref_to_str(control_image_ref)
 
         model_node: Optional[LoadControlNetNode] = None
         preprocessor_node: Optional[DynamicPreprocessorNode] = None
@@ -323,17 +324,18 @@ class DiffusionWorkflowBuilder:
                 preprocessor_node = control_unit_data.preprocessor_node
             if control_unit_data.model_node is not None and control_unit_data.model_node.model_name == model_name:
                 model_node = control_unit_data.model_node
-        if model_node is None and model_name != CONTROLNET_MODEL_NONE:
+        if model_node is None and model_name is not None:
             model_node = LoadControlNetNode(model_name)
-        if preprocessor_node is None and preprocessor.name != PREPROCESSOR_NONE:
+        if preprocessor_node is None and preprocessor is not None:
             control_inputs = {}
             for parameter in preprocessor.parameters:
                 control_inputs[parameter.key] = parameter.value
-            preprocessor_node = DynamicPreprocessorNode(preprocessor.name, control_inputs, preprocessor.has_image_input,
-                                                        preprocessor.has_mask_input)
+            preprocessor_node = DynamicPreprocessorNode(preprocessor.typedef.name, control_inputs,
+                                                        preprocessor.typedef.has_image_input,
+                                                        preprocessor.typedef.has_mask_input)
         control_apply_node = ApplyControlNetNode(strength, start_step, end_step)
-        new_control_unit = ControlNetUnitData(model_node, preprocessor_node, control_apply_node, preprocessor,
-                                              control_image_str)
+        new_control_unit = ControlNetNodeData(model_node, preprocessor_node, control_apply_node, preprocessor.typedef,
+                                               control_image_str)
         self._controlnet_units.append(new_control_unit)
 
     def build_workflow(self) -> ComfyNodeGraph:
@@ -347,7 +349,9 @@ class DiffusionWorkflowBuilder:
             vae_out_index = SimpleCheckpointLoaderNode.IDX_VAE
             clip_out_index = SimpleCheckpointLoaderNode.IDX_CLIP
         else:
-            model_loading_node = CheckpointLoaderNode(self.sd_model, self.model_config_path)
+            config_path = self.model_config_path
+            assert config_path is not None
+            model_loading_node = CheckpointLoaderNode(self.sd_model, config_path)
             model_out_index = CheckpointLoaderNode.IDX_MODEL
             vae_out_index = CheckpointLoaderNode.IDX_VAE
             clip_out_index = CheckpointLoaderNode.IDX_CLIP
@@ -392,15 +396,17 @@ class DiffusionWorkflowBuilder:
 
         # Load image source:
         mask_load_node: Optional[LoadImageMaskNode] = None
-        if self.mask is not None:
-            mask_load_node = LoadImageMaskNode(self.mask)
+        mask = self.mask
+        if mask is not None:
+            mask_load_node = LoadImageMaskNode(mask)
 
-        if self.source_image is None:
+        source_image = self.source_image
+        if source_image is None:
             image_loading_node: Optional[LoadImageNode] = None
             latent_source_node: ComfyNode = EmptyLatentNode(self.batch_size, self.image_size)
             latent_out_idx = EmptyLatentNode.IDX_LATENT
         else:
-            image_loading_node = LoadImageNode(self.source_image)
+            image_loading_node = LoadImageNode(source_image)
 
             if mask_load_node is not None and self.load_as_inpainting_model:
                 inpaint_conditioning_node = InpaintModelConditioningNode()
@@ -453,8 +459,9 @@ class DiffusionWorkflowBuilder:
         # Load ControlNet Units:
         loaded_images: dict[str, LoadImageNode] = {}
         if image_loading_node is not None:
-            assert self.source_image is not None
-            loaded_images[self.source_image] = image_loading_node
+            source_image = self.source_image
+            assert source_image is not None
+            loaded_images[source_image] = image_loading_node
         for controlnet_unit in self._controlnet_units:
             control_img_str = controlnet_unit.control_image
             if control_img_str in loaded_images:
@@ -534,35 +541,36 @@ class DiffusionWorkflowBuilder:
             controlnet_unit.control_apply_node.clear_connections()
         return final_workflow
 
-    def load_cached_settings(self) -> None:
-        """Loads and applies cached parameters."""
-        cache = Cache()
-        self.sd_model = cache.get(Cache.SD_MODEL)
-        self.batch_size = cache.get(Cache.BATCH_SIZE)
-        self.prompt = cache.get(Cache.PROMPT)
-        self.negative_prompt = cache.get(Cache.NEGATIVE_PROMPT)
-        self.steps = cache.get(Cache.SAMPLING_STEPS)
-        self.cfg_scale = cache.get(Cache.GUIDANCE_SCALE)
-        self.image_size = cache.get(Cache.GENERATION_SIZE)
-        sampler = cache.get(Cache.SAMPLING_METHOD)
+    def load_diffusion_parameters(self, diffusion_params: DiffusionParams) -> None:
+        """Loads diffusion parameters."""
+        if not isinstance(diffusion_params, ComfyUIDiffusionParams):
+            diffusion_params = ComfyUIDiffusionParams(**diffusion_params.model_dump())
+        self.sd_model = diffusion_params.sd_model_name
+        self.batch_size = diffusion_params.batch_size
+        self.prompt = diffusion_params.prompt
+        self.negative_prompt = diffusion_params.negative_prompt
+        self.steps = diffusion_params.steps
+        self.cfg_scale = diffusion_params.cfg_scale
+        self.image_size = Size(diffusion_params.width, diffusion_params.height)
+        sampler = diffusion_params.sampler_name
         if sampler != '':
             self.sampler = sampler
-        scheduler = cache.get(Cache.SCHEDULER)
-        if scheduler != '':
-            self.scheduler = scheduler
-        seed = int(cache.get(Cache.SEED))
+        # TODO: put scheduler in diffusion_params?
+        #if scheduler != '':
+        #    self.scheduler = scheduler
+        seed = diffusion_params.seed
         if seed < 0:
             seed = random_seed()
         self.seed = seed
 
-        self.load_as_inpainting_model = cache.get(Cache.COMFYUI_INPAINTING_MODEL)
-        self.vae_tiling_enabled = cache.get(Cache.COMFYUI_TILED_VAE)
-        self.vae_tile_size = cache.get(Cache.COMFYUI_TILED_VAE_TILE_SIZE)
-        self.clip_skip = cache.get(Cache.CLIP_SKIP)
+        self.load_as_inpainting_model = diffusion_params.load_as_inpainting_model
+        self.vae_tiling_enabled = diffusion_params.vae_tiling_enabled
+        self.vae_tile_size = diffusion_params.vae_tile_size
+        self.clip_skip = diffusion_params.clip_skip
 
-        # Find and add LoRA and Hypernetwork models:
-        available_loras = [lora[LORA_KEY_PATH] for lora in cache.get(Cache.LORA_MODELS)]
-        available_hypernetworks = cache.get(Cache.HYPERNETWORK_MODELS)
+        # TODO: Find and add LoRA and Hypernetwork models:
+        available_loras = [] # [lora[LORA_KEY_PATH] for lora in cache.get(Cache.LORA_MODELS)]
+        available_hypernetworks = [] # cache.get(Cache.HYPERNETWORK_MODELS)
         lora_name_map: dict[str, str] = {}
         hypernet_name_map: dict[str, str] = {}
         for model_list, model_dict in ((available_loras, lora_name_map),
@@ -603,10 +611,6 @@ class DiffusionWorkflowBuilder:
             else:
                 self.negative_prompt = re.sub(extension_model_pattern, '', prompt)
 
-            edit_mode = cache.get(Cache.EDIT_MODE)
-            if edit_mode != EDIT_MODE_TXT2IMG:
-                self.denoising_strength = cache.get(Cache.DENOISING_STRENGTH)
-
-            cached_config = cache.get(Cache.COMFYUI_MODEL_CONFIG)
-            if cached_config != '':
-                self.model_config_path = cached_config
+            if diffusion_params.init_images is not None and len(diffusion_params.init_images) > 0:
+                self.denoising_strength = diffusion_params.denoising_strength
+            self.model_config_path = diffusion_params.sd_model_config

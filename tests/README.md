@@ -35,7 +35,10 @@ IntraPaint per-user config.
 ## Running
 
 ```bash
-# Fast, read-only metadata + auth tests for whichever backend(s) are up:
+# Pure-logic unit tests only (no server, no GPU — always runnable, e.g. in CI):
+pytest tests/unit/
+
+# Fast, read-only metadata + auth tests for whichever backend(s) are up (+ unit tests):
 pytest tests/
 
 # Include the slow generation tests (real diffusion; needs a checkpoint loaded):
@@ -44,7 +47,27 @@ pytest tests/ --run-generation
 RUN_SD_GENERATION=1 pytest tests/
 ```
 
-## What's covered
+## Unit tests (`tests/unit/`)
+
+Backend-independent tests of the pure "functional core": the code that turns parameters
+into request bodies / node graphs, plus serialization and the image/geometry helpers. They
+need **no running server** and no GPU, are deterministic, and drive the builders by setting
+attributes directly rather than through `Cache`.
+
+- **`test_comfy_workflow_builder.py`** — `DiffusionWorkflowBuilder.build_workflow()` graph
+  structure (checkpoint/KSampler params, prompt encoding, txt2img vs img2img latent source,
+  CLIP-skip insertion, batch validation).
+- **`test_diffusion_request_body.py`** — `DiffusionRequestBody.to_dict()` None-stripping and
+  field passthrough.
+- **`test_controlnet_serialization.py`** — `ControlNetUnit` / preprocessor serialize↔deserialize
+  round-trips (both WebUI and ComfyUI key formats).
+- **`test_image_and_geometry.py`** — base64/PNG round-trips, RGBA normalization, `Size`.
+
+These pin behavior ahead of the planned config-decoupling refactor: they cover exactly the
+logic that survives it, so a regression that silently changes an emitted request will fail
+here (fast, offline) rather than only showing up in a live generation.
+
+## What's covered (integration)
 
 ### A1111 / Forge / ReForge
 

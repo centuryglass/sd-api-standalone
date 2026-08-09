@@ -8,9 +8,8 @@ Results are saved under the output dir for visual fidelity inspection.
 import pytest
 from PIL import Image
 
-from intrapaint_api.config.cache import Cache
 
-from .comfy_helpers import (COMFY_SIZE, configure_comfy_cache, make_comfy_mask, wait_for_comfy_images)
+from .comfy_helpers import (COMFY_SIZE, build_comfy_params, make_comfy_mask, wait_for_comfy_images)
 from .helpers import (images_differ, make_structured_image, make_test_image, region_mean_diff,
                       save_output)
 
@@ -25,8 +24,8 @@ def _assert_valid_image(image, expected_size: int = COMFY_SIZE):
 
 
 def test_txt2img_produces_image(comfy_service, comfy_checkpoint, output_dir):
-    configure_comfy_cache(comfy_checkpoint, edit_mode='Text to Image')
-    response = comfy_service.txt2img(make_test_image(), {}, seed=1)
+    params = build_comfy_params(comfy_checkpoint)
+    response = comfy_service.txt2img(params)
     images = wait_for_comfy_images(comfy_service, response)
     assert len(images) == 1
     _assert_valid_image(images[0])
@@ -34,19 +33,21 @@ def test_txt2img_produces_image(comfy_service, comfy_checkpoint, output_dir):
 
 
 def test_txt2img_seed_is_reported(comfy_service, comfy_checkpoint):
-    configure_comfy_cache(comfy_checkpoint, edit_mode='Text to Image')
-    response = comfy_service.txt2img(make_test_image(), {}, seed=98765)
+    params = build_comfy_params(comfy_checkpoint)
+    params.seed = 98765
+    response = comfy_service.txt2img(params)
     # The client echoes back the seed it actually queued.
-    assert response['seed'] == 98765
+    assert response.seed == 98765
     wait_for_comfy_images(comfy_service, response)  # drain the job so it doesn't linger
 
 
 def test_img2img_round_trip(comfy_service, comfy_checkpoint, output_dir):
-    configure_comfy_cache(comfy_checkpoint, prompt='a vivid landscape painting',
-                          edit_mode='Image to Image')
-    Cache().set(Cache.DENOISING_STRENGTH, 0.75)  # enough to visibly transform the textured source
+    params = build_comfy_params(comfy_checkpoint, prompt='a vivid landscape painting')
+    params.denoising_strength = 0.75  # enough to visibly transform the textured source
     source = make_structured_image(COMFY_SIZE, COMFY_SIZE)
-    response = comfy_service.img2img(source, {}, seed=7)
+    params.init_images = [source]
+    params.seed = 7
+    response = comfy_service.img2img(params)
     images = wait_for_comfy_images(comfy_service, response)
     assert len(images) >= 1
     result = images[0]
@@ -65,15 +66,18 @@ def test_inpaint_respects_mask(comfy_service, comfy_checkpoint, output_dir):
     which proves the mask is actually being followed rather than the whole image being
     regenerated (or nothing happening at all).
     """
-    configure_comfy_cache(comfy_checkpoint, prompt='a photograph of a flower', edit_mode='Inpaint')
-    Cache().set(Cache.DENOISING_STRENGTH, 1.0)  # flat/low denoise barely changes inpainted pixels
+    params = build_comfy_params(comfy_checkpoint, prompt='a photograph of a flower')
+    params.denoising_strength = 1.0  # flat/low denoise barely changes inpainted pixels
 
     source = make_structured_image(COMFY_SIZE, COMFY_SIZE)
     center_box = (COMFY_SIZE // 4, COMFY_SIZE // 4, COMFY_SIZE * 3 // 4, COMFY_SIZE * 3 // 4)
     border_box = (0, 0, COMFY_SIZE, COMFY_SIZE // 8)
     mask = make_comfy_mask(center_box)
+    params.init_images = [source]
+    params.mask = mask
+    params.seed = 7
 
-    response = comfy_service.inpaint(source, mask, {}, seed=7)
+    response = comfy_service.inpaint(params)
     images = wait_for_comfy_images(comfy_service, response)
     assert len(images) >= 1
     result = images[0]
@@ -99,7 +103,7 @@ def test_upscale(comfy_service, comfy_checkpoint, output_dir):
     upscale_models = comfy_service.get_models(ComfyModelType.UPSCALING)
     if not upscale_models:
         pytest.skip('No upscale models installed on the ComfyUI server.')
-    configure_comfy_cache(comfy_checkpoint)
+    params = build_comfy_params(comfy_checkpoint)
     # Basic (non-SD) upscaling path: needs a valid upscale model registered in the cache.
     Cache().set(Cache.GENERATOR_SCALING_MODES, upscale_models)
     Cache().set(Cache.SCALING_MODE, upscale_models[0], add_missing_options=True)

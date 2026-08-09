@@ -3,6 +3,7 @@
 from copy import deepcopy
 from typing import Optional
 
+from intrapaint_api.api.shared_data.controlnet.controlnet_unit import ControlNetUnit
 from intrapaint_api.util.geometry import Size
 
 from intrapaint_api.api.comfyui.comfyui_types import ImageFileReference
@@ -22,29 +23,11 @@ from intrapaint_api.api.comfyui.nodes.ksampler_node import KSamplerNode
 from intrapaint_api.api.comfyui.nodes.model_extensions.hypernet_loader_node import HypernetLoaderNode
 from intrapaint_api.api.comfyui.nodes.model_extensions.lora_loader_node import LoraLoaderNode
 from intrapaint_api.api.comfyui.nodes.save_image_node import SaveImageNode
-from intrapaint_api.api.comfyui.nodes.ultimate_upscale_node import UltimateUpscaleCoreInputs, UltimateUpscaleNode
+from intrapaint_api.api.comfyui.nodes.ultimate_upscale_node import UltimateUpscaleNode, UltimateUpscaleCoreInputs
 from intrapaint_api.api.comfyui.nodes.upscale_latent_node import UpscaleLatentNode
 from intrapaint_api.api.comfyui.nodes.vae.vae_decode_tiled_node import VAEDecodeTiledNode
 from intrapaint_api.api.comfyui.nodes.vae.vae_encode_tiled_node import TILE_MIN, TILE_STEP, TILE_MAX, VAEEncodeTiledNode
 from intrapaint_api.api.comfyui.workflow_builder_utils import image_ref_to_str
-from intrapaint_api.api.controlnet.controlnet_constants import CONTROLNET_MODEL_NONE
-from intrapaint_api.api.controlnet.controlnet_preprocessor import ControlNetPreprocessor
-
-DEFAULT_UPSCALE_PARAMS: UltimateUpscaleCoreInputs = {
-    'seed': 0,
-    'steps': 20,
-    'cfg': 8.0,
-    'sampler_name': 'euler',
-    'scheduler': 'normal',
-    'denoise': 0.35,
-    'mode_type': 'Linear',
-    'tile_width': 512,
-    'tile_height': 512,
-    'mask_blur': 8,
-    'tile_padding': 32,
-    'force_uniform_tiles': False,
-    'tiled_decode': True
-}
 
 USE_TILED_VAE = False
 
@@ -60,8 +43,7 @@ class LatentUpscaleWorkflowBuilder(DiffusionWorkflowBuilder):
                  tile_size: Size,
                  ultimate_upscale_script_available: bool,
                  upscale_model: Optional[str] = None,
-                 controlnet_tile_preprocessor: Optional[ControlNetPreprocessor] = None,
-                 controlnet_tile_model: Optional[str] = None) -> None:
+                 controlnet_tile_unit: Optional[ControlNetUnit] = None) -> None:
         super().__init__()
         self.source_image = image_ref_to_str(source_image)
         self._upscale_multiplier = upscale_by
@@ -69,10 +51,9 @@ class LatentUpscaleWorkflowBuilder(DiffusionWorkflowBuilder):
         self._ultimate_sd_upscale = ultimate_upscale_script_available
         self._upscale_model_name = upscale_model
         self._tile_size = Size(tile_size)
-        if (controlnet_tile_preprocessor is not None and controlnet_tile_model is not None
-                and controlnet_tile_model != CONTROLNET_MODEL_NONE):
-            print(f'model={controlnet_tile_model}, preproc={controlnet_tile_preprocessor.name}')
-            self.add_controlnet_unit(controlnet_tile_model, controlnet_tile_preprocessor, source_image, 1.0,
+        if controlnet_tile_unit is not None:
+            self.add_controlnet_unit(controlnet_tile_unit.model.full_model_name,
+                                     controlnet_tile_unit.preprocessor, source_image, 1.0,
                                      0.0, 1.0)
 
     @property
@@ -91,13 +72,15 @@ class LatentUpscaleWorkflowBuilder(DiffusionWorkflowBuilder):
         workflow = ComfyNodeGraph()
 
         # Load model(s):
-        if self.model_config_path is None:
+        config_path = self.model_config_path
+        if config_path is None:
             model_loading_node: ComfyNode = SimpleCheckpointLoaderNode(self.sd_model)
             model_out_index = SimpleCheckpointLoaderNode.IDX_MODEL
             vae_out_index = SimpleCheckpointLoaderNode.IDX_VAE
             clip_out_index = SimpleCheckpointLoaderNode.IDX_CLIP
         else:
-            model_loading_node = CheckpointLoaderNode(self.sd_model, self.model_config_path)
+            assert isinstance(self.model_config_path, str)
+            model_loading_node = CheckpointLoaderNode(self.sd_model, config_path)
             model_out_index = CheckpointLoaderNode.IDX_MODEL
             vae_out_index = CheckpointLoaderNode.IDX_VAE
             clip_out_index = CheckpointLoaderNode.IDX_CLIP
@@ -186,17 +169,17 @@ class LatentUpscaleWorkflowBuilder(DiffusionWorkflowBuilder):
 
         # Set up ultimate upscale script, if available:
         if self._ultimate_sd_upscale:
-            upscale_node_params = deepcopy(DEFAULT_UPSCALE_PARAMS)
-            upscale_node_params['seed'] = self.seed
-            upscale_node_params['steps'] = self.steps
-            upscale_node_params['cfg'] = self.cfg_scale
-            upscale_node_params['sampler_name'] = self.sampler
-            upscale_node_params['scheduler'] = self.scheduler
-            upscale_node_params['denoise'] = self.denoising_strength
-            upscale_node_params['tile_width'] = self.tile_size.width()
-            upscale_node_params['tile_height'] = self.tile_size.height()
+            upscale_node_params = UltimateUpscaleCoreInputs()
+            upscale_node_params.seed = self.seed
+            upscale_node_params.steps = self.steps
+            upscale_node_params.cfg = self.cfg_scale
+            upscale_node_params.sampler_name = self.sampler
+            upscale_node_params.scheduler = self.scheduler
+            upscale_node_params.denoise = self.denoising_strength
+            upscale_node_params.tile_width = self.tile_size.width()
+            upscale_node_params.tile_height = self.tile_size.height()
             if upscale_model_node is not None:
-                upscale_node_params['upscale_by'] = self._upscale_multiplier
+                upscale_node_params.upscale_by = self._upscale_multiplier
 
             ultimate_upscale_node = UltimateUpscaleNode(upscale_node_params, upscale_model_node is not None)
             workflow.connect_nodes(ultimate_upscale_node, UltimateUpscaleNode.IMAGE,

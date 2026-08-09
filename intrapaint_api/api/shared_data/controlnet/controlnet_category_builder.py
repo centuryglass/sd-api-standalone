@@ -3,8 +3,7 @@ import re
 from copy import deepcopy
 from typing import Optional, cast
 
-from intrapaint_api.api.controlnet.controlnet_constants import STATIC_CONTROL_TYPE_DEFS, \
-    PREPROCESSOR_NONE, CONTROLNET_MODEL_NONE, StaticControlTypeDef
+from intrapaint_api.api.shared_data.controlnet.controlnet_constants import STATIC_CONTROL_TYPE_DEFS, , StaticControlTypeDef
 from intrapaint_api.api.webui.controlnet_webui_constants import ControlTypeDef, ControlTypeResponse, PREPROCESSOR_MODEL_FREE
 
 

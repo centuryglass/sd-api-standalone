@@ -1,1 +1,0 @@
-"""IntraPaint standalone API package."""

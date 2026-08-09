@@ -8,32 +8,34 @@ import uuid
 from contextlib import contextmanager
 from copy import deepcopy
 from enum import StrEnum, Enum
-from json import JSONDecodeError
-from typing import cast, Optional, TypedDict, NotRequired, Any, Generator
+from typing import cast, Optional, Any, Generator
 
+import binascii
 import websocket
 from PIL import Image
+from pydantic import BaseModel
 
 from intrapaint_api.api.comfyui.basic_upscale_workflow_builder import build_basic_upscaling_workflow
 from intrapaint_api.api.comfyui.comfyui_types import QueueAdditionRequest, QueueAdditionResponse, QueueDeletionRequest, \
     ImageFileReference, PromptExecOutputs, NodeInfoResponse, SystemStatResponse, ImageUploadParams, \
-    IMAGE_UPLOAD_FILE_NAME, ImageUploadResponse, MaskUploadParams, QueueInfoResponse, ACTIVE_QUEUE_KEY, \
+    IMAGE_UPLOAD_FILE_NAME, ImageUploadResponse, QueueInfoResponse, ACTIVE_QUEUE_KEY, \
     PENDING_QUEUE_KEY, QueueHistoryResponse, FreeMemoryRequest
 from intrapaint_api.api.comfyui.controlnet_comfyui_utils import get_all_preprocessors
 from intrapaint_api.api.comfyui.diffusion_workflow_builder import DiffusionWorkflowBuilder
 from intrapaint_api.api.comfyui.latent_upscale_workflow_builder import LatentUpscaleWorkflowBuilder
 from intrapaint_api.api.comfyui.nodes.ksampler_node import KSAMPLER_NAME
+from intrapaint_api.api.comfyui.nodes.ultimate_upscale_node import ULTIMATE_UPSCALE_NODE_NAME
 from intrapaint_api.api.comfyui.preprocessor_preview_workflow_builder import PreprocessorPreviewWorkflowBuilder
-from intrapaint_api.api.controlnet.controlnet_category_builder import ControlNetCategoryBuilder
-from intrapaint_api.api.controlnet.controlnet_constants import CONTROLNET_REUSE_IMAGE_CODE, CONTROLNET_MODEL_NONE, \
-    PREPROCESSOR_NONE
-from intrapaint_api.api.controlnet.controlnet_preprocessor import ControlNetPreprocessor
-from intrapaint_api.api.controlnet.controlnet_unit import ControlNetUnit, ControlKeyType
+from intrapaint_api.api.shared_data.api_datatypes import DiffusionUpscalingParams
+from intrapaint_api.api.shared_data.controlnet.controlnet_category_builder import ControlNetCategoryBuilder
+from intrapaint_api.api.shared_data.controlnet.controlnet_constants import ControlTypeDef
+from intrapaint_api.api.shared_data.controlnet.controlnet_preprocessor import ControlNetPreprocessor
+from intrapaint_api.api.shared_data.controlnet.controlnet_unit import ControlNetUnit
+from intrapaint_api.api.shared_data.diffusion_params import DiffusionParams
 from intrapaint_api.api.webservice import WebService, MULTIPART_FORM_DATA_TYPE
-from intrapaint_api.api.webui.controlnet_webui_constants import ControlTypeDef
-from intrapaint_api.config.cache import Cache
 from intrapaint_api.util.geometry import Size
-from intrapaint_api.util.visual.image_utils import image_to_png_bytes, image_from_bytes
+from intrapaint_api.util.visual.image_utils import image_to_png_bytes, image_from_bytes, image_from_base64, ImageKey, \
+    get_image_key
 
 logger = logging.getLogger(__name__)
 
@@ -117,11 +119,11 @@ class AsyncTaskStatus(Enum):
     NOT_FOUND = 4
 
 
-class AsyncTaskProgress(TypedDict):
+class AsyncTaskProgress(BaseModel):
     """The status of an async ComfyUI task, including queue index and generated image data when relevant."""
     status: AsyncTaskStatus
-    index: NotRequired[int]  # Only used if statis is PENDING
-    outputs: NotRequired[PromptExecOutputs]  # Only used if status is FINISHED
+    index: Optional[int] = None  # Only used if statis is PENDING
+    outputs: Optional[PromptExecOutputs] = None  # Only used if status is FINISHED
 
 
 class ComfyUiWebservice(WebService):
@@ -134,24 +136,29 @@ class ComfyUiWebservice(WebService):
         self._preprocessor_cache: Optional[list[ControlNetPreprocessor]] = None
         self._ksampler_info: Optional[NodeInfoResponse] = None
         self._client_id = str(uuid.uuid4())
+        self._uploaded_images: dict[ImageKey, ImageFileReference] = {}
 
     # Loading available options and settings:
 
+    def _get_ksampler_info_caching(self) -> NodeInfoResponse:
+        ksampler_info = self._ksampler_info
+        if ksampler_info is None:
+            info_endpoint = f'{ComfyEndpoints.OBJECT_INFO}/{KSAMPLER_NAME}'
+            ksampler_info = NodeInfoResponse.model_validate(self.get(info_endpoint).json()[KSAMPLER_NAME])
+            self._ksampler_info = ksampler_info
+        return ksampler_info
+
     def get_sampler_names(self) -> list[str]:
         """Gets the list of sampling method names from KSampler node info."""
-        if self._ksampler_info is None:
-            info_endpoint = f'{ComfyEndpoints.OBJECT_INFO}/{KSAMPLER_NAME}'
-            self._ksampler_info = cast(NodeInfoResponse, self.get(info_endpoint).json()[KSAMPLER_NAME])
-        required_inputs = self._ksampler_info['input']['required']
+        ksampler_info = self._get_ksampler_info_caching()
+        required_inputs = ksampler_info.input.required
         assert SAMPLER_OPTION_KEY in required_inputs and isinstance(required_inputs[SAMPLER_OPTION_KEY], list)
         return cast(list[str], required_inputs[SAMPLER_OPTION_KEY][0])
 
     def get_scheduler_names(self) -> list[str]:
         """Gets the list of sampling scheduler names from KSampler node info."""
-        if self._ksampler_info is None:
-            info_endpoint = f'{ComfyEndpoints.OBJECT_INFO}/{KSAMPLER_NAME}'
-            self._ksampler_info = cast(NodeInfoResponse, self.get(info_endpoint).json()[KSAMPLER_NAME])
-        required_inputs = self._ksampler_info['input']['required']
+        ksampler_info = self._get_ksampler_info_caching()
+        required_inputs = ksampler_info.input.required
         assert SCHEDULER_OPTION_KEY in required_inputs and isinstance(required_inputs[SCHEDULER_OPTION_KEY], list)
         return cast(list[str], required_inputs[SCHEDULER_OPTION_KEY][0])
 
@@ -209,6 +216,7 @@ class ComfyUiWebservice(WebService):
             node_data = cast(dict[str, NodeInfoResponse],
                              self.get(ComfyEndpoints.OBJECT_INFO, timeout=DEFAULT_TIMEOUT).json())
             self._preprocessor_cache = get_all_preprocessors(node_data)
+        assert self._preprocessor_cache is not None
         return deepcopy(self._preprocessor_cache)
 
     def get_controlnet_type_categories(self, preprocessors: Optional[list[ControlNetPreprocessor]] = None
@@ -227,37 +235,61 @@ class ComfyUiWebservice(WebService):
         return control_type_builder.get_control_types()
 
     # File I/O:
-
-    def upload_image(self, image: Image.Image, name: Optional[str] = None, subfolder: Optional[str] = None,
-                     temp=False, overwrite=True) -> ImageFileReference:
-        """Uploads an image for img2img, inpainting, ControlNet, etc."""
-        body: ImageUploadParams = {
-            'type': 'temp' if temp else 'input',
-            'subfolder': INTRAPAINT_UPLOAD_SUBFOLDER
-        }
-        if subfolder is not None:
-            body['subfolder'] = subfolder
+    def _upload_image_file(self,
+                           image: Image.Image | str,
+                           endpoint:str, name: Optional[str] = None,
+                           subfolder: Optional[str] = None,
+                           temp=False, overwrite=True) -> ImageFileReference:
+        if isinstance(image, str):
+            if os.path.isfile(image):
+                with open(image, 'rb') as image_file:
+                    image = image_from_bytes(image_file.read())
+            else:
+                try:
+                    image = image_from_base64(image)
+                except binascii.Error:
+                    raise ValueError(f"invalid image string {image}: expected base64")
+        assert isinstance(image, Image.Image)
+        image_key = get_image_key(image)
+        if image_key in self._uploaded_images:
+            return self._uploaded_images[image_key]
+        body = ImageUploadParams(type='temp' if temp else 'input',
+                                 subfolder=subfolder if subfolder is not None else INTRAPAINT_UPLOAD_SUBFOLDER)
         if overwrite:
-            body['overwrite'] = '1'
+            body.overwrite = '1'
         image_data = image_to_png_bytes(image)
         if name is None:
             name = 'src_image.png'
         elif not name.endswith('.png'):
             name = f'{name}.png'
         files = {IMAGE_UPLOAD_FILE_NAME: (name, image_data, TYPE_PNG_IMAGE)}
-        res = cast(ImageUploadResponse, self.post(ComfyEndpoints.IMG_UPLOAD,
-                                                  body=body,
-                                                  body_format=MULTIPART_FORM_DATA_TYPE,
-                                                  files=files,
-                                                  timeout=EXTENDED_TIMEOUT).json())
-        file_ref: ImageFileReference = {
-            'filename': res['name'],
-            'subfolder': '' if 'subfolder' not in res else res['subfolder'],
-            'type': res['type']
-        }
+        res_json = self.post(endpoint,
+                             body=body.model_dump(exclude_none=True),
+                             body_format=MULTIPART_FORM_DATA_TYPE,
+                             files=files,
+                             timeout=EXTENDED_TIMEOUT).json()
+        res_body = ImageUploadResponse.model_validate(res_json)
+        file_ref = ImageFileReference(filename = res_body.name,
+                                      subfolder = res_body.subfolder or '',
+                                      type = res_body.type)
+        self._uploaded_images[image_key] = file_ref
+        # Update overwritten references:
+        old_keys: list[ImageKey] = []
+        for key in self._uploaded_images:
+            if key != image_key and self._uploaded_images[key] == file_ref:
+                old_keys.append(key)
+        for key in old_keys:
+            del self._uploaded_images[key]
         return file_ref
 
-    def upload_mask(self, mask: Image.Image, ref_image: ImageFileReference, subfolder: Optional[str] = None,
+    def upload_image(self, image: Image.Image | str,
+                     name: Optional[str] = None, subfolder: Optional[str] = None,
+                     temp=False, overwrite=True) -> ImageFileReference:
+        """Uploads an image for img2img, inpainting, ControlNet, etc."""
+        return self._upload_image_file(image, ComfyEndpoints.IMG_UPLOAD, name, subfolder, temp, overwrite)
+
+    def upload_mask(self, mask: Image.Image | str, ref_image: ImageFileReference,
+                    subfolder: Optional[str] = None,
                     overwrite=True) -> ImageFileReference:
         """Upload an inpainting mask for a particular image.
 
@@ -268,33 +300,16 @@ class ComfyUiWebservice(WebService):
                    areas where changes are allowed, instead of the areas where changes should be blocked. Make sure
                    to invert mask images before using them here.
         """
-        mask_data = image_to_png_bytes(mask)
-        body: MaskUploadParams = {
-            'original_ref': json.dumps(ref_image),
-            'subfolder': INTRAPAINT_UPLOAD_SUBFOLDER
-        }
-        if subfolder is not None and subfolder != '':
-            body['subfolder'] = subfolder
-        if overwrite:
-            body['overwrite'] = '1'
-        mask_name = f'mask_{ref_image["filename"]}'
-        files = {IMAGE_UPLOAD_FILE_NAME: (mask_name, mask_data, TYPE_PNG_IMAGE)}
-        res = cast(ImageUploadResponse, self.post(ComfyEndpoints.MASK_UPLOAD, body=body,
-                                                  body_format=MULTIPART_FORM_DATA_TYPE, files=files,
-                                                  timeout=EXTENDED_TIMEOUT).json())
-        file_ref: ImageFileReference = {
-            'filename': res['name'],
-            'subfolder': '' if 'subfolder' not in res else res['subfolder'],
-            'type': res['type']
-        }
-        return file_ref
+        return self._upload_image_file(mask, ComfyEndpoints.MASK_UPLOAD, f'mask_{ref_image.filename}',
+                                       subfolder, False, overwrite)
+
 
     def download_images(self, image_refs: list[ImageFileReference]) -> list[Image.Image]:
         """Download a list of images from ComfyUI as RGBA PIL images."""
         images: list[Image.Image] = []
         for image_ref in image_refs:
             try:
-                image_res = self.get(ComfyEndpoints.VIEW_IMAGE, url_params=cast(dict[str, str], image_ref),
+                image_res = self.get(ComfyEndpoints.VIEW_IMAGE, url_params=image_ref.model_dump(exclude_none=True),
                                      timeout=EXTENDED_TIMEOUT)
                 images.append(image_from_bytes(image_res.content))
             except (IOError, ValueError, RuntimeError) as err:
@@ -303,14 +318,15 @@ class ComfyUiWebservice(WebService):
 
     # Running ComfyUI workflows:
 
-    def _build_diffusion_body(self, seed: Optional[int] = None,
+    def _build_diffusion_body(self,
+                              diffusion_params: DiffusionParams,
                               workflow_builder: Optional[DiffusionWorkflowBuilder] = None) -> DiffusionWorkflowBuilder:
         """Apply cached parameters to begin building a ComfyUI workflow."""
         if workflow_builder is None:
             workflow_builder = DiffusionWorkflowBuilder()
-        workflow_builder.load_cached_settings()
-        if seed is not None:
-            workflow_builder.seed = seed
+        workflow_builder.load_diffusion_parameters(diffusion_params)
+        if diffusion_params.seed is not None:
+            workflow_builder.seed = diffusion_params.seed
         config_names = self.get_models(ComfyModelType.CONFIG)
         if workflow_builder.model_config_path not in config_names:
             # Check available config, and if one matches the stable diffusion model name, use that one:
@@ -327,81 +343,37 @@ class ComfyUiWebservice(WebService):
         return workflow_builder
 
     def _prepare_controlnet_data(self, workflow_builder: DiffusionWorkflowBuilder,
-                                 gen_area_control_image: Image.Image | ImageFileReference,
-                                 image_references: dict[str, ImageFileReference]) -> None:
+                                 controlnet_units: list[ControlNetUnit]) -> None:
         """Loads ControlNet units from the cache into a workflow builder.
 
         Parameters:
         ----------
         workflow_builder: DiffusionWorkflowBuilder
             Workflow builder object where any active ControlNet units will be defined as ComfyUI nodes.
-        gen_area_control_image: Image.Image | comfy_type.ImageFileREference
-            Image generation area content to upload or include if a ControlNet unit uses the "generation area as
-            control" option. Only used if that option is set and the image isn't already found in image_references
-            under the CONTROLNET_REUSE_IMAGE_CODE key.
-        image_references: dict[str, comfy_type.ImageFileReference]
-            Maps image strings as they appear in cached ControlNet unit data to previously uploaded image
-            references. If any new images are uploaded, their references will be added here.
+        controlnet_units: list[ControlNetUnit]: list of ControlNet units to add to the workflow.
 
         """
-        cache = Cache()
-        if (isinstance(gen_area_control_image, dict)
-                and CONTROLNET_REUSE_IMAGE_CODE not in image_references):
-            image_references[CONTROLNET_REUSE_IMAGE_CODE] = cast(ImageFileReference,
-                                                                 gen_area_control_image)
-        for control_unit_key in (Cache.CONTROLNET_ARGS_0_COMFYUI, Cache.CONTROLNET_ARGS_1_COMFYUI,
-                                 Cache.CONTROLNET_ARGS_2_COMFYUI):
-            try:
-                control_unit = ControlNetUnit.deserialize(cache.get(control_unit_key))
-            except (KeyError, ValueError, RuntimeError, JSONDecodeError) as err:
-                logger.error(f'skipping invalid controlnet unit "{control_unit_key}": {err}')
-                continue
-            if not control_unit.enabled:
-                continue
-            model_name = control_unit.model.full_model_name
+        for i in range(len(controlnet_units)):
+            control_unit = controlnet_units[i]
+            model_name = None if control_unit.model is None else control_unit.model.full_model_name
             preprocessor = control_unit.preprocessor
-            if preprocessor.name == PREPROCESSOR_NONE and model_name == CONTROLNET_MODEL_NONE:
-                logger.info(f'Skipping unit {control_unit_key}, no model or preprocessor set')
+            if preprocessor is None and model_name is None:
+                logger.info(f'Skipping unit {i}, no model or preprocessor set')
                 continue
-            if model_name == CONTROLNET_MODEL_NONE and not preprocessor.model_free:
-                logger.info(f'Skipping unit {control_unit_key} with preprocessor {preprocessor.name}: no model set and'
+            elif model_name is None and preprocessor is not None and not preprocessor.typedef.model_free:
+                logger.info(f'Skipping unit {i} with preprocessor {preprocessor.typedef.name}: no model set and'
                             ' preprocessor is not model-free')
                 continue
 
-            control_image_str = control_unit.image_string
-            assert control_image_str is not None
-            if control_image_str in image_references:
-                control_image_ref = image_references[control_image_str]
-            else:
-                image_to_upload: Optional[Image.Image] = None
-                if control_image_str == CONTROLNET_REUSE_IMAGE_CODE and isinstance(gen_area_control_image, Image.Image):
-                    image_to_upload = gen_area_control_image
-                elif os.path.isfile(control_image_str):
-                    try:
-                        with open(control_image_str, 'rb') as image_file:
-                            image_to_upload = image_from_bytes(image_file.read())
-                    except (IOError, ValueError) as err:
-                        logger.error(f'Skipping "{control_unit_key}": failed to load image {control_image_str}: {err}')
-                        continue
-                if image_to_upload is None:
-                    logger.error(f'Skipping "{control_unit_key}": failed to load image {control_image_str}')
-                    continue
-                try:
-                    control_image_ref = self.upload_image(image_to_upload, control_unit_key)
-                except (KeyError, RuntimeError) as err:
-                    logger.error(f'Skipping "{model_name}" ControlNet, uploading image "{control_image_str}"'
-                                 f' failed: {err}')
-                    continue
-                image_references[control_image_str] = control_image_ref
+            control_image_ref: Optional[ImageFileReference] = None
+            if control_unit.image is not None:
+                control_image_ref = self.upload_image(control_unit.image, f"control_{i}")
             workflow_builder.add_controlnet_unit(model_name, preprocessor, control_image_ref,
-                                                 float(control_unit.control_strength.value),
-                                                 float(control_unit.control_start.value),
-                                                 float(control_unit.control_end.value))
+                                                 float(control_unit.control_strength),
+                                                 float(control_unit.control_start),
+                                                 float(control_unit.control_end))
 
-    def txt2img(self,
-                control_image: Image.Image | ImageFileReference,
-                control_image_refs: dict[str, ImageFileReference],
-                seed: Optional[int] = None) -> QueueAdditionResponse:
+    def txt2img(self, diffusion_params: DiffusionParams) -> QueueAdditionResponse:
         """Queues an async text-to-image job with the ComfyUI server.
 
         Most parameters are read directly from the cache, where they should have been written from UI inputs. Calling
@@ -409,133 +381,78 @@ class ComfyUiWebservice(WebService):
 
         Parameters:
         -----------
-        control_image_refs: dict[str, comfy_type.ImageFileReference]
-            Dictionary tracking already uploaded images that can be reused for ControlNet. Keys use the same format
-            as cached ControlNet units:  CONTROLNET_REUSE_IMAGE_CODE for the image generation area content, full file
-            paths for all other images.
-        control_image: Optional[Image.Image] = None
-            Optional image generation area content, only used if ControlNet is enabled and set to use existing image
-            data, and the image isn't already uploaded and tracked in control_image_refs.
-        seed: Optional[int], default = None
-            Seed to use for image generation. If None, the value in the cache is used.
+        diffusion_params: DiffusionParams
+            Diffusion parameters to use for the txt2img operation.
         Returns
         -------
         comfy_type.QueueAdditionResponse
             Information needed to track the async task and download the resulting images once it finishes.
         """
-        workflow_builder = self._build_diffusion_body(seed)
+        workflow_builder = self._build_diffusion_body(diffusion_params)
         if workflow_builder.denoising_strength != 1.0:
             workflow_builder.denoising_strength = 1.0
-        self._prepare_controlnet_data(workflow_builder, control_image, control_image_refs)
+        if diffusion_params.controlnet_units is not None:
+            self._prepare_controlnet_data(workflow_builder, diffusion_params.controlnet_units)
         prompt = workflow_builder.build_workflow().get_workflow_dict()
-        body: QueueAdditionRequest = {'prompt': prompt, 'client_id': self._client_id}
-        res = cast(QueueAdditionResponse, self.post(ComfyEndpoints.PROMPT, body=body,
+        body = QueueAdditionRequest(prompt=prompt, client_id=self._client_id)
+        res = QueueAdditionResponse.model_validate(self.post(ComfyEndpoints.PROMPT, body=body,
                                                     timeout=DEFAULT_TIMEOUT).json())
-
-        res['seed'] = workflow_builder.seed
-        res['uploaded_images'] = control_image_refs
+        res.seed = workflow_builder.seed
         return res
 
-    def img2img(self, image: Image.Image | ImageFileReference,
-                control_image_refs: dict[str, ImageFileReference],
-                seed: Optional[int] = None) -> QueueAdditionResponse:
+    def _generate(self, diffusion_params: DiffusionParams) -> QueueAdditionResponse:
+        workflow_builder = self._build_diffusion_body(diffusion_params)
+        if diffusion_params.init_images is not None and len(diffusion_params.init_images) > 0:
+            image: Image.Image = diffusion_params.init_images[0]
+            image_reference = self.upload_image(image)
+            workflow_builder.set_source_image_from_reference(image_reference)
+            if diffusion_params.mask is not None:
+                mask_reference = self.upload_mask(diffusion_params.mask, image_reference)
+                workflow_builder.set_mask_from_reference(mask_reference)
+        if diffusion_params.controlnet_units is not None:
+            self._prepare_controlnet_data(workflow_builder, diffusion_params.controlnet_units)
+        prompt = workflow_builder.build_workflow().get_workflow_dict()
+        body = QueueAdditionRequest(prompt=prompt, client_id=self._client_id)
+        res = QueueAdditionResponse.model_validate(self.post(ComfyEndpoints.PROMPT, body=body.model_dump(),
+                                                   timeout=DEFAULT_TIMEOUT).json())
+        res.seed = workflow_builder.seed
+        return res
+
+    def img2img(self, diffusion_params: DiffusionParams) -> QueueAdditionResponse:
         """Queues an async image-to-image job with the ComfyUI server.
 
-        Most parameters are read directly from the cache, where they should have been written from UI inputs. Calling
-        this method will update theLAST_SEED value in the cache.
-
         Parameters:
         -----------
-        image: Image.Image | comfy_type.ImageFileReference
-            The image to edit. It must be pre-cropped to the generation area or padded inpainting area, and
-            pre-scaled to the generation size if necessary.
-        control_image_refs: dict[str, comfy_type.ImageFileReference]
-            Dictionary tracking already uploaded images that can be reused for ControlNet. Keys use the same format
-            as cached ControlNet units:  CONTROLNET_REUSE_IMAGE_CODE for the image generation area content, full file
-            paths for all other images.
-        mask: Image.Image
-            The inpainting mask. This must have the same resolution as the image parameter. Note that ComfyUI uses
-            the mask to select preserved pixels instead of changed pixels, so any mask taken directly from the
-            selection layer must be inverted before its used with this method.
-        seed: Optional[int], default = None
-            Seed to use for image generation. If None, the value in the cache is used.
+        diffusion_params: DiffusionParams
+            Diffusion parameters to use for the img2img operation.
         Returns
         -------
         comfy_type.QueueAdditionResponse
             Information needed to track the async task and download the resulting images once it finishes.
         """
-        if CONTROLNET_REUSE_IMAGE_CODE in control_image_refs:
-            image_reference = control_image_refs[CONTROLNET_REUSE_IMAGE_CODE]
-        else:
-            if isinstance(image, dict):
-                image_reference = cast(ImageFileReference, image)
-            else:
-                image_reference = self.upload_image(image)
-            control_image_refs[CONTROLNET_REUSE_IMAGE_CODE] = image_reference
-        assert image_reference is not None
-        workflow_builder = self._build_diffusion_body(seed)
-        workflow_builder.set_source_image_from_reference(image_reference)
-        self._prepare_controlnet_data(workflow_builder, image_reference, control_image_refs)
-        prompt = workflow_builder.build_workflow().get_workflow_dict()
-        body: QueueAdditionRequest = {'prompt': prompt, 'client_id': self._client_id}
-        res = cast(QueueAdditionResponse, self.post(ComfyEndpoints.PROMPT, body=body,
-                                                    timeout=DEFAULT_TIMEOUT).json())
-        res['seed'] = workflow_builder.seed
-        res['uploaded_images'] = control_image_refs
-        return res
+        if diffusion_params.init_images is None or len(diffusion_params.init_images) == 0:
+            raise ValueError("Must set an init image in diffusion_params for img2img")
+        return self._generate(diffusion_params)
 
-    def inpaint(self, image: Image.Image | ImageFileReference,
-                mask: Image.Image | ImageFileReference,
-                control_image_refs: dict[str, ImageFileReference],
-                seed: Optional[int] = None) -> QueueAdditionResponse:
+    def inpaint(self,  diffusion_params: DiffusionParams) -> QueueAdditionResponse:
         """Queues an async inpainting job with the ComfyUI server.
 
-        Most parameters are read directly from the cache, where they should have been written from UI inputs. Calling
-        this method will update theLAST_SEED value in the cache.
-
         Parameters:
         -----------
-        image: Image.Image | comfy_type.ImageFileReference
-            The image to inpaint. It must be pre-cropped to the generation area or padded inpainting area, and
-            pre-scaled to the generation size if necessary.
-        mask: Image.Image | comfy_type.ImageFileReference
-            The inpainting mask. This must have the same resolution as the image parameter. Note that ComfyUI uses
-            the mask to select preserved pixels instead of changed pixels, so any mask taken directly from the
-            selection layer must be inverted before its used with this method.
-
-            Also note that ComfyUI doesn't do any mask blurring, so AppConfig.MASK_BLUR should be handled by the caller
-            beforehand.
-        seed: Optional[int], default = None
-            Seed to use for image generation. If None, the value in the cache is used.
+        diffusion_params: DiffusionParams
+            Diffusion parameters to use for the inpainting operation.
         Returns
         -------
         comfy_type.QueueAdditionResponse
             Information needed to track the async task and download the resulting images once it finishes.
         """
-        if CONTROLNET_REUSE_IMAGE_CODE in control_image_refs:
-            image_reference = control_image_refs[CONTROLNET_REUSE_IMAGE_CODE]
-        else:
-            if isinstance(image, dict):
-                image_reference = cast(ImageFileReference, image)
-            else:
-                image_reference = self.upload_image(image)
-            control_image_refs[CONTROLNET_REUSE_IMAGE_CODE] = image_reference
-        if isinstance(mask, dict):
-            mask_reference = cast(ImageFileReference, mask)
-        else:
-            mask_reference = self.upload_mask(mask, image_reference)
-        workflow_builder = self._build_diffusion_body(seed)
-        workflow_builder.set_source_image_from_reference(image_reference)
-        workflow_builder.set_mask_from_reference(mask_reference)
-        self._prepare_controlnet_data(workflow_builder, image_reference, control_image_refs)
-        prompt = workflow_builder.build_workflow().get_workflow_dict()
-        body: QueueAdditionRequest = {'prompt': prompt, 'client_id': self._client_id}
-        res = cast(QueueAdditionResponse, self.post(ComfyEndpoints.PROMPT, body=body,
-                                                    timeout=DEFAULT_TIMEOUT).json())
-        res['seed'] = workflow_builder.seed
-        res['uploaded_images'] = control_image_refs
-        res['uploaded_mask'] = mask_reference
-        return res
+
+        if diffusion_params.init_images is None or len(diffusion_params.init_images) == 0:
+            raise ValueError("Must set an init image in diffusion_params for inpainting")
+        if diffusion_params.mask is None:
+            raise ValueError("Must set a mask in diffusion_params for inpainting.")
+        return self._generate(diffusion_params)
+
 
     def controlnet_preprocessor_preview(self, image: Image.Image, mask: Image.Image,
                                         preprocessor: ControlNetPreprocessor) -> QueueAdditionResponse:
@@ -548,81 +465,55 @@ class ComfyUiWebservice(WebService):
         workflow_builder = PreprocessorPreviewWorkflowBuilder(preprocessor)
         workflow = workflow_builder.build_workflow(image_reference, mask_reference)
         prompt = workflow.get_workflow_dict()
-        body: QueueAdditionRequest = {'prompt': prompt, 'client_id': self._client_id}
-        return cast(QueueAdditionResponse, self.post(ComfyEndpoints.PROMPT, body=body,
-                                                     timeout=DEFAULT_TIMEOUT).json())
+        body = QueueAdditionRequest(prompt=prompt, client_id=self._client_id)
+        return QueueAdditionResponse.model_validate(self.post(ComfyEndpoints.PROMPT, body=body.model_dump(),
+                                                    timeout=DEFAULT_TIMEOUT).json())
 
-    def upscale(self, image: Image.Image, width: int, height: int) -> QueueAdditionResponse:
+    def upscale(self, image: Image.Image, width: int, height: int,
+                upscale_params: Optional[DiffusionUpscalingParams] = None) -> QueueAdditionResponse:
         """Upscale an image using an upscaling model and/or a latent updcaling workflow."""
-        cache = Cache()
-
+        if upscale_params is None:
+            upscale_params = DiffusionUpscalingParams()
         upscale_multiplier = max(width / image.width, height / image.height)
         assert upscale_multiplier > 1.0
 
         image_reference = self.upload_image(image)
 
         # Check for valid upscaling model:
-        upscale_model: Optional[str] = cache.get(Cache.SCALING_MODE)
-        upscale_model_options = cache.get(Cache.GENERATOR_SCALING_MODES)
+        upscale_model: Optional[str] = upscale_params.upscaling_mode
+        upscale_model_options = self.get_models(ComfyModelType.UPSCALING)
         if upscale_model not in upscale_model_options:
             upscale_model = None
 
-        if cache.get(Cache.SD_UPSCALING_AVAILABLE) and cache.get(Cache.USE_STABLE_DIFFUSION_UPSCALING):
-            tile_size = cache.get(Cache.GENERATION_SIZE)
+
+        if upscale_params.use_stable_diffusion_upscaling:
             # Check for "Ultimate SD Upscaler" script:
-            use_ultimate_upscaler = (cache.get(Cache.ULTIMATE_UPSCALE_SCRIPT_AVAILABLE)
-                                     and cache.get(Cache.USE_ULTIMATE_UPSCALE_SCRIPT))
+            ultimate_upscale_available = self.is_node_available(ULTIMATE_UPSCALE_NODE_NAME)
 
             # Check for valid ControlNet tile model:
-            try:
-                tile_control_unit: Optional[ControlNetUnit] = ControlNetUnit.deserialize(
-                    cache.get(Cache.SD_UPSCALING_CONTROLNET_TILE_SETTINGS), ControlKeyType.COMFYUI)
-                assert tile_control_unit is not None
-                if (tile_control_unit.model.full_model_name == CONTROLNET_MODEL_NONE
-                        or tile_control_unit.preprocessor.name.lower() == PREPROCESSOR_NONE.lower()
-                        or tile_control_unit.control_strength.value == 0.0
-                        or float(tile_control_unit.control_start.value) >= float(tile_control_unit.control_end.value)):
-                    tile_control_unit = None
-                else:
-                    models = self.get_controlnet_models()
-                    preprocessors = [preprocessor.name for preprocessor in self.get_controlnet_preprocessors()]
-                    if (tile_control_unit.model.full_model_name not in models
-                            or tile_control_unit.preprocessor.name not in preprocessors):
-                        tile_control_unit = None
-            except (KeyError, ValueError, RuntimeError, JSONDecodeError) as err:
-                logger.error(f'Error loading upscale tile ControlNet: {err}')
-                tile_control_unit = None
-            if tile_control_unit is None:
-                controlnet_tile_model = CONTROLNET_MODEL_NONE
-                controlnet_tile_preprocessor = ControlNetPreprocessor(PREPROCESSOR_NONE, PREPROCESSOR_NONE, [])
-            else:
-                controlnet_tile_model = tile_control_unit.model.full_model_name
-                controlnet_tile_preprocessor = tile_control_unit.preprocessor
-                available_models = self.get_controlnet_models()
-                if controlnet_tile_model not in available_models:
-                    controlnet_tile_model = CONTROLNET_MODEL_NONE
-                available_preprocessors = [preprocessor.name for preprocessor in self.get_controlnet_preprocessors()]
-                if controlnet_tile_preprocessor.name not in available_preprocessors:
-                    controlnet_tile_preprocessor = ControlNetPreprocessor(PREPROCESSOR_NONE, PREPROCESSOR_NONE, [])
-                    controlnet_tile_model = CONTROLNET_MODEL_NONE
+            tile_control_unit: Optional[ControlNetUnit] = None
+            # TODO: Initialize valid Tile ControlNetUnit using available preprocessors and models, filtering based
+            #       on Stable Diffusion model type
 
             workflow_builder = LatentUpscaleWorkflowBuilder(image_reference, upscale_multiplier, Size(width, height),
-                                                            tile_size, use_ultimate_upscaler,
-                                                            upscale_model, controlnet_tile_preprocessor,
-                                                            controlnet_tile_model)
-            workflow_builder.denoising_strength = cache.get(Cache.SD_UPSCALING_DENOISING_STRENGTH)
-            workflow_builder.steps = cache.get(Cache.SD_UPSCALING_STEP_COUNT)
+                                                            Size(upscale_params.tile_width, upscale_params.tile_height),
+                                                            ultimate_upscale_available,
+                                                            upscale_model,
+                                                            tile_control_unit)
+            workflow_builder.denoising_strength = upscale_params.denoising_strength
+            workflow_builder.steps = upscale_params.step_count
+            # TODO: diffusion params missing...how should we pass these in?
             self._build_diffusion_body(None, workflow_builder)
             workflow_node_graph = workflow_builder.build_workflow()
 
         else:  # Basic upscaling workflow:
             if upscale_model is None:
-                raise RuntimeError(f'No valid upscaling model, cached value was "{cache.get(Cache.SCALING_MODE)}"')
-            workflow_node_graph = build_basic_upscaling_workflow(image_reference, upscale_model)
+                raise RuntimeError(f'No valid upscaling model, provided value was "{upscale_params.upscaling_mode}"')
+            workflow_node_graph = build_basic_upscaling_workflow(image_reference, upscale_params.upscaling_mode)
 
         prompt = workflow_node_graph.get_workflow_dict()
-        body: QueueAdditionRequest = {'prompt': prompt, 'client_id': self._client_id}
-        res = cast(QueueAdditionResponse, self.post(ComfyEndpoints.PROMPT, body=body,
+        body = QueueAdditionRequest(prompt=prompt, client_id=self._client_id)
+        res = QueueAdditionResponse.model_validate(self.post(ComfyEndpoints.PROMPT, body=body,
                                                     timeout=DEFAULT_TIMEOUT).json())
         return res
 
@@ -644,40 +535,36 @@ class ComfyUiWebservice(WebService):
         history_response = cast(QueueHistoryResponse, self.get(endpoint, timeout=DEFAULT_TIMEOUT).json())
         if entry_uuid in history_response:
             entry_history = history_response[entry_uuid]
-            if entry_history['status']['status_str'] == 'error':
-                return {'status': AsyncTaskStatus.FAILED}
-            if entry_history['status']['completed']:
-                progress: AsyncTaskProgress = {
-                    'status': AsyncTaskStatus.FINISHED,
-                    'outputs': {'images': []}
-                }
-                for output_data in entry_history['outputs'].values():
-                    if 'images' in output_data:
-                        for reference in output_data['images']:
-                            progress['outputs']['images'].append(cast(ImageFileReference, reference))
+            if entry_history.status.status_str == 'error':
+                return AsyncTaskProgress(status=AsyncTaskStatus.FAILED)
+            if entry_history.status.completed:
+                images = []
+                for output_data in entry_history.outputs.values():
+                    if output_data.images is not None:
+                        for reference in output_data.images:
+                            images.append(cast(ImageFileReference, reference))
+                progress = AsyncTaskProgress(status=AsyncTaskStatus.FINISHED, outputs=PromptExecOutputs(images=images))
                 return progress
         queue_info = self.get_queue_info()
-        for running_task in queue_info['queue_running']:
+        for running_task in queue_info.queue_running:
             if running_task[1] == entry_uuid:
-                return {'status': AsyncTaskStatus.ACTIVE}
+                return AsyncTaskProgress(status=AsyncTaskStatus.ACTIVE)
         queue_index = 0
         task_found = False
-        for pending_task in queue_info['queue_pending']:
+        for pending_task in queue_info.queue_pending:
             if pending_task[0] < task_number:
                 queue_index += 1
             elif pending_task[0] == task_number:
                 task_found = True
         if task_found:
-            return {'status': AsyncTaskStatus.PENDING, 'index': queue_index}
-        return {'status': AsyncTaskStatus.NOT_FOUND}
+            return AsyncTaskProgress(status=AsyncTaskStatus.PENDING, index=queue_index)
+        return AsyncTaskProgress(status=AsyncTaskStatus.NOT_FOUND)
 
     def interrupt(self, task_id: Optional[str] = None) -> None:
         """Stops the active workflow, and removes a task from the queue if task_id is not None."""
         if task_id is not None:
-            queue_removal_body: QueueDeletionRequest = {
-                'delete': [task_id]
-            }
-            self.post(ComfyEndpoints.QUEUE, body=queue_removal_body)
+            queue_removal_body = QueueDeletionRequest(delete=[task_id])
+            self.post(ComfyEndpoints.QUEUE, body=queue_removal_body.model_dump())
         self.post(ComfyEndpoints.INTERRUPT, body=None, timeout=DEFAULT_TIMEOUT)
 
     @contextmanager
@@ -712,8 +599,5 @@ class ComfyUiWebservice(WebService):
     # Misc. utility:
     def free_memory(self) -> None:
         """Clear cached data to free GPU memory."""
-        body: FreeMemoryRequest = {
-            'unload_models': True,
-            'free_memory': True
-        }
+        body = FreeMemoryRequest(unload_models=True, free_memory=True)
         self.post(ComfyEndpoints.FREE, body, timeout=DEFAULT_TIMEOUT)

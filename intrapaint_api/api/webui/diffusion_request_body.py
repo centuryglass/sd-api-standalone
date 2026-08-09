@@ -1,220 +1,245 @@
 """Typedefs for WebUI API data."""
 import logging
 import os.path
-from dataclasses import dataclass, asdict
-from typing import Any, Optional, cast
+from enum import Enum
+from typing import Any, Optional
 
 from PIL import Image
 
-from intrapaint_api.api.controlnet.controlnet_constants import CONTROLNET_REUSE_IMAGE_CODE
-from intrapaint_api.api.webui.controlnet_webui_constants import CONTROLNET_SCRIPT_KEY
-from intrapaint_api.api.webui.controlnet_webui_utils import load_cached_controlnet_units
+from intrapaint_api.api.shared_data.diffusion_params import DiffusionParams
+from intrapaint_api.api.webui.controlnet_webui_constants import CONTROLNET_SCRIPT_KEY, ControlNetUnitDict
 from intrapaint_api.api.webui.script_info_types import ScriptRequestData
-from intrapaint_api.config.application_config import AppConfig
-from intrapaint_api.config.cache import Cache
-from intrapaint_api.util.geometry import Size
-from intrapaint_api.util.shared_constants import EDIT_MODE_INPAINT, EDIT_MODE_IMG2IMG
 from intrapaint_api.util.visual.image_utils import image_to_base64
 
 logger = logging.getLogger(__name__)
 
+class ResizeMode(Enum):
+    """Controls how source images are resized when source resolution doesn't match generated image size."""
+    JUST_RESIZE = 0
+    CROP_AND_RESIZE = 1
+    RESIZE_AND_FILL = 2
+    RESIZE_LATENT_UPSCALE = 3
 
-# noinspection GrazieInspection
-@dataclass
-class DiffusionRequestBody:
-    """Request body format for image generation (all types)"""
-    # Basic image generation:
-    sampler_name: str = ''
-    batch_size: int = 1
+class InpaintFillOption(Enum):
+    """Controls how source image data is processed before inpainting. (ORIGINAL is almost always the right choice.)"""
+    FILL = 0
+    ORIGINAL = 1
+    LATENT_NOISE = 2
+    LATENT_NOTHING = 3
+
+
+class DiffusionRequestBody(DiffusionParams):
+    """Request body format for WebUI image generation (all types)"""
+
+    ### Basic image generation:
     n_iter: int = 1  # number of batches
-    steps: int = 30
-    cfg_scale: float = 7.0  # guidance scale
-    width: int = 512
-    height: int = 512
-    denoising_strength: Optional[float] = None
+    """Number of image batches to generate."""
 
-    # Img2img and inpainting only:
-    init_images: Optional[list[str]] = None  # base64 image data
 
-    # Resize mode options (selected by index):
-    # 0: Just resize (the default)
-    # 1: Crop and resize
-    # 2. Resize and fill
-    # 3. Just resize (latent upscale)
-    resize_mode: Optional[int] = None
-    image_cfg_scale: Optional[float] = None  # TODO: how does this differ from regular cfg_scale?
+    resize_mode: Optional[ResizeMode] = None
+    """Controls how source images are resized when source resolution doesn't match generated image size."""
+
+    image_cfg_scale: Optional[float] = None
+    """How strongly generation follows the image prompt (InstructPix2Pix models only)."""
+
     include_init_images: Optional[bool] = None
-    firstpass_image: Optional[str] = None  # alternate initial image for the first part of a highres-fix gen.
+    """Whether init_images should be sent back with the response."""
 
-    # Inpainting only:
-    mask: Optional[str] = None  # base64 image data
+
+    ### Inpainting only:
     mask_blur_x: Optional[int] = None
+    """Horizontal radius (in pixels) of the blur applied to mask edges."""
+
     mask_blur_y: Optional[int] = None
+    """Vertical radius (in pixels) of the blur applied to mask edges."""
+
     mask_blur: Optional[int] = None
+    """Radius (in pixels) of the blur applied to mask edges in both directions."""
 
-    # Inpaint fill options (selected by index):
-    # 0: fill
-    # 1: original
-    # 2: latent noise
-    # 3: latent nothing
-    inpainting_fill: Optional[int] = None
+    inpainting_fill: Optional[InpaintFillOption] = InpaintFillOption.ORIGINAL
+    """Controls how source image data is processed before inpainting. ORIGINAL is almost always the right choice.
+   """
+
     inpaint_full_res: Optional[bool] = None
+    """Whether inpainting renders only the masked region at full resolution instead of the whole image"""
+
     inpaint_full_res_padding: Optional[int] = None
+    """Padding (in pixels) added around the masked region when inpaint_full_res is enabled."""
+
     inpainting_mask_invert: Optional[int] = None  # 0=don't invert, 1=invert
+    """Whether to invert the inpainting mask (0=don't invert, 1=invert)."""
+
     mask_round: Optional[bool] = None
-    initial_noise_multiplier: Optional[float] = None  # Adjust extra noise added to masked areas
+    """Whether mask values are rounded to hard edges instead of being treated as a gradient."""
 
-    # Img2img/inpaint exclusive options end here.
+    initial_noise_multiplier: Optional[float] = None
+    """Scaling factor applied to the extra noise added to masked areas before inpainting."""
 
-    # Prompt:
-    prompt: str = ''
-    negative_prompt: str = ''
+
+    ### Prompt:
     styles: Optional[list[str]] = None
+    """Names of saved prompt styles to apply to the prompt and negative prompt."""
 
-    # RNG:
-    seed: int = -1
-
-    # subseed: also known as "variation seed", sets variance across random generation
     subseed: Optional[int] = None
+    """Secondary "variation" seed, blended with the main seed to add variance across generations."""
+
     subseed_strength: Optional[float] = None
+    """How strongly the subseed influences generation, from 0.0 (main seed only) to 1.0 (subseed only)."""
 
-    # Seed resize options: for getting similar results at different resolutions:
+
+    ### Seed resize options: for getting similar results at different resolutions:
     seed_resize_from_h: Optional[int] = None
+    """Source height used to reproduce a seed's results at a different resolution."""
+
     seed_resize_from_w: Optional[int] = None
+    """Source width used to reproduce a seed's results at a different resolution."""
 
-    # minor extra features:
+
+    ### minor extra features:
     restore_faces: bool = False
+    """Whether to run a face restoration model as a post-processing step."""
+
     tiling: bool = False
+    """Whether to generate an image that tiles seamlessly when repeated."""
+
     refiner_checkpoint: Optional[str] = None
+    """Name of the refiner model used for the final generation steps."""
+
     refiner_switch_at: Optional[int] = None  # step count
+    """Step count at which generation switches from the base model to the refiner model."""
 
-    # settings and misc. server behavior
-    infotext: Optional[str] = None  # metadata string: if provided, it overwrites other parameters
+
+    ### settings and misc. server behavior
+    infotext: Optional[str] = None
+    """Generation metadata string. If provided, it overrides other parameters."""
+
     override_settings: Optional[dict[str, Any]] = None
+    """Server settings to temporarily override for this request."""
+
     override_settings_restore_afterwards: Optional[bool] = None
+    """Whether overridden settings are restored to their previous values after this request."""
+
     do_not_save_samples: Optional[bool] = None
+    """Whether the server should skip saving individual generated images to disk."""
+
     do_not_save_grid: Optional[bool] = None
-    disable_extra_networks: Optional[bool] = None  # Turn off LoRAs, etc.
+    """Whether the server should skip saving the combined image grid to disk."""
+
+    disable_extra_networks: Optional[bool] = None
+    """Whether to disable extra networks such as LoRAs and Hypernetworks."""
+
     send_images: bool = True
+    """Whether generated images are included in the response."""
+
     save_images: bool = False
-    comments: Optional[dict[str, Any]] = None  # Add arbitrary extra info to image metadata.
-    force_task_id: Optional[str] = None  # Assign this ID to the job instead of using a random one.
+    """Whether generated images are saved to disk on the server."""
 
-    # High-res fix:
+    comments: Optional[dict[str, Any]] = None
+    """Arbitrary extra information to embed in the generated image metadata."""
+
+    force_task_id: Optional[str] = None
+    """Assigns this ID to the job instead of using a randomly generated one."""
+
+
+    ### High-res fix:
     enable_hr: Optional[bool] = None
+    """Whether to enable the high-resolution fix, a second upscaling pass after initial generation."""
+
+    firstpass_image: Optional[str] = None
+    """Alternate initial image (base64) used for the first pass of a high-res fix generation."""
+
     firstphase_width: Optional[int] = None
+    """Width of the first (pre-upscale) high-res fix pass."""
+
     firstphase_height: Optional[int] = None
+    """Height of the first (pre-upscale) high-res fix pass."""
+
     hr_scale: Optional[float] = None
+    """Factor by which the image is upscaled during the high-res fix pass."""
+
     hr_upscaler: Optional[str] = None
+    """Name of the upscaler model used during the high-res fix pass."""
+
     hr_second_pass_steps: Optional[int] = None
+    """Number of denoising steps in the high-res fix second pass."""
+
     hr_resize_x: Optional[int] = None
+    """Target width for the high-res fix pass, as an alternative to hr_scale."""
+
     hr_resize_y: Optional[int] = None
+    """Target height for the high-res fix pass, as an alternative to hr_scale."""
+
     hr_sampler_name: Optional[str] = None
+    """Sampling algorithm used for the high-res fix second pass."""
+
     hr_prompt: Optional[str] = None
+    """Alternate prompt used for the high-res fix second pass."""
+
     hr_negative_prompt: Optional[str] = None
+    """Alternate negative prompt used for the high-res fix second pass."""
 
-    # custom scripts:
+
+    ### custom scripts:
     script_name: Optional[str] = None
-    script_args: Optional[list[Any]] = None
-    alwayson_scripts: Optional[dict[str, ScriptRequestData]] = None
+    """Name of a custom script to run for this generation."""
 
-    # Karras(?) sampler parameters (probably don't need to use these)
+    script_args: Optional[list[Any]] = None
+    """Positional arguments passed to the script named by script_name."""
+
+    alwayson_scripts: Optional[dict[str, ScriptRequestData]] = None
+    """Data for "always-on" scripts (e.g. ControlNet) applied to the generation."""
+
+
+    ### Karras(?) sampler parameters (probably don't need to use these)
     eta: Optional[float] = None
+    """Amount of noise added at each sampling step for ancestral/stochastic samplers."""
+
     s_min_uncond: Optional[float] = None
+    """Sigma threshold below which the negative prompt is skipped to speed up sampling."""
+
     s_churn: Optional[float] = None
+    """Amount of extra stochastic noise mixed in during sampling."""
+
     s_tmax: Optional[float] = None
+    """Maximum sigma value at which s_churn noise is applied."""
+
     s_tmin: Optional[float] = None
+    """Minimum sigma value at which s_churn noise is applied."""
+
     s_noise: Optional[float] = None
+    """Scaling factor for the extra noise added by s_churn."""
 
     # Probably deprecated, present for compatibility reasons:
     sampler_index: Optional[str] = None
+    """Deprecated alias for sampler_name, kept for backward compatibility."""
 
     def to_dict(self) -> dict[str, Any]:
         """Convert the request body to a dict, removing unused optional parameters."""
-        # noinspection PyTypeChecker
-        data = asdict(self)
-        empty_keys = [key for key in data if data[key] is None]
-        for key in empty_keys:
-            del data[key]
-        return data
-
-    def load_data(self, image: Optional[Image.Image] = None, mask: Optional[Image.Image] = None) -> None:
-        """Load as many parameters as possible from config, cache, and optional image parameters."""
-        config = AppConfig()
-        cache = Cache()
-
-        self.sampler_name = cache.get(Cache.SAMPLING_METHOD)
-        self.batch_size = cache.get(Cache.BATCH_SIZE)
-        self.n_iter = cache.get(Cache.BATCH_COUNT)
-        self.steps = cache.get(Cache.SAMPLING_STEPS)
-        self.cfg_scale = cache.get(Cache.GUIDANCE_SCALE)
-
-        size = cast(Size, cache.get(Cache.GENERATION_SIZE))
-        self.width = size.width()
-        self.height = size.height()
-
-        self.prompt = cache.get(Cache.PROMPT)
-        self.negative_prompt = cache.get(Cache.NEGATIVE_PROMPT)
-        self.seed = int(cache.get(Cache.SEED))
-
-        self.restore_faces = cache.get(Cache.WEBUI_RESTORE_FACES)
-        self.tiling = cache.get(Cache.WEBUI_TILING)
+        # Rebuild ControlNet request parameters in sync with self.controlnet_units:
         if self.alwayson_scripts is None:
             self.alwayson_scripts = {}
-
-        edit_mode = cache.get(Cache.EDIT_MODE)
-        if edit_mode in (EDIT_MODE_IMG2IMG, EDIT_MODE_INPAINT):
-            if image is not None:
-                self.add_init_image(image)
-            self.include_init_images = False
-            self.denoising_strength = cache.get(Cache.DENOISING_STRENGTH)
-
-            if edit_mode == EDIT_MODE_INPAINT:
-                if mask is not None:
-                    self.mask = image_to_base64(mask, include_prefix=True)
-                self.inpainting_mask_invert = 0
-                self.inpaint_full_res = cache.get(Cache.INPAINT_FULL_RES)
-                self.inpaint_full_res_padding = cache.get(Cache.INPAINT_FULL_RES_PADDING)
-                self.mask_blur = config.get(AppConfig.MASK_BLUR)
-                self.inpainting_fill = cache.get_option_index(Cache.MASKED_CONTENT)
-
-        # Add ControlNet parameters:
-        if CONTROLNET_SCRIPT_KEY in self.alwayson_scripts:
+        elif CONTROLNET_SCRIPT_KEY in self.alwayson_scripts:
             self.alwayson_scripts[CONTROLNET_SCRIPT_KEY] = {'args': []}  # Make sure to clear any old ControlNet defs
-        controlnet_unit_dicts = load_cached_controlnet_units()
-        for control_unit_dict in controlnet_unit_dicts:
-            if not control_unit_dict['enabled']:
-                continue
-            control_image = control_unit_dict['image']
-            if control_image == CONTROLNET_REUSE_IMAGE_CODE and image is not None:
-                if edit_mode in (EDIT_MODE_IMG2IMG, EDIT_MODE_INPAINT) and self.init_images is not None \
-                        and len(self.init_images) > 0:
-                    control_unit_dict['image'] = self.init_images[-1]
-                else:
-                    control_unit_dict['image'] = image_to_base64(image, include_prefix=True)
-            elif isinstance(control_image, str) and os.path.exists(control_image):
-                try:
-                    control_unit_dict['image'] = image_to_base64(control_unit_dict['image'], include_prefix=True)
-                except (IOError, KeyError) as err:
-                    logger.error(f'Error loading controlnet image {control_image}: {err}')
-                    control_unit_dict['image'] = None
+        for control_unit in self.controlnet_units:
+            control_unit_dict = ControlNetUnitDict()
+            control_image = control_unit.image
+            if control_image is not None:
+                control_unit_dict.image = image_to_base64(control_image, include_prefix=True)
+                control_unit_dict.pixel_perfect = control_unit.pixel_perfect
+            # TODO: finish copying over params - probably better to use some clever pydantic nonsense
+            #       you'll have to figure out how to correctly process parameter keys - switch on type.name?
             if CONTROLNET_SCRIPT_KEY not in self.alwayson_scripts:
                 self.alwayson_scripts[CONTROLNET_SCRIPT_KEY] = {'args': []}
-            self.alwayson_scripts[CONTROLNET_SCRIPT_KEY]['args'].append(control_unit_dict)
-
-        # Add "extras" tab parameters:
-        subseed = cache.get(Cache.WEBUI_SUBSEED)
-        if subseed != -1:
-            self.subseed = subseed
-            self.subseed_strength = cache.get(Cache.WEBUI_SUBSEED_STRENGTH)
-        if cache.get(Cache.WEBUI_SEED_RESIZE_ENABLED):
-            seed_resize = cast(Size, cache.get(Cache.WEBUI_SEED_RESIZE))
-            self.seed_resize_from_w = seed_resize.width()
-            self.seed_resize_from_h = seed_resize.height()
-
-    def add_init_image(self, image: Image.Image) -> None:
-        """Adds a base64 init image."""
-        if self.init_images is None:
-            self.init_images = []
-        image_str = image_to_base64(image, include_prefix=True)
-        self.init_images.append(image_str)
+            self.alwayson_scripts[CONTROLNET_SCRIPT_KEY]['args'].append(control_unit_dict.model_dump())
+        data = super().to_dict()
+        if 'controlNet_units' in data:
+            del data['controlNet_units']  # Include only under scripts
+        # Ensure images are prefixed base64:
+        if 'init_images' in data:
+            images = data['init_images']
+            assert isinstance(images, list)
+            for i in range(len(images)):
+                images[i] = image_to_base64(images[i], include_prefix=True)
+        if 'mask' in data:
+            data['mask'] = image_to_base64(data['mask'], include_prefix=True)
+        return data

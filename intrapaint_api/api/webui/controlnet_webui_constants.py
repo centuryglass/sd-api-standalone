@@ -1,8 +1,9 @@
 """Data format definitions for the WebUI API's ControlNet endpoints."""
-from typing import TypedDict, NotRequired, Dict, Optional, Literal
+from typing import TypedDict, Dict, Optional, Literal
 
+from pydantic import BaseModel
 
-from intrapaint_api.api.controlnet.controlnet_constants import ControlTypeDef
+from intrapaint_api.api.shared_data.controlnet.controlnet_constants import ControlTypeDef
 
 # The `QCoreApplication.translate` context for strings in this file
 TR_ID = 'api.webui.controlnet_webui'
@@ -16,12 +17,12 @@ def _tr(key: str, disambiguation: Optional[str] = None, n: int = -1) -> str:
 CONTROLNET_SCRIPT_KEY = 'controlNet'
 
 
-class ControlNetModelResponse(TypedDict):
+class ControlNetModelResponse(BaseModel):
     """Response format from the WebUI API when loading ControlNet model options."""
     model_list: list[str]
 
 
-class ControlNetSliderDef(TypedDict):
+class ControlNetSliderDef(BaseModel):
     """Defines a ControlNet preprocessor's use of the resolution, 'threshold_a' or 'threshold_b' parameters."""
     name: str
     min: float | int
@@ -30,40 +31,40 @@ class ControlNetSliderDef(TypedDict):
     step: float | int
 
 
-class ModuleDetail(TypedDict):
+class ModuleDetail(BaseModel):
     """Defines a ControlNet preprocessor's parameters as returned by the preprocessor module list endpoint."""
     model_free: bool  # Whether the preprocessor module can be used without a model.
     sliders: list[ControlNetSliderDef]
 
 
-class ControlNetModuleResponse(TypedDict):
+class ControlNetModuleResponse(BaseModel):
     """Response format when loading ControlNet preprocessor options."""
     module_list: list[str]
-    module_details: NotRequired[Dict[str, ModuleDetail]]  # NOTE: not included in Forge.
+    module_details: Optional[Dict[str, ModuleDetail]]  # NOTE: not included in Forge.
 
 
-class ControlNetUnitDict(TypedDict):
+class ControlNetUnitDict(BaseModel):
     """Data format used with the ControlNet script's values within the alwayson_scripts section in WebUI generation
        requests. In the script values section, The ControlNet value parameter is a list holding up to three of these
        objects.  Optional parameters that only affect the UI are omitted."""
-    use_preview_as_input: bool
-    enabled: bool
-    pixel_perfect: NotRequired[bool]
-    low_vram: NotRequired[bool]
-    module: str  # AKA preprocessor
-    model: str
-    weight: float
-    image: Optional[str]  # base64 image, usually necessary.
-    resize_mode: Literal['Just Resize', 'Crop and Resize', 'Resize and Fill']
-    guidance_start: float
-    guidance_end: float
-    control_mode: NotRequired[Literal['Balanced', 'My prompt is more important', 'ControlNet is more important']]
+    use_preview_as_input: bool = False
+    enabled: bool = True
+    pixel_perfect: Optional[bool] = True
+    low_vram: Optional[bool] = False
+    module: str = 'None' # AKA preprocessor
+    model: str = 'None'
+    weight: float= 1.0
+    image: Optional[str] = None  # base64 image, usually necessary.
+    resize_mode: Literal['Just Resize', 'Crop and Resize', 'Resize and Fill'] = 'Just Resize'
+    guidance_start: float = 0.0
+    guidance_end: float = 1.0
+    control_mode: Optional[Literal['Balanced', 'My prompt is more important', 'ControlNet is more important']] = 'Balanced'
 
     # preprocessor-specific values:
-    processor_res: NotRequired[int]  # Some use this, some don't. Set to -1 or omit if it's not used.
+    processor_res: Optional[int] = None  # Some use this, some don't. Set to -1 or omit if it's not used.
     # Effects of threshold values (if any) vary based on preprocessor.
-    threshold_a: NotRequired[float]
-    threshold_b: NotRequired[float]
+    threshold_a: Optional[float] = None
+    threshold_b: Optional[float] = None
 
 
 # Constants defining the "Control mode" option shared by most preprocessors:
@@ -108,7 +109,7 @@ class ControlTypeResponse(TypedDict):
 # differences in how these parameters are used, but the Forge WebUI does not. Instead, follow these steps when
 # creating Parameter objects for Forge preprocessors and displaying UI controls:
 #
-#  For all of these values except the varable threshold_a and threshold_b, parameter names are mapped to translated
+#  For all of these values except the variable threshold_a and threshold_b, parameter names are mapped to translated
 # display names in PREPROCESSOR_PRESET_LABELS above. The threshold_* parameters will go untranslated for now.
 #
 # "processor_res":
@@ -179,224 +180,38 @@ PREPROCESSOR_MODEL_FREE: set[str] = {
 }
 
 THRESHOLD_A_PARAMETER_NAMES: dict[str, ControlNetSliderDef] = {
-    'reference_only': {
-        'name': 'Style Fidelity',
-        'min': 0.0,
-        'max': 1.0,
-        'default': 0.5,
-        'step': 0.01
-    },
-    'canny': {
-        'name': 'Low Threshold',
-        'min': 0,
-        'max': 256,
-        'default': 100,
-        'step': 1
-    },
-    'CLIP-G (Revision)': {
-        'name': 'Noise Augmentation',
-        'min': 0.0,
-        'max': 1.0,
-        'default': 0.0,
-        'step': 0.01
-    },
-    'CLIP-G (Revision ignore prompt)': {
-        'name': 'Noise Augmentation',
-        'min': 0.0,
-        'max': 1.0,
-        'default': 0.0,
-        'step': 0.01
-    },
-    'revision_clipvision': {
-        'name': 'Noise Augmentation',
-        'min': 0.0,
-        'max': 1.0,
-        'default': 0.0,
-        'step': 0.01
-    },
-    'revision_ignore_prompt': {
-        'name': 'Noise Augmentation',
-        'min': 0.0,
-        'max': 1.0,
-        'default': 0.0,
-        'step': 0.01
-    },
-    'tile_resample': {
-        'name': 'Downsampling Rate',
-        'min': 1.0,
-        'max': 8.0,
-        'default': 1.0,
-        'step': 0.01
-    },
-    'tile_colorfix+sharp': {
-        'name': 'Variation',
-        'min': 3,
-        'max': 32,
-        'default': 8,
-        'step': 1
-    },
-    'tile_colorfix': {
-        'name': 'Variation',
-        'min': 3,
-        'max': 32,
-        'default': 8,
-        'step': 1
-    },
-    'reference_adain+attn': {
-        'name': 'Style Fidelity',
-        'min': 0.0,
-        'max': 1.0,
-        'default': 0.5,
-        'step': 0.01
-    },
-    'reference_adain': {
-        'name': 'Style Fidelity',
-        'min': 0.0,
-        'max': 1.0,
-        'default': 0.5,
-        'step': 0.01
-    },
-    'recolor_luminance': {
-        'name': 'Gamma Correction',
-        'min': 0.1,
-        'max': 2.0,
-        'default': 1.0,
-        'step': 0.001
-    },
-    'recolor_intensity': {
-        'name': 'Gamma Correction',
-        'min': 0.1,
-        'max': 2.0,
-        'default': 1.0,
-        'step': 0.001
-    },
-    'mlsd': {
-        'name': 'MLSD Value Threshold',
-        'min': 0.01,
-        'max': 2.0,
-        'default': 0.1,
-        'step': 0.01
-    },
-    'threshold': {
-        'name': 'Binarization Threshold',
-        'min': 0.0,
-        'max': 255.0,
-        'default': 127.0,
-        'step': 0.01
-    },
-    'softedge_teed': {
-        'name': 'Safe Steps',
-        'min': 0,
-        'max': 10,
-        'default': 2,
-        'step': 1
-    },
-    'softedge_anyline': {
-        'name': 'Safe Steps',
-        'min': 0,
-        'max': 10,
-        'default': 2,
-        'step': 1
-    },
-    'scribble_xdog': {
-        'name': 'XDoG Threshold',
-        'min': 1.0,
-        'max': 64.0,
-        'default': 32.0,
-        'step': 0.01
-    },
-    'normal_midas': {
-        'name': 'Normal Backgroud Threshold',
-        'min': 0.0,
-        'max': 1.0,
-        'default': 0.4,
-        'step': 0.01
-    },
-    'normal_dsine': {
-        'name': 'Fov',
-        'min': 0.0,
-        'max': 360.0,
-        'default': 60,
-        'step': 0.1
-    },
-    'mediapipe_face': {
-        'name': 'Max Faces',
-        'min': 1,
-        'max': 10,
-        'default': 1,
-        'step': 1
-    },
-    'depth_leres++': {
-        'name': 'Remove Near %',
-        'min': 0.0,
-        'max': 100.0,
-        'default': 0.0,
-        'step': 0.1
-    },
-    'depth_leres': {
-        'name': 'Remove Near %',
-        'min': 0.0,
-        'max': 100.0,
-        'default': 0.0,
-        'step': 0.1
-    },
-    'blur_gaussian': {
-        'name': 'Sigma',
-        'min': 0.01,
-        'max': 64.0,
-        'default': 9.0,
-        'step': 0.01
-    }
+    'reference_only': ControlNetSliderDef(name='Style Fidelity', min=0.0, max=1.0, default=0.5, step=0.01),
+    'canny': ControlNetSliderDef(name='Low Threshold', min=0, max=256, default=100, step=1),
+    'CLIP-G (Revision)': ControlNetSliderDef(name='Noise Augmentation', min=0.0, max=1.0, default=0.0, step=0.01),
+    'CLIP-G (Revision ignore prompt)': ControlNetSliderDef(name='Noise Augmentation', min=0.0, max=1.0, default=0.0, step=0.01),
+    'revision_clipvision': ControlNetSliderDef(name='Noise Augmentation', min=0.0, max=1.0, default=0.0, step=0.01),
+    'revision_ignore_prompt': ControlNetSliderDef(name='Noise Augmentation', min=0.0, max=1.0, default=0.0, step=0.01),
+    'tile_resample': ControlNetSliderDef(name='Downsampling Rate', min=1.0, max=8.0, default=1.0, step=0.01),
+    'tile_colorfix+sharp': ControlNetSliderDef(name='Variation', min=3, max=32, default=8, step=1),
+    'tile_colorfix': ControlNetSliderDef(name='Variation', min=3, max=32, default=8, step=1),
+    'reference_adain+attn': ControlNetSliderDef(name='Style Fidelity', min=0.0, max=1.0, default=0.5, step=0.01),
+    'reference_adain': ControlNetSliderDef(name='Style Fidelity', min=0.0, max=1.0, default=0.5, step=0.01),
+    'recolor_luminance': ControlNetSliderDef(name='Gamma Correction', min=0.1, max=2.0, default=1.0, step=0.001),
+    'recolor_intensity': ControlNetSliderDef(name='Gamma Correction', min=0.1, max=2.0, default=1.0, step=0.001),
+    'mlsd': ControlNetSliderDef(name='MLSD Value Threshold', min=0.01, max=2.0, default=0.1, step=0.01),
+    'threshold': ControlNetSliderDef(name='Binarization Threshold', min=0.0, max=255.0, default=127.0, step=0.01),
+    'softedge_teed': ControlNetSliderDef(name='Safe Steps', min=0, max=10, default=2, step=1),
+    'softedge_anyline': ControlNetSliderDef(name='Safe Steps', min=0, max=10, default=2, step=1),
+    'scribble_xdog': ControlNetSliderDef(name='XDoG Threshold', min=1.0, max=64.0, default=32.0, step=0.01),
+    'normal_midas': ControlNetSliderDef(name='Normal Backgroud Threshold', min=0.0, max=1.0, default=0.4, step=0.01),
+    'normal_dsine': ControlNetSliderDef(name='Fov', min=0.0, max=360.0, default=60, step=0.1),
+    'mediapipe_face': ControlNetSliderDef(name='Max Faces', min=1, max=10, default=1, step=1),
+    'depth_leres++': ControlNetSliderDef(name='Remove Near %', min=0.0, max=100.0, default=0.0, step=0.1),
+    'depth_leres': ControlNetSliderDef(name='Remove Near %', min=0.0, max=100.0, default=0.0, step=0.1),
+    'blur_gaussian': ControlNetSliderDef(name='Sigma', min=0.01, max=64.0, default=9.0, step=0.01)
 }
 
 THRESHOLD_B_PARAMETER_NAMES: dict[str, ControlNetSliderDef] = {
-    'canny': {
-        'name': 'High Threshold',
-        'min': 0,
-        'max': 256,
-        'default': 200,
-        'step': 1
-    },
-    'tile_colorfix+sharp': {
-        'name': 'Sharpness',
-        'min': 0.0,
-        'max': 2.0,
-        'default': 1.0,
-        'step': 0.01
-    },
-    'mlsd': {
-        'name': 'MLSD Distance Threshold',
-        'min': 0.01,
-        'max': 20.0,
-        'default': 0.1,
-        'step': 0.01
-    },
-    'normal_dsine': {
-        'name': 'Iterations',
-        'min': 1,
-        'max': 20,
-        'default': 5,
-        'step': 1
-    },
-    'mediapipe_face': {
-        'name': 'Min Face Confidence',
-        'min': 0.01,
-        'max': 1.0,
-        'default': 0.5,
-        'step': 0.01
-    },
-    'depth_leres++': {
-        'name': 'Remove Background %',
-        'min': 0.0,
-        'max': 100.0,
-        'default': 0.0,
-        'step': 0.1
-    },
-    'depth_leres': {
-        'name': 'Remove Background %',
-        'min': 0.0,
-        'max': 100.0,
-        'default': 0.0,
-        'step': 0.1
-    }
+    'canny': ControlNetSliderDef(name='High Threshold', min=0, max=256, default=200, step=1),
+    'tile_colorfix+sharp': ControlNetSliderDef(name='Sharpness', min=0.0, max=2.0, default=1.0, step=0.01),
+    'mlsd': ControlNetSliderDef(name='MLSD Distance Threshold', min=0.01, max=20.0, default=0.1, step=0.01),
+    'normal_dsine': ControlNetSliderDef(name='Iterations', min=1, max=20, default=5, step=1),
+    'mediapipe_face': ControlNetSliderDef(name='Min Face Confidence', min=0.01, max=1.0, default=0.5, step=0.01),
+    'depth_leres++': ControlNetSliderDef(name='Remove Background %', min=0.0, max=100.0, default=0.0, step=0.1),
+    'depth_leres': ControlNetSliderDef(name='Remove Background %', min=0.0, max=100.0, default=0.0, step=0.1)
 }

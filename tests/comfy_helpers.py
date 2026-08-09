@@ -9,44 +9,28 @@ import time
 
 from PIL import Image
 
+from intrapaint_api.api.comfyui.comfyui_diffusion_params import ComfyUIDiffusionParams
 from intrapaint_api.api.comfyui_webservice import AsyncTaskStatus, ComfyUiWebservice
-from intrapaint_api.api.controlnet.controlnet_model import ControlNetModel
-from intrapaint_api.api.controlnet.controlnet_preprocessor import ControlNetPreprocessor
-from intrapaint_api.api.controlnet.controlnet_unit import ControlKeyType, ControlNetUnit
-from intrapaint_api.config.cache import Cache
-from intrapaint_api.util.geometry import Size
 
 # ComfyUI SD1.5 defaults kept small/cheap but coherent enough to compare.
 COMFY_SIZE = 256
 COMFY_STEPS = 8
-COMFY_CONTROLNET_KEYS = (Cache.CONTROLNET_ARGS_0_COMFYUI,
-                         Cache.CONTROLNET_ARGS_1_COMFYUI,
-                         Cache.CONTROLNET_ARGS_2_COMFYUI)
 
 
-def configure_comfy_cache(checkpoint: str, sampler: str = 'euler', scheduler: str = 'karras',
-                          prompt: str = 'a red apple on a wooden table', edit_mode: str = 'Text to Image') -> None:
-    """Populate the (isolated) cache with a small, valid ComfyUI generation profile.
+def build_comfy_params(checkpoint: str, sampler: str = 'euler', scheduler: str = 'karras',
+                          prompt: str = 'a red apple on a wooden table') -> ComfyUIDiffusionParams:
+    """Create small, valid ComfyUI generation parameter set."""
+    return ComfyUIDiffusionParams(sd_model_name=checkpoint,
+                                    prompt=prompt,
+                                    steps=COMFY_STEPS,
+                                    sampler=sampler,
+                                    scheduler=scheduler,
+                                    cfg_scale=7.0,
+                                    batch_size=1,
+                                    width=COMFY_SIZE,
+                                    height=COMFY_SIZE,
+                                    seed=1)
 
-    The isolated-cache defaults (`Euler a` / `default`) are A1111 names ComfyUI rejects,
-    so real ComfyUI sampler/scheduler names must be supplied.
-    """
-    cache = Cache()
-    # SD_MODEL / SAMPLING_METHOD / SCHEDULER are option-restricted keys whose valid options
-    # are normally populated from the server; add_missing_options lets us set real ComfyUI
-    # names into the otherwise-empty isolated cache.
-    cache.set(Cache.SD_MODEL, checkpoint, add_missing_options=True)
-    cache.set(Cache.PROMPT, prompt)
-    cache.set(Cache.NEGATIVE_PROMPT, '')
-    cache.set(Cache.SAMPLING_STEPS, COMFY_STEPS)
-    cache.set(Cache.SAMPLING_METHOD, sampler, add_missing_options=True)
-    cache.set(Cache.SCHEDULER, scheduler, add_missing_options=True)
-    cache.set(Cache.GUIDANCE_SCALE, 7.0)
-    cache.set(Cache.BATCH_SIZE, 1)
-    cache.set(Cache.GENERATION_SIZE, Size(COMFY_SIZE, COMFY_SIZE))
-    cache.set(Cache.SEED, 1)
-    cache.set(Cache.EDIT_MODE, edit_mode)
-    clear_comfy_controlnet_cache()
 
 
 def make_comfy_mask(editable_box: tuple[int, int, int, int], size: int = COMFY_SIZE) -> Image.Image:
@@ -62,32 +46,6 @@ def make_comfy_mask(editable_box: tuple[int, int, int, int], size: int = COMFY_S
                          (255, 255, 255, 0))  # transparent => inpainted
     mask.paste(editable, (editable_box[0], editable_box[1]))
     return mask
-
-
-def clear_comfy_controlnet_cache() -> None:
-    """Reset all three cached ComfyUI ControlNet slots to disabled units."""
-    disabled = ControlNetUnit(ControlKeyType.COMFYUI).serialize()
-    cache = Cache()
-    for key in COMFY_CONTROLNET_KEYS:
-        cache.set(key, disabled)
-
-
-def set_comfy_controlnet_unit(preprocessor: ControlNetPreprocessor, model_name: str, image_path: str,
-                              strength: float = 1.0) -> None:
-    """Install a single enabled ControlNet unit into the first cached ComfyUI slot.
-
-    ``image_path`` must be a path to an image file on disk; the client uploads it when
-    the workflow is built (see ComfyUiWebservice._prepare_controlnet_data).
-    """
-    clear_comfy_controlnet_cache()
-    unit = ControlNetUnit(ControlKeyType.COMFYUI)
-    unit.enabled = True
-    unit.preprocessor = preprocessor
-    unit.model = ControlNetModel(model_name)
-    unit.image_string = image_path
-    unit.control_strength.value = strength
-    Cache().set(Cache.CONTROLNET_ARGS_0_COMFYUI, unit.serialize())
-
 
 def find_canny_preprocessor(service: ComfyUiWebservice):
     """Return a Canny-style preprocessor object, or None if none is installed."""
@@ -116,9 +74,13 @@ def wait_for_comfy_images(service: ComfyUiWebservice, response, timeout: float =
     deadline = time.monotonic() + timeout
     while time.monotonic() < deadline:
         progress = service.check_queue_entry(prompt_id, task_number)
-        status = progress['status']
+        status = progress.status
         if status == AsyncTaskStatus.FINISHED:
-            return service.download_images(progress['outputs']['images'])
+            if progress.outputs is None or progress.outputs.images is None:
+                images = []
+            else:
+                images = progress.outputs.images
+            return service.download_images(images)
         if status == AsyncTaskStatus.FAILED:
             raise RuntimeError(f'ComfyUI task {prompt_id} failed during execution')
         time.sleep(poll)

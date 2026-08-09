@@ -8,7 +8,7 @@ from intrapaint_api.api.comfyui.nodes.input.load_image_mask_node import LoadImag
 from intrapaint_api.api.comfyui.nodes.input.load_image_node import LoadImageNode
 from intrapaint_api.api.comfyui.nodes.save_image_node import SaveImageNode
 from intrapaint_api.api.comfyui.workflow_builder_utils import image_ref_to_str
-from intrapaint_api.api.controlnet.controlnet_preprocessor import ControlNetPreprocessor
+from intrapaint_api.api.shared_data.controlnet.controlnet_preprocessor import ControlNetPreprocessor
 
 
 class PreprocessorPreviewWorkflowBuilder:

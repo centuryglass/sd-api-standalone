@@ -4,6 +4,7 @@ This is a slimmed, Qt-free replacement for IntraPaint's much larger image_utils 
 needs to encode images for upload and decode them from responses.
 """
 import base64
+import hashlib
 import io
 from typing import Union
 
@@ -43,9 +44,14 @@ def image_to_base64(image: Union[Image.Image, str], include_prefix: bool = False
     return image_str
 
 
-def image_from_base64(image_str: str) -> Image.Image:
+def image_from_base64(image_str: str, validate=True) -> Image.Image:
     """Return a PIL image (RGBA) from base64-encoded string data, tolerating an optional data-URI prefix."""
     if image_str.startswith(BASE_64_PREFIX):
         image_str = image_str[len(BASE_64_PREFIX):]
     data = base64.b64decode(image_str)
     return image_from_bytes(data)
+
+type ImageKey = tuple[str, tuple[int, int], bytes]
+def get_image_key(image: Image.Image) -> ImageKey:
+    """Creates a key usable for hashing image values."""
+    return image.mode, image.size, hashlib.blake2b(image.tobytes(), digest_size=16).digest()

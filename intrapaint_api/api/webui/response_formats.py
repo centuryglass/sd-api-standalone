@@ -1,10 +1,12 @@
 """WebUI API response data formats."""
-from typing import TypedDict, Any, TypeAlias, Optional
+from typing import Any, TypeAlias, Optional
+
+from pydantic import BaseModel
 
 from intrapaint_api.api.webui.request_formats import Txt2ImgRequestBody, Img2ImgRequestBody
 
 
-class ProgressStateDict(TypedDict):
+class ProgressStateDict(BaseModel):
     """Defines the "state" section within /sdapi/v1/progress responses."""
     skipped: bool
     interrupted: bool
@@ -17,7 +19,7 @@ class ProgressStateDict(TypedDict):
     sampling_steps: int
 
 
-class ProgressResponseBody(TypedDict):
+class ProgressResponseBody(BaseModel):
     """WebUI API response format for the /sdapi/v1/progress endpoint."""
     progress: float  # Fraction completed
     eta_relative: float  # Expected time remaining in seconds
@@ -27,9 +29,8 @@ class ProgressResponseBody(TypedDict):
 
 
 # LoRA model data:
-class LoraMetadata(TypedDict, total=False):
-    """Extra metadata associated with a LoRA model.  I've left out a lot of parameters, this just defines the ones
-       that IntraPaint might want to show to users eventually."""
+class LoraMetadata(BaseModel):
+    """Extra metadata associated with a LoRA model.  TODO: I've left out a lot of parameters, fix that."""
     ss_sd_model_name: str  # Model used for training
     ss_sd_model_hash: str
     ss_resolution: str  # str(tuple(width, height))
@@ -49,7 +50,7 @@ class LoraMetadata(TypedDict, total=False):
     sshs_model_hash: str
 
 
-class LoraInfo(TypedDict):
+class LoraInfo(BaseModel):
     """Data used to define a LoRA model in WebUI API responses from the /sdapi/v1/loras endpoint."""
     name: str
     alias: str
@@ -57,7 +58,7 @@ class LoraInfo(TypedDict):
     metadata: LoraMetadata
 
 
-class ModelInfo(TypedDict):
+class ModelInfo(BaseModel):
     """Data used to define Stable Diffusion models in WebUI API responses from the /sdapi/v1/sd-models endpoint."""
     title: str
     model_name: str
@@ -67,20 +68,20 @@ class ModelInfo(TypedDict):
     config: Optional[str]
 
 
-class VaeInfo(TypedDict):
+class VaeInfo(BaseModel):
     """Data used to define Stable Diffusion VAE models in WebUI API responses from the /sdapi/v1/sd-vae endpoint."""
     model_name: str
     filename: str
 
 
-class SamplerInfo(TypedDict):
+class SamplerInfo(BaseModel):
     """Data used to define Stable Diffusion samplers in WebUI API responses from the /sdap1/v1/samplers endpoint."""
     name: str
     aliases: list[str]
     options: dict[str, str]
 
 
-class UpscalerInfo(TypedDict):
+class UpscalerInfo(BaseModel):
     """Data used to define upscalers in WebUI API responses from the /sdapi/v1/upscalers endpoint."""
     name: str
     model_name: Optional[str]
@@ -89,13 +90,13 @@ class UpscalerInfo(TypedDict):
     scale: float
 
 
-class HypernetworkInfo(TypedDict):
+class HypernetworkInfo(BaseModel):
     """Data used to define hypernetwork models in API responses from the /sdapi/v1/hypernetworks endpoint."""
     name: str
     path: str
 
 
-class LatentUpscalerInfo(TypedDict):
+class LatentUpscalerInfo(BaseModel):
     """Data used to define latent upscalers in API responses from the /sdapi/v1/latent-upscale-modes endpoint."""
     name: str
 
@@ -104,7 +105,7 @@ class LatentUpscalerInfo(TypedDict):
 PromptStyleRes: TypeAlias = list[str]
 
 
-class GenerationInfoData(TypedDict):
+class GenerationInfoData(BaseModel):
     """Extra info data returned in a JSON string in txt2img/img2img responses. Sends back provided parameters, defaults
        used for parameters that weren't specified, additional batch output info, seed values used, and other misc.
        information."""
@@ -140,21 +141,21 @@ class GenerationInfoData(TypedDict):
     version: str
 
 
-class Txt2ImgResponse(TypedDict):
+class Txt2ImgResponse(BaseModel):
     """WebUI API response for a successful /sdapi/v1/txt2img request."""
     images: list[str]  # base64 image list
     parameters: Txt2ImgRequestBody  # Sends back the unchanged request parameters
     info: str  # Serialized JSON, parses as GenerationInfoData
 
 
-class Img2ImgResponse(TypedDict):
+class Img2ImgResponse(BaseModel):
     """WebUI API response for a successful /sdapi/v1/img2img request."""
     images: list[str]  # base64 image list
     parameters: Img2ImgRequestBody  # Sends back the unchanged request parameters
     info: str  # Serialized JSON, parses as GenerationInfoData
 
 
-class PromptStyleData(TypedDict):
+class PromptStyleData(BaseModel):
     """Data used to define prompt styles in API responses from the /sdapi/v1/prompt-style endpoint, after parsing from
        JSON string."""
     name: str
@@ -162,7 +163,7 @@ class PromptStyleData(TypedDict):
     negative_prompt: str
 
 
-class InterrogateResponse(TypedDict):
+class InterrogateResponse(BaseModel):
     """Response format for /sdapi/v1/interrogate API requests. The documentation lists the expected response as a plain
        string, so probably best to make sure responses actually fit this pattern before assuming that they do."""
     caption: str

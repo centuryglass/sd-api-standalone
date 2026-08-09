@@ -1,5 +1,7 @@
 """Typedefs for ComfyUI API data."""
-from typing import TypeAlias, Literal, TypedDict, Optional, NotRequired, Any
+from typing import TypeAlias, Literal, Optional, Any
+
+from pydantic import BaseModel
 
 # Misc. types used within multiple request/response objects:
 FileType: TypeAlias = Literal['input', 'temp', 'output']
@@ -38,9 +40,9 @@ CONTROLNET_PREPROCESSOR_OUTPUT_NAME = ['IMAGE']
 CONTROLNET_PREPROCESSOR_REQUIRED_INPUT = 'image'
 
 
-class ParamDef(TypedDict):
-    """Input value parameters accepted across all tyeps."""
-    tooltip: NotRequired[str]
+class ParamDef(BaseModel):
+    """Input value parameters accepted across all types."""
+    tooltip: Optional[str] = None
 
 
 class IntParamDef(ParamDef):
@@ -49,7 +51,7 @@ class IntParamDef(ParamDef):
     min: int
     max: int
     step: int
-    display: NotRequired[DisplayType]
+    display: Optional[DisplayType] = None
 
 
 class FloatParamDef(ParamDef):
@@ -58,12 +60,12 @@ class FloatParamDef(ParamDef):
     min: float
     max: float
     step: float
-    round: NotRequired[float]
+    round: Optional[float] = None
 
 
 class StrParamDef(ParamDef):
     """Defines string parameter requirements."""
-    default: NotRequired[str]
+    default: Optional[str] = None
     multiline: bool
     dynamicPrompts: bool
 
@@ -82,10 +84,10 @@ InputParam: TypeAlias = IntParam | FloatParam | BoolParam | StrOptionParam \
                         | CustomTypedParam
 
 
-class InputTypeDef(TypedDict):
+class InputTypeDef(BaseModel):
     """Defines inputs for a ComfyUI node."""
     required: dict[str, InputParam]
-    optional: NotRequired[dict[str, InputParam]]
+    optional: Optional[dict[str, InputParam]] = None
 
 
 # API request/parameter/response types, by endpoint:
@@ -93,25 +95,25 @@ class InputTypeDef(TypedDict):
 IMAGE_UPLOAD_FILE_NAME = 'image'
 
 
-class ImageUploadParams(TypedDict):
+class ImageUploadParams(BaseModel):
     """Image upload body."""
-    type: NotRequired[FileType]
-    subfolder: NotRequired[str]
-    overwrite: NotRequired[str]  # 'true' or '1' to overwrite
+    type: Optional[FileType] = None
+    subfolder: Optional[str] = None
+    overwrite: Optional[str] = None  # 'true' or '1' to overwrite
 
 
-class ImageUploadResponse(TypedDict):
+class ImageUploadResponse(BaseModel):
     """Image upload response body."""
     name: str
     subfolder: str
     type: FileType
 
 
-class ImageFileReference(TypedDict):
+class ImageFileReference(BaseModel):
     """References an uploaded or generated image file."""
     filename: str
     subfolder: str
-    type: NotRequired[FileType]  # used when output_dir from filename is None, default = 'output'
+    type: Optional[FileType] = None  # used when output_dir from filename is None, default = 'output'
 
 
 class MaskUploadParams(ImageUploadParams):
@@ -119,16 +121,16 @@ class MaskUploadParams(ImageUploadParams):
     original_ref: str  # when parsed as JSON, should be ImageFileReference
 
 
-class ViewUrlParams(TypedDict):
+class ViewUrlParams(BaseModel):
     """URL parameters used with the VIEW_IMAGE endpoint."""
-    filename: Optional[str]
-    type: Optional[FileType]  # default = 'output'
-    subfolder: Optional[str]
-    channel: Optional[Literal['rgb', 'rgba']]  # default = 'rgba'
-    preview: Optional[str]  # should be '{format};{quality}',  default = 'webp;90', format can also be 'jpeg'
+    filename: Optional[str] = None
+    type: Optional[FileType] = None  # default = 'output'
+    subfolder: Optional[str] = None
+    channel: Optional[Literal['rgb', 'rgba']] = None  # default = 'rgba'
+    preview: Optional[str] = None  # should be '{format};{quality}',  default = 'webp;90', format can also be 'jpeg'
 
 
-class SystemObject(TypedDict):
+class SystemObject(BaseModel):
     """System data object used in SYSTEM_STATS responses."""
     os: str
     ram_total: int
@@ -140,7 +142,7 @@ class SystemObject(TypedDict):
     argv: list[str]
 
 
-class DeviceObject(TypedDict):
+class DeviceObject(BaseModel):
     """Torch device object used in SYSTEM_STATS responses."""
     name: str
     type: str
@@ -151,13 +153,13 @@ class DeviceObject(TypedDict):
     torch_vram_free: int
 
 
-class SystemStatResponse(TypedDict):
+class SystemStatResponse(BaseModel):
     """Response body format for the SYSTEM_STATS endpoint."""
     system: SystemObject
     devices: list[DeviceObject]
 
 
-class NodeInfoResponse(TypedDict):
+class NodeInfoResponse(BaseModel):
     """Response defining a ComfyUI node."""
     input: InputTypeDef
     input_order: dict[Literal['required', 'optional'], list[str]]
@@ -170,8 +172,8 @@ class NodeInfoResponse(TypedDict):
     python_module: str
     category: str
     output_node: bool
-    deprecated: NotRequired[bool]
-    experimental: NotRequired[bool]
+    deprecated: Optional[bool] = None
+    experimental: Optional[bool] = None
 
 
 # QUEUED PROMPT/TASK DATA:
@@ -184,22 +186,22 @@ ACTIVE_QUEUE_KEY = 'queue_running'
 PENDING_QUEUE_KEY = 'queue_pending'
 
 
-class QueueInfoResponse(TypedDict):
+class QueueInfoResponse(BaseModel):
     """Response structure used when getting queued task info."""
     queue_running: list[QueueEntry]
     queue_pending: list[QueueEntry]
 
 
-class QueueAdditionRequest(TypedDict):
+class QueueAdditionRequest(BaseModel):
     """Body structure to use when adding to the ComfyUI queue."""
     prompt: dict[str, Any]
-    number: NotRequired[int]  # Sets priority
-    front: NotRequired[bool]  # Pushes this job ahead of others
-    client_id: NotRequired[str]  # Optional extra identifier
-    extra_data: NotRequired[dict[str, Any]]  # Associate some extra
+    number: Optional[int] = None  # Sets priority
+    front: Optional[bool] = None  # Pushes this job ahead of others
+    client_id: Optional[str] = None  # Optional extra identifier
+    extra_data: Optional[dict[str, Any]] = None  # Associate some arbitrary extra data
 
 
-class ErrorEntry(TypedDict):
+class ErrorEntry(BaseModel):
     """A single queue error."""
     type: str
     message: str
@@ -207,58 +209,58 @@ class ErrorEntry(TypedDict):
     extra_info: dict[str, str]
 
 
-class NodeErrorEntry(TypedDict):
+class NodeErrorEntry(BaseModel):
     """Defines error data for a single node."""
     errors: list[ErrorEntry]
     dependent_outputs: list[str]  # connected node ids
     class_type: str
 
 
-class QueueAdditionResponse(TypedDict):
+class QueueAdditionResponse(BaseModel):
     """Response structure used when a new job is queued."""
-    prompt_id: NotRequired[str]  # UUID, omitted on error
-    number: NotRequired[int]  # Queue number/priority, omitted on error
-    error: NotRequired[str | ErrorEntry]
+    prompt_id: Optional[str] = None  # UUID, omitted on error
+    number: Optional[int]  # Queue number/priority, omitted on error
+    error: Optional[str | ErrorEntry] = None
     node_errors: list[NodeErrorEntry]
 
     # IntraPaint extensions:
     # These properties won't ever be set by ComfyUI, they're additions that IntraPaint uses to simplify passing data
     # back from ComfyUIWebservice.
-    uploaded_images: NotRequired[dict[str, ImageFileReference]]  # Uploaded image references, to reuse across batches.
-    uploaded_mask: NotRequired[ImageFileReference]  # Uploaded mask reference, to reuse across batches.
-    seed: NotRequired[int]  # Not added by the API, used for tracking last seed values and handling sequential batches.
+    uploaded_images: Optional[dict[str, ImageFileReference]] = None  # Uploaded image references reused across batches.
+    uploaded_mask: Optional[ImageFileReference] = None  # Uploaded mask reference reused across batches.
+    seed: Optional[int] = None # Not added by the API, used for tracking last seed values/handling sequential batches.
 
 
-class QueueDeletionRequest(TypedDict):
+class QueueDeletionRequest(BaseModel):
     """Request structure used to delete queue items."""
-    clear: NotRequired[bool]  # If true, the whole queue is wiped.
-    delete: NotRequired[list[str]]  # Set specific queued items to delete.
+    clear: Optional[bool] = None  # If true, the whole queue is wiped.
+    delete: Optional[list[str]] = None  # Set specific queued items to delete.
 
 
-class PromptStatusMessageData(TypedDict):
+class PromptStatusMessageData(BaseModel):
     """Extra data bundled with queued task messages."""
     prompt_id: str  # UUID
     timestamp: int
-    nodes: NotRequired[list[str]]
+    nodes: Optional[list[str]] = None
 
 
 PromptStatusMessage: TypeAlias = tuple[str, PromptStatusMessageData]
 
 
-class PromptExecStatus(TypedDict):
+class PromptExecStatus(BaseModel):
     """Status data associated with a task in the history, directly from ComfyUI/execution.py."""
     status_str: Literal['success', 'error']
     completed: bool
     messages: list[PromptStatusMessage]
 
 
-class PromptExecOutputs(TypedDict):
+class PromptExecOutputs(BaseModel):
     """Returns generated file info for a completed task."""
     images: list[ImageFileReference]
     # TODO: track down format for other possible output types
 
 
-class PromptHistory(TypedDict):
+class PromptHistory(BaseModel):
     """Prompt execution data from the /history endpoint."""
     prompt: QueueEntry
     outputs: dict[str, dict[str, PromptExecOutputs]]  # keys are output node ids
@@ -268,7 +270,7 @@ class PromptHistory(TypedDict):
 QueueHistoryResponse: TypeAlias = dict[str, PromptHistory]  # key is prompt_id
 
 
-class FreeMemoryRequest(TypedDict):
+class FreeMemoryRequest(BaseModel):
     """Request format used when requesting cached models and memory to be cleared."""
     unload_models: bool
     free_memory: bool

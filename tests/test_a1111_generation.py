@@ -36,7 +36,7 @@ def test_txt2img_info_reports_seed(service):
     info = response['info']
     assert info is not None
     # The echoed generation info should report the seed we requested.
-    assert 12345 in info['all_seeds']
+    assert 12345 in info.all_seeds
 
 
 def test_txt2img_batch_returns_multiple_images(service, output_dir):

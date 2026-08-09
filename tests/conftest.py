@@ -38,11 +38,9 @@ import pytest
 # --- Config isolation: must happen before anything instantiates the singletons. ---
 _TMP_CONFIG_DIR = tempfile.mkdtemp(prefix='sd_api_it_config_')
 
-from intrapaint_api.config.application_config import AppConfig  # noqa: E402
 from intrapaint_api.config.cache import Cache  # noqa: E402
 
 # Win the singleton race with isolated, disposable config files.
-AppConfig(os.path.join(_TMP_CONFIG_DIR, 'config.json'))
 Cache(os.path.join(_TMP_CONFIG_DIR, 'cache.json'))
 
 from intrapaint_api.api.a1111_webservice import A1111Webservice, AuthError  # noqa: E402
@@ -167,9 +165,9 @@ def controlnet_pairing(controlnet_available):
     """
     control_types = controlnet_available.get_controlnet_control_types()['control_types']
 
-    def usable(entry):
-        module = entry.get('default_option')
-        model = entry.get('default_model')
+    def usable(type_entry):
+        module = type_entry.get('default_option')
+        model = type_entry.get('default_model')
         return module and model and module.lower() != 'none' and model.lower() != 'none'
 
     if 'Canny' in control_types and usable(control_types['Canny']):

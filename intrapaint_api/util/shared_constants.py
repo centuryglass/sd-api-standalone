@@ -83,6 +83,7 @@ MISC_CONNECTION_ERROR = _tr('Failed to connect to image generator at "{url}".  C
 INTERROGATE_ERROR_TITLE = _tr('Interrogate failure')
 INTERROGATE_ERROR_MESSAGE_NO_IMAGE = _tr('Open or create an image first.')
 INTERROGATE_LOADING_TEXT = _tr('Running CLIP interrogate')
+INTERROGATE_DEFAULT_MODEL = "clip"
 
 # Image generation:
 GENERATE_ERROR_TITLE = _tr('Image generation failed')

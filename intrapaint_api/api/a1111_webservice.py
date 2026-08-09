@@ -5,17 +5,16 @@ through Stable Diffusion.
 import json
 import logging
 from copy import deepcopy
-from json import JSONDecodeError
 from typing import Optional, Any, Callable, cast, TypedDict
 
 import requests  # type: ignore
 from PIL import Image  # type: ignore
 from requests import Response
 
-from intrapaint_api.api.controlnet.controlnet_category_builder import ControlNetCategoryBuilder
-from intrapaint_api.api.controlnet.controlnet_constants import CONTROLNET_MODEL_NONE, PREPROCESSOR_NONE
-from intrapaint_api.api.controlnet.controlnet_preprocessor import ControlNetPreprocessor
-from intrapaint_api.api.controlnet.controlnet_unit import ControlNetUnit, ControlKeyType
+from intrapaint_api.api.shared_data.controlnet.controlnet_category_builder import ControlNetCategoryBuilder
+from intrapaint_api.api.shared_data.controlnet.controlnet_preprocessor import ControlNetPreprocessor, PreprocessorParams
+from intrapaint_api.api.shared_data.api_datatypes import DiffusionUpscalingParams
+from intrapaint_api.api.shared_data.controlnet.controlnet_unit import ControlNetUnit
 from intrapaint_api.api.webservice import WebService
 from intrapaint_api.api.webui.controlnet_webui_constants import (ControlNetModelResponse, ControlNetModuleResponse,
                                                       ControlTypeDef, ControlTypeResponse, CONTROLNET_SCRIPT_KEY)
@@ -25,8 +24,7 @@ from intrapaint_api.api.webui.request_formats import UpscalingRequestBody
 from intrapaint_api.api.webui.response_formats import GenerationInfoData, ProgressResponseBody, Img2ImgResponse, \
     InterrogateResponse, PromptStyleData, SamplerInfo, UpscalerInfo, ModelInfo, VaeInfo, LoraInfo
 from intrapaint_api.api.webui.script_info_types import ScriptRequestData, ScriptResponseData, ScriptInfo
-from intrapaint_api.config.application_config import AppConfig
-from intrapaint_api.config.cache import Cache
+from intrapaint_api.util.shared_constants import INTERROGATE_DEFAULT_MODEL
 from intrapaint_api.util.visual.image_utils import image_to_base64, image_from_base64, image_from_bytes
 
 logger = logging.getLogger(__name__)
@@ -186,27 +184,25 @@ class A1111Webservice(WebService):
         """
         if request_body is None:
             request_body = DiffusionRequestBody()
-            request_body.load_data(image, mask)
+            request_body.init_images = [image]
+            request_body.mask=mask
         else:
             if request_body.init_images is None:
-                request_body.init_images = [image_to_base64(image, True)]
+                request_body.init_images = [image]
             elif len(request_body.init_images) == 0:
-                request_body.init_images.append(image_to_base64(image, True))
+                request_body.init_images.append(image)
             if request_body.mask is None and mask is not None:
-                request_body.mask = image_to_base64(mask, True)
+                request_body.mask = mask
         res = self.post(A1111Webservice.Endpoints.IMG2IMG, request_body.to_dict())
         return self._handle_image_response(res)
 
-    def txt2img(self, request_body: Optional[DiffusionRequestBody] = None,
-                control_image: Optional[Image.Image] = None) -> ImageResponse:
+    def txt2img(self, request_body: Optional[DiffusionRequestBody] = None) -> ImageResponse:
         """Sends a request to generate new images using selected parameter.
 
         Parameters
         ----------
         request_body : Optional[DiffusionRequestBody] = None
-            Optional initial request body to use. If None, a new one will be constructed from cache/config parameters.
-        control_image: Optional[Image.Image]
-            Optional image to use for ControlNet. If request_body is already defined, this will instead be ignored.
+            Optional initial request body to use. If None, a new one will be constructed from default parameters.
         Returns
         -------
         ImageResponse
@@ -214,21 +210,17 @@ class A1111Webservice(WebService):
         """
         if request_body is None:
             request_body = DiffusionRequestBody()
-            request_body.load_data(image=control_image)
         res = self.post(A1111Webservice.Endpoints.TXT2IMG, request_body.to_dict())
         return self._handle_image_response(res)
 
     def controlnet_preprocessor_preview(self, image: Image.Image, mask: Optional[Image.Image],
-                                        preprocessor: ControlNetPreprocessor) -> Image.Image:
-        """Gets a preview image for a ControlNet preprocessor.
-
-        TODO:
-        """
+                                        preprocessor: PreprocessorParams) -> Image.Image:
+        """Gets a preview image for a ControlNet preprocessor."""
         input_images: list[str] = [image_to_base64(image, True)]
         if mask is not None:
             input_images.append(image_to_base64(mask, True))
         body: dict[str, int | float | str | list[str]] = {
-            'controlnet_module': preprocessor.name,
+            'controlnet_module': preprocessor.typedef.name,
             'controlnet_input_images': input_images
         }
         for param in preprocessor.parameters:
@@ -239,7 +231,8 @@ class A1111Webservice(WebService):
     def upscale(self,
                 image: Image.Image,
                 width: int,
-                height: int) -> ImageResponse:
+                height: int,
+                sd_upscale_params: Optional[DiffusionUpscalingParams] = None) -> ImageResponse:
         """Sends a request to upscale an image.
 
         Parameters
@@ -250,62 +243,60 @@ class A1111Webservice(WebService):
             New image width in pixels requested.
         height : int
             New image height in pixels requested.
+        sd_upscale_params : Optional[DiffusionUpscalingParams]
+            Parameters for stable diffusion upscaling using the "Ultimate SD Upscale" workflow. If None, only basic
+            upscaling will be used.
         Returns
         -------
         ImageResponse
             The generated image, plus accompanying image generation data if available.
         """
-        cache = Cache()
-        if cache.get(Cache.SD_UPSCALING_AVAILABLE) and cache.get(Cache.USE_STABLE_DIFFUSION_UPSCALING):
+        upscale_options = [upscaler.name for upscaler in self.get_upscalers()]
+        upscaler: str = upscale_options[0]
+        if sd_upscale_params is not None and sd_upscale_params.upscaling_mode in upscale_options:
+            upscaler = sd_upscale_params.upscaling_mode
+
+        if sd_upscale_params is not None and sd_upscale_params.use_stable_diffusion_upscaling:
             request_body = DiffusionRequestBody()
-            request_body.load_data()
-            request_body.denoising_strength = cache.get(Cache.SD_UPSCALING_DENOISING_STRENGTH)
-            request_body.steps = cache.get(Cache.SD_UPSCALING_STEP_COUNT)
+            request_body.init_images = [image]
+            request_body.denoising_strength = sd_upscale_params.denoising_strength
+            request_body.steps = sd_upscale_params.step_count
             request_body.width = width
             request_body.height = height
             request_body.batch_size = 1
             request_body.n_iter = 1
-            request_body.add_init_image(image)
             if request_body.alwayson_scripts is None:
                 request_body.alwayson_scripts = {}
-            try:
-                tile_control_unit: Optional[ControlNetUnit] = ControlNetUnit.deserialize(
-                    cache.get(Cache.SD_UPSCALING_CONTROLNET_TILE_SETTINGS), ControlKeyType.WEBUI)
-                assert tile_control_unit is not None
-                if (tile_control_unit.model.full_model_name == CONTROLNET_MODEL_NONE
-                        or tile_control_unit.preprocessor.name.lower() == PREPROCESSOR_NONE.lower()
-                        or float(tile_control_unit.control_strength.value) == 0.0
-                        or float(tile_control_unit.control_start.value) >= float(tile_control_unit.control_end.value)):
+            tile_control_unit: Optional[ControlNetUnit] = sd_upscale_params.tile_controlnet
+            if tile_control_unit is not None:
+                if (tile_control_unit.model is None
+                        or tile_control_unit.preprocessor is None
+                        or float(tile_control_unit.control_strength) == 0.0
+                        or float(tile_control_unit.control_start) >= float(tile_control_unit.control_end)):
                     tile_control_unit = None
                 else:
-                    models = self.get_controlnet_models()['model_list']
+                    models = self.get_controlnet_models().model_list
                     preprocessors = [preprocessor.name for preprocessor in self.get_controlnet_preprocessors()]
                     if (tile_control_unit.model.full_model_name not in models
-                            or tile_control_unit.preprocessor.name not in preprocessors):
+                            or tile_control_unit.preprocessor.typedef.name not in preprocessors):
                         tile_control_unit = None
-            except (KeyError, ValueError, RuntimeError, JSONDecodeError):
-                tile_control_unit = None
-            if tile_control_unit is not None:
+            if tile_control_unit is not None and tile_control_unit.preprocessor is not None \
+                        and tile_control_unit.model is not None:
                 control_unit_data = {
-                    'module': tile_control_unit.preprocessor.name,
+                    'module': tile_control_unit.preprocessor.typedef.name,
                     'model': tile_control_unit.model.full_model_name
                 }
                 for param in [tile_control_unit.control_start, tile_control_unit.control_end,
-                              tile_control_unit.control_strength, *tile_control_unit.preprocessor.parameters]:
+                              tile_control_unit.control_strength, *tile_control_unit.preprocessor.parameter_values]:
                     control_unit_data[param.key] = param.value  # type: ignore
                 controlnet_script_data: ScriptRequestData = {'args': [control_unit_data]}
                 request_body.alwayson_scripts[CONTROLNET_SCRIPT_KEY] = controlnet_script_data
-            if cache.get(Cache.ULTIMATE_UPSCALE_SCRIPT_AVAILABLE) and cache.get(Cache.USE_ULTIMATE_UPSCALE_SCRIPT):
-                upscaler = cache.get(Cache.SCALING_MODE)
-
-                upscale_options = [upscaler['name'] for upscaler in self.get_upscalers()]
-                if upscaler not in upscale_options:
-                    upscaler = upscale_options[0]
+            if sd_upscale_params is not None and sd_upscale_params.use_stable_diffusion_upscaling:
                 request_body.script_name = ULTIMATE_UPSCALE_SCRIPT
                 request_body.script_args = [
                     None,  # not used
-                    cache.get(Cache.GENERATION_SIZE).width(),  # tile width
-                    cache.get(Cache.GENERATION_SIZE).height(),  # tile height
+                    sd_upscale_params.tile_width,
+                    sd_upscale_params.tile_height,
                     8,  # mask_blur
                     32,  # padding
                     64,  # seams_fix_width
@@ -328,32 +319,37 @@ class A1111Webservice(WebService):
             'resize_mode': 1,
             'upscaling_resize_w': width,
             'upscaling_resize_h': height,
-            'upscaler_1': cache.get(Cache.SCALING_MODE),
+            'upscaler_1': upscaler,
             'image': image_to_base64(image, include_prefix=True)
         }
         res = self.post(A1111Webservice.Endpoints.UPSCALE, body)
         return self._handle_image_response(res)
 
-    def interrogate(self, image: Image.Image) -> str:
+    def interrogate(self, image: Image.Image, interrogate_model: Optional[str] = None) -> str:
         """Requests text describing an image.
 
         Parameters
         ----------
         image : PIL Image
             The image to describe.
+        interrogate_model : Optional[str]
+            Specific image interrogation model to use. Must be supported by the backend. Default defined in
+             util.shared_constants as "clip".
         Returns
         -------
         str
             A brief description of the image.
         """
+        if interrogate_model is None:
+            interrogate_model = INTERROGATE_DEFAULT_MODEL
         body = {
-            'model': AppConfig().get(AppConfig.INTERROGATE_MODEL),
+            'model': interrogate_model,
             'image': image_to_base64(image, include_prefix=True)
         }
         res = self.post(A1111Webservice.Endpoints.INTERROGATE, body, timeout=60).json()
         if isinstance(res, dict):
-            res = cast(InterrogateResponse, res)
-            return res['caption']
+            res = InterrogateResponse.model_validate(res)
+            return res.caption
         assert isinstance(res, str)
         return res
 
@@ -374,9 +370,9 @@ class A1111Webservice(WebService):
         info_data: Optional[GenerationInfoData] = None
         if 'images' in res_body:
             img2img_res_body = cast(Img2ImgResponse, res.json())
-            info = img2img_res_body['info'] if 'info' in img2img_res_body else None
+            info = img2img_res_body.info
             if 'images' in img2img_res_body:
-                for image in img2img_res_body['images']:
+                for image in img2img_res_body.images:
                     images.append(image_from_base64(image))
             if isinstance(info, str):
                 try:
@@ -385,7 +381,7 @@ class A1111Webservice(WebService):
                     logger.error(f'Image response info not valid JSON, got {info}')
                     info_data = None
             else:
-                info_data = cast(GenerationInfoData, info)
+                info_data = GenerationInfoData.model_validate(info)
         elif 'image' in res_body:  # basic upscaling result
             images = [image_from_base64(res_body['image'])]
             info_data = None
@@ -405,7 +401,7 @@ class A1111Webservice(WebService):
         res_body = self.get(A1111Webservice.Endpoints.STYLES).json()
         all_styles: list[PromptStyleData] = []
         for serialized_style in res_body:
-            all_styles.append(cast(PromptStyleData, json.dumps(serialized_style)))
+            all_styles.append(PromptStyleData.model_validate(serialized_style))
         return all_styles
 
     def get_scripts(self) -> ScriptResponseData:
@@ -497,24 +493,25 @@ class A1111Webservice(WebService):
     def get_controlnet_preprocessors(self, update_cache=False) -> list[ControlNetPreprocessor]:
         """Queries the API for ControlNet preprocessor modules, and parameterizes and returns all options."""
         if update_cache or self._preprocessor_cache is None:
-            modules = cast(ControlNetModuleResponse, self.get_controlnet_modules())
-            module_names = modules['module_list']
-            module_details = None if 'module_details' not in modules else modules['module_details']
+            modules = self.get_controlnet_modules()
+            module_names = modules.module_list
+            module_details = modules.module_details
             self._preprocessor_cache = get_all_preprocessors(module_names, module_details)
+        assert self._preprocessor_cache is not None
         return deepcopy(self._preprocessor_cache)
 
     def get_controlnet_type_categories(self) -> dict[str, ControlTypeDef]:
         """Gets the set of valid ControlNet proeprocessor/model categories, taking into account available options and
            API category definitions if possible."""
-        modules = cast(ControlNetModuleResponse, self.get_controlnet_modules())
+        modules = self.get_controlnet_modules()
         models = self.get_controlnet_models()
         try:
-            control_type_defs: Optional[dict[str, str]] = cast(dict[str, str], self.get_controlnet_control_types())
+            control_type_defs = self.get_controlnet_control_types()
         except (KeyError, RuntimeError):
             control_type_defs = None
-        preprocessor_names = modules['module_list']
-        model_names = models['model_list']
-        control_type_builder = ControlNetCategoryBuilder(preprocessor_names, model_names, control_type_defs)
+        preprocessor_names = modules.module_list
+        model_names = models.model_list
+        control_type_builder = ControlNetCategoryBuilder(preprocessor_names, model_names, None, control_type_defs)
         return control_type_builder.get_control_types()
 
     def get_loras(self) -> list[LoraInfo]:
