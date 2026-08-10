@@ -8,7 +8,7 @@ import uuid
 from contextlib import contextmanager
 from copy import deepcopy
 from enum import StrEnum, Enum
-from typing import cast, Optional, Any, Generator
+from typing import cast, Optional, Any, Generator, TYPE_CHECKING
 
 import binascii
 import websocket
@@ -36,6 +36,9 @@ from intrapaint_api.api.webservice import WebService, MULTIPART_FORM_DATA_TYPE
 from intrapaint_api.util.geometry import Size
 from intrapaint_api.util.visual.image_utils import image_to_png_bytes, image_from_bytes, image_from_base64, ImageKey, \
     get_image_key
+
+if TYPE_CHECKING:
+    from intrapaint_api.api.comfyui.comfyui_generation_handle import ComfyGenerationHandle
 
 logger = logging.getLogger(__name__)
 
@@ -609,6 +612,30 @@ class ComfyUiWebservice(WebService):
             queue_removal_body = QueueDeletionRequest(delete=[task_id])
             self.post(ComfyEndpoints.QUEUE, body=queue_removal_body.model_dump())
         self.post(ComfyEndpoints.INTERRUPT, body=None, timeout=DEFAULT_TIMEOUT)
+
+    def remove_from_queue(self, task_id: str) -> None:
+        """Drop a still-queued (pending) task *without* interrupting the running job.
+
+        Unlike ``interrupt(task_id)``, this only posts the queue deletion and never hits ``/interrupt``,
+        so cancelling a queued job leaves whatever is currently generating untouched.
+        """
+        queue_removal_body = QueueDeletionRequest(delete=[task_id])
+        self.post(ComfyEndpoints.QUEUE, body=queue_removal_body.model_dump())
+
+    def submit_txt2img(self, diffusion_params: DiffusionParams) -> 'ComfyGenerationHandle':
+        """Queue a txt2img job and return a backend-agnostic handle to poll / wait / cancel it."""
+        from intrapaint_api.api.comfyui.comfyui_generation_handle import ComfyGenerationHandle
+        return ComfyGenerationHandle.from_queue_response(self, self.txt2img(diffusion_params))
+
+    def submit_img2img(self, diffusion_params: DiffusionParams) -> 'ComfyGenerationHandle':
+        """Queue an img2img job and return a backend-agnostic handle to poll / wait / cancel it."""
+        from intrapaint_api.api.comfyui.comfyui_generation_handle import ComfyGenerationHandle
+        return ComfyGenerationHandle.from_queue_response(self, self.img2img(diffusion_params))
+
+    def submit_inpaint(self, diffusion_params: DiffusionParams) -> 'ComfyGenerationHandle':
+        """Queue an inpaint job and return a backend-agnostic handle to poll / wait / cancel it."""
+        from intrapaint_api.api.comfyui.comfyui_generation_handle import ComfyGenerationHandle
+        return ComfyGenerationHandle.from_queue_response(self, self.inpaint(diffusion_params))
 
     @contextmanager
     def open_websocket(self) -> Generator[websocket.WebSocket, None, None]:
