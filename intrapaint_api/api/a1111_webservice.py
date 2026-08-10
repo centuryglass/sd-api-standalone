@@ -5,7 +5,7 @@ through Stable Diffusion.
 import json
 import logging
 from copy import deepcopy
-from typing import Optional, Any, Callable, cast, TypedDict
+from typing import Optional, Any, Callable, cast, TypedDict, TYPE_CHECKING
 
 import requests  # type: ignore
 from PIL import Image  # type: ignore
@@ -26,6 +26,9 @@ from intrapaint_api.api.webui.response_formats import GenerationInfoData, Progre
 from intrapaint_api.api.webui.script_info_types import ScriptResponseData, ScriptInfo
 from intrapaint_api.util.shared_constants import INTERROGATE_DEFAULT_MODEL
 from intrapaint_api.util.visual.image_utils import image_to_base64, image_from_base64, image_from_bytes
+
+if TYPE_CHECKING:
+    from intrapaint_api.api.webui.webui_generation_handle import WebUIDispatcher, WebUIGenerationHandle
 
 logger = logging.getLogger(__name__)
 
@@ -104,6 +107,43 @@ class A1111Webservice(WebService):
         super().__init__(url)
         self._preprocessor_cache: Optional[list[ControlNetPreprocessor]] = None
         self._credentials_provider = credentials_provider
+        self._dispatcher: Optional['WebUIDispatcher'] = None
+
+    @property
+    def _generation_dispatcher(self) -> 'WebUIDispatcher':
+        """Lazily-created client-side dispatch queue backing the async ``submit_*`` methods."""
+        if self._dispatcher is None:
+            from intrapaint_api.api.webui.webui_generation_handle import WebUIDispatcher
+            self._dispatcher = WebUIDispatcher(self)
+        return self._dispatcher
+
+    def submit_txt2img(self, request_body: Optional[DiffusionRequestBody] = None
+                       ) -> 'WebUIGenerationHandle':
+        """Async counterpart to :meth:`txt2img`: enqueue the job and return a handle immediately.
+
+        The blocking POST is deferred to the client-side dispatcher (see ``webui_generation_handle``), so
+        the returned handle starts ``PENDING`` and is cleanly cancellable until it is actually dispatched.
+        Call ``handle.wait()`` for the blocking result, or poll ``handle.poll()`` for progress.
+        """
+        from intrapaint_api.api.webui.webui_generation_handle import create_task_id
+        if request_body is None:
+            request_body = DiffusionRequestBody()
+        task_id = request_body.force_task_id or create_task_id('txt2img')
+        request_body.force_task_id = task_id
+        return self._generation_dispatcher.submit(lambda: self.txt2img(request_body), task_id)
+
+    def submit_img2img(self, image: Image.Image, mask: Optional[Image.Image] = None,
+                       request_body: Optional[DiffusionRequestBody] = None) -> 'WebUIGenerationHandle':
+        """Async counterpart to :meth:`img2img`: enqueue the job and return a handle immediately.
+
+        See :meth:`submit_txt2img` for the dispatch/cancel semantics.
+        """
+        from intrapaint_api.api.webui.webui_generation_handle import create_task_id
+        if request_body is None:
+            request_body = DiffusionRequestBody()
+        task_id = request_body.force_task_id or create_task_id('img2img')
+        request_body.force_task_id = task_id
+        return self._generation_dispatcher.submit(lambda: self.img2img(image, mask, request_body), task_id)
 
     # General utility:
     def login_check(self):
