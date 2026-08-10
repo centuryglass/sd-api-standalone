@@ -8,15 +8,6 @@ These tests talk to a **real** WebUI instance. They assume:
 * If the server has ``--api-auth`` enabled, credentials are supplied through the
   ``SD_UNAME`` / ``SD_PASS`` environment variables.
 
-Config isolation
-----------------
-``Cache`` / ``AppConfig`` are process-wide singletons that otherwise persist to the
-shared IntraPaint per-user data directory. To avoid reading or clobbering the real
-user config, we instantiate both against a throwaway temp directory *before* any
-other code can create them (importing this conftest happens first). The
-``DiffusionRequestBody`` code path calls the no-arg ``Cache()`` / ``AppConfig()``,
-which return these isolated singletons.
-
 Running
 -------
 Fast, read-only metadata tests run by default::
@@ -31,17 +22,12 @@ diffusion and need a checkpoint loaded. They are gated behind an opt-in flag::
     RUN_SD_GENERATION=1 pytest tests/
 """
 import os
-import tempfile
 
 import pytest
 from pydantic import ValidationError
 
-# --- Config isolation: must happen before anything instantiates the singletons. ---
-_TMP_CONFIG_DIR = tempfile.mkdtemp(prefix='sd_api_it_config_')
-
-
-from intrapaint_api.api.a1111_webservice import A1111Webservice, AuthError  # noqa: E402
-from intrapaint_api.api.comfyui_webservice import ComfyUiWebservice  # noqa: E402
+from intrapaint_api.api.a1111_webservice import A1111Webservice, AuthError
+from intrapaint_api.api.comfyui_webservice import ComfyUiWebservice
 
 DEFAULT_PORT = 7860
 COMFY_DEFAULT_PORT = 8188

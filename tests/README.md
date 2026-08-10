@@ -28,10 +28,6 @@ whichever backend is up — the other backend's tests skip themselves automatica
 
 (ComfyUI has no authentication, so there is no ComfyUI equivalent of `SD_UNAME`/`SD_PASS`.)
 
-Config isolation: `conftest.py` points `Cache` / `AppConfig` at a throwaway temp dir
-before anything else instantiates them, so tests never read or clobber the shared
-IntraPaint per-user config.
-
 ## Running
 
 ```bash
@@ -52,7 +48,7 @@ RUN_SD_GENERATION=1 pytest tests/
 Backend-independent tests of the pure "functional core": the code that turns parameters
 into request bodies / node graphs, plus serialization and the image/geometry helpers. They
 need **no running server** and no GPU, are deterministic, and drive the builders by setting
-attributes directly rather than through `Cache`.
+attributes directly.
 
 - **`test_comfy_workflow_builder.py`** — `DiffusionWorkflowBuilder.build_workflow()` graph
   structure (checkpoint/KSampler params, prompt encoding, txt2img vs img2img latent source,

@@ -1,5 +1,5 @@
 """A ComfyUI node used to apply the 'Ultimate SD Upscale' script."""
-from typing import cast, Any, Literal, Optional
+from typing import Any, Literal, Optional
 
 from pydantic import BaseModel
 
@@ -71,7 +71,14 @@ class UltimateUpscaleNode(ComfyNode):
                  seam_fix_settings: Optional[SeamFixInputs] = None) -> None:
         if seam_fix_settings is None:
             seam_fix_settings = SeamFixInputs()
-        data = UltimateUpscaleInputs(**core_inputs.model_dump(), **seam_fix_settings.model_dump())
+        inputs_model = UltimateUpscaleInputs(**core_inputs.model_dump(), **seam_fix_settings.model_dump())
+        if not use_upscaler:
+            # upscale_by only applies to the upscaler variant of the node.
+            inputs_model.upscale_by = None
+        # Connection inputs (image/model/positive/negative/vae/upscale_model) are wired later via add_input();
+        # model_dump(exclude_none=True) drops those None placeholders, leaving the scalar parameter values the base
+        # ComfyNode stores and mutates as a plain dict.
+        data: dict[str, Any] = inputs_model.model_dump(exclude_none=True)
         connection_params = {
             UltimateUpscaleNode.IMAGE,
             IMAGE_KEY_WITHOUT_UPSCALER,
@@ -83,9 +90,8 @@ class UltimateUpscaleNode(ComfyNode):
         node_name = ULTIMATE_UPSCALE_NODE_WITHOUT_UPSCALE_MODEL
         if use_upscaler:
             node_name = ULTIMATE_UPSCALE_NODE_NAME
-            data.upscale_by = core_inputs.upscale_by
             connection_params.add(UltimateUpscaleNode.UPSCALE_MODEL)
-        super().__init__(node_name, cast(dict[str, Any], data), connection_params, 1)
+        super().__init__(node_name, data, connection_params, 1)
 
     def add_input(self, connected_node: str, output_slot_index: int, input_key: str):
         """Connect one of this node's inputs to another node's output.

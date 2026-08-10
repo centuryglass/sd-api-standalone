@@ -13,18 +13,17 @@ from requests import Response
 
 from intrapaint_api.api.shared_data.controlnet.controlnet_category_builder import ControlNetCategoryBuilder
 from intrapaint_api.api.shared_data.controlnet.controlnet_preprocessor import ControlNetPreprocessor
-from intrapaint_api.api.shared_data.api_datatypes import DiffusionUpscalingParams
+from intrapaint_api.api.shared_data.api_datatypes import DiffusionUpscalingParams, REDRAW_MODES, SEAM_FIX_MODES
 from intrapaint_api.api.shared_data.controlnet.controlnet_unit import ControlNetUnit
 from intrapaint_api.api.webservice import WebService
 from intrapaint_api.api.webui.controlnet_webui_constants import (ControlNetModelResponse, ControlNetModuleResponse,
-                                                      ControlTypeDef, ControlTypeResponse, CONTROLNET_SCRIPT_KEY,
-                                                      ControlNetUnitDict)
+                                                      ControlTypeDef, ControlTypeResponse)
 from intrapaint_api.api.webui.controlnet_webui_utils import get_all_preprocessors
 from intrapaint_api.api.webui.diffusion_request_body import DiffusionRequestBody
 from intrapaint_api.api.webui.request_formats import UpscalingRequestBody
 from intrapaint_api.api.webui.response_formats import GenerationInfoData, ProgressResponseBody, \
     InterrogateResponse, PromptStyleData, SamplerInfo, UpscalerInfo, ModelInfo, VaeInfo, LoraInfo
-from intrapaint_api.api.webui.script_info_types import ScriptRequestData, ScriptResponseData, ScriptInfo
+from intrapaint_api.api.webui.script_info_types import ScriptResponseData, ScriptInfo
 from intrapaint_api.util.shared_constants import INTERROGATE_DEFAULT_MODEL
 from intrapaint_api.util.visual.image_utils import image_to_base64, image_from_base64, image_from_bytes
 
@@ -228,6 +227,22 @@ class A1111Webservice(WebService):
         res = self.post(A1111Webservice.Endpoints.CONTROLNET_PREVIEW, body)
         return self._handle_image_response(res)['images'][0]
 
+    def _validate_tile_controlnet(self, tile_control_unit: Optional[ControlNetUnit]) -> Optional[ControlNetUnit]:
+        """Return the tile ControlNet unit only if it's fully specified and installed on the server, else None."""
+        if tile_control_unit is None:
+            return None
+        if (tile_control_unit.model is None
+                or tile_control_unit.preprocessor is None
+                or float(tile_control_unit.control_strength) == 0.0
+                or float(tile_control_unit.control_start) >= float(tile_control_unit.control_end)):
+            return None
+        models = self.get_controlnet_models().model_list
+        preprocessors = [preprocessor.name for preprocessor in self.get_controlnet_preprocessors()]
+        if (tile_control_unit.model.full_model_name not in models
+                or tile_control_unit.preprocessor.typedef.name not in preprocessors):
+            return None
+        return tile_control_unit
+
     def upscale(self,
                 image: Image.Image,
                 width: int,
@@ -259,7 +274,9 @@ class A1111Webservice(WebService):
             upscaler = sd_upscale_params.upscaling_mode
 
         if sd_upscale_params is not None and sd_upscale_params.use_stable_diffusion_upscaling:
-            request_body = DiffusionRequestBody()
+            # Populate the core diffusion pass (prompt, seed, cfg, sampler, checkpoint, ...) from diffusion_params,
+            # then override the upscale-specific bits, which take precedence:
+            request_body = DiffusionRequestBody(**sd_upscale_params.diffusion_params.model_dump())
             request_body.init_images = [image]
             request_body.denoising_strength = sd_upscale_params.denoising_strength
             request_body.steps = sd_upscale_params.step_count
@@ -267,47 +284,34 @@ class A1111Webservice(WebService):
             request_body.height = height
             request_body.batch_size = 1
             request_body.n_iter = 1
-            if request_body.alwayson_scripts is None:
-                request_body.alwayson_scripts = {}
-            tile_control_unit: Optional[ControlNetUnit] = sd_upscale_params.tile_controlnet
-            if tile_control_unit is not None:
-                if (tile_control_unit.model is None
-                        or tile_control_unit.preprocessor is None
-                        or float(tile_control_unit.control_strength) == 0.0
-                        or float(tile_control_unit.control_start) >= float(tile_control_unit.control_end)):
-                    tile_control_unit = None
-                else:
-                    models = self.get_controlnet_models().model_list
-                    preprocessors = [preprocessor.name for preprocessor in self.get_controlnet_preprocessors()]
-                    if (tile_control_unit.model.full_model_name not in models
-                            or tile_control_unit.preprocessor.typedef.name not in preprocessors):
-                        tile_control_unit = None
-            if tile_control_unit is not None and tile_control_unit.preprocessor is not None \
-                        and tile_control_unit.model is not None:
-                control_unit_data = ControlNetUnitDict.from_unit(tile_control_unit).model_dump(exclude_none=True)
-                controlnet_script_data: ScriptRequestData = {'args': [control_unit_data]}
-                request_body.alwayson_scripts[CONTROLNET_SCRIPT_KEY] = controlnet_script_data
-            if sd_upscale_params is not None and sd_upscale_params.use_stable_diffusion_upscaling:
+
+            # Attach the optional tile ControlNet via controlnet_units; DiffusionRequestBody.to_dict() serializes these
+            # into alwayson_scripts['controlnet']. (Setting alwayson_scripts directly here would be wiped by to_dict.)
+            tile_control_unit = self._validate_tile_controlnet(sd_upscale_params.tile_controlnet)
+            request_body.controlnet_units = [tile_control_unit] if tile_control_unit is not None else []
+
+            if sd_upscale_params.use_ultimate_upscale_script:
                 request_body.script_name = ULTIMATE_UPSCALE_SCRIPT
+                # Positional args for the "ultimate sd upscale" script (order confirmed via /sdapi/v1/script-info):
                 request_body.script_args = [
-                    None,  # not used
-                    sd_upscale_params.tile_width,
-                    sd_upscale_params.tile_height,
-                    8,  # mask_blur
-                    32,  # padding
-                    64,  # seams_fix_width
-                    0.35,  # seams_fix_denoise
-                    32,  # seams_fix_padding
-                    upscale_options.index(upscaler),  # upscaler_index
-                    False,  # save_upscaled_image a.k.a Upscaled
-                    0,  # redraw_mode (linear)
-                    False,  # save_seams_fix_image a.k.a Seams fix
-                    8,  # seams_fix_mask_blur
-                    0,  # seams_fix_type (none)
-                    1,  # target_size_type (use below)
-                    width,  # custom_width
-                    height,  # custom_height
-                    None  # custom_scale (ignored)
+                    None,  # [0] not used
+                    sd_upscale_params.tile_width,        # [1] tile width
+                    sd_upscale_params.tile_height,       # [2] tile height
+                    sd_upscale_params.mask_blur,         # [3] mask_blur
+                    sd_upscale_params.tile_padding,      # [4] tile padding
+                    sd_upscale_params.seam_fix_width,    # [5] seams_fix_width
+                    sd_upscale_params.seam_fix_denoise,  # [6] seams_fix_denoise
+                    sd_upscale_params.seam_fix_padding,  # [7] seams_fix_padding
+                    upscale_options.index(upscaler),     # [8] upscaler_index (into /sdapi/v1/upscalers)
+                    sd_upscale_params.save_upscaled_image,   # [9] save_upscaled_image
+                    REDRAW_MODES.index(sd_upscale_params.redraw_mode),  # [10] redraw mode (0=Linear,1=Chess,2=None)
+                    sd_upscale_params.save_seams_fix_image,   # [11] save_seams_fix_image
+                    sd_upscale_params.seam_fix_mask_blur,     # [12] seams_fix_mask_blur
+                    SEAM_FIX_MODES.index(sd_upscale_params.seam_fix_mode),  # [13] seams_fix_type
+                    1,       # [14] target_size_type (1 = use custom width/height below)
+                    width,   # [15] custom_width
+                    height,  # [16] custom_height
+                    None     # [17] custom_scale (ignored when target_size_type=1)
                 ]
             return self.img2img(image, None, request_body)
         # otherwise, normal upscaling without controlNet:

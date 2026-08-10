@@ -486,6 +486,22 @@ class ComfyUiWebservice(WebService):
         return QueueAdditionResponse.model_validate(self.post(ComfyEndpoints.PROMPT, body=body.model_dump(exclude_none=True),
                                                     timeout=DEFAULT_TIMEOUT).json())
 
+    def _validate_tile_controlnet(self, tile_control_unit: Optional[ControlNetUnit]) -> Optional[ControlNetUnit]:
+        """Return the tile ControlNet unit only if it's fully specified and installed on the server, else None."""
+        if tile_control_unit is None:
+            return None
+        if (tile_control_unit.model is None
+                or tile_control_unit.preprocessor is None
+                or float(tile_control_unit.control_strength) == 0.0
+                or float(tile_control_unit.control_start) >= float(tile_control_unit.control_end)):
+            return None
+        models = self.get_controlnet_models()
+        preprocessors = [preprocessor.name for preprocessor in self.get_controlnet_preprocessors()]
+        if (tile_control_unit.model.full_model_name not in models
+                or tile_control_unit.preprocessor.typedef.name not in preprocessors):
+            return None
+        return tile_control_unit
+
     def upscale(self, image: Image.Image, width: int, height: int,
                 upscale_params: Optional[DiffusionUpscalingParams] = None) -> QueueAdditionResponse:
         """Upscale an image using an upscaling model and/or a latent updcaling workflow."""
@@ -504,23 +520,33 @@ class ComfyUiWebservice(WebService):
 
 
         if upscale_params.use_stable_diffusion_upscaling:
-            # Check for "Ultimate SD Upscaler" script:
-            ultimate_upscale_available = self.is_node_available(ULTIMATE_UPSCALE_NODE_NAME)
+            # Check for the "Ultimate SD Upscale" node:
+            ultimate_upscale_available = (upscale_params.use_ultimate_upscale_script
+                                          and self.is_node_available(ULTIMATE_UPSCALE_NODE_NAME))
 
-            # Check for valid ControlNet tile model:
-            tile_control_unit: Optional[ControlNetUnit] = None
-            # TODO: Initialize valid Tile ControlNetUnit using available preprocessors and models, filtering based
-            #       on Stable Diffusion model type
+            # Validate the optional tile ControlNet unit against the models/preprocessors the server actually has:
+            tile_control_unit = self._validate_tile_controlnet(upscale_params.tile_controlnet)
 
             workflow_builder = LatentUpscaleWorkflowBuilder(image_reference, upscale_multiplier, Size(width, height),
                                                             Size(upscale_params.tile_width, upscale_params.tile_height),
                                                             ultimate_upscale_available,
                                                             upscale_model,
                                                             tile_control_unit)
+            # Populate the core diffusion pass (prompt, seed, cfg, sampler, checkpoint, ...), then override the
+            # upscale-specific denoising strength / step count, which take precedence over diffusion_params:
+            self._build_diffusion_body(upscale_params.diffusion_params, workflow_builder)
             workflow_builder.denoising_strength = upscale_params.denoising_strength
             workflow_builder.steps = upscale_params.step_count
-            # TODO: diffusion params missing...how should we pass these in?
-            self._build_diffusion_body(None, workflow_builder)
+            workflow_builder.mask_blur = upscale_params.mask_blur
+            workflow_builder.tile_padding = upscale_params.tile_padding
+            workflow_builder.redraw_mode = upscale_params.redraw_mode
+            workflow_builder.force_uniform_tiles = upscale_params.force_uniform_tiles
+            workflow_builder.tiled_decode = upscale_params.tiled_decode
+            workflow_builder.seam_fix_mode = upscale_params.seam_fix_mode
+            workflow_builder.seam_fix_denoise = upscale_params.seam_fix_denoise
+            workflow_builder.seam_fix_width = upscale_params.seam_fix_width
+            workflow_builder.seam_fix_mask_blur = upscale_params.seam_fix_mask_blur
+            workflow_builder.seam_fix_padding = upscale_params.seam_fix_padding
             workflow_node_graph = workflow_builder.build_workflow()
 
         else:  # Basic upscaling workflow:

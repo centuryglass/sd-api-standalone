@@ -23,7 +23,8 @@ from intrapaint_api.api.comfyui.nodes.ksampler_node import KSamplerNode
 from intrapaint_api.api.comfyui.nodes.model_extensions.hypernet_loader_node import HypernetLoaderNode
 from intrapaint_api.api.comfyui.nodes.model_extensions.lora_loader_node import LoraLoaderNode
 from intrapaint_api.api.comfyui.nodes.save_image_node import SaveImageNode
-from intrapaint_api.api.comfyui.nodes.ultimate_upscale_node import UltimateUpscaleNode, UltimateUpscaleCoreInputs
+from intrapaint_api.api.comfyui.nodes.ultimate_upscale_node import UltimateUpscaleNode, UltimateUpscaleCoreInputs, \
+    SeamFixInputs
 from intrapaint_api.api.comfyui.nodes.upscale_latent_node import UpscaleLatentNode
 from intrapaint_api.api.comfyui.nodes.vae.vae_decode_tiled_node import VAEDecodeTiledNode
 from intrapaint_api.api.comfyui.nodes.vae.vae_encode_tiled_node import TILE_MIN, TILE_STEP, TILE_MAX, VAEEncodeTiledNode
@@ -51,10 +52,26 @@ class LatentUpscaleWorkflowBuilder(DiffusionWorkflowBuilder):
         self._ultimate_sd_upscale = ultimate_upscale_script_available
         self._upscale_model_name = upscale_model
         self._tile_size = Size(tile_size)
-        if controlnet_tile_unit is not None:
+
+        # "Ultimate SD Upscale" tunables, applied to the UltimateSDUpscale node in build_workflow(). Callers override
+        # these directly before building; defaults match the node's own sensible defaults.
+        self.mask_blur = 8
+        self.tile_padding = 32
+        self.redraw_mode: str = 'Linear'
+        self.force_uniform_tiles = False
+        self.tiled_decode = True
+        self.seam_fix_mode: str = 'None'
+        self.seam_fix_denoise = 0.35
+        self.seam_fix_width = 64
+        self.seam_fix_mask_blur = 8
+        self.seam_fix_padding = 16
+
+        if controlnet_tile_unit is not None and controlnet_tile_unit.model is not None:
             self.add_controlnet_unit(controlnet_tile_unit.model.full_model_name,
-                                     controlnet_tile_unit.preprocessor, source_image, 1.0,
-                                     0.0, 1.0)
+                                     controlnet_tile_unit.preprocessor, source_image,
+                                     float(controlnet_tile_unit.control_strength),
+                                     float(controlnet_tile_unit.control_start),
+                                     float(controlnet_tile_unit.control_end))
 
     @property
     def tile_size(self) -> Size:
@@ -152,7 +169,6 @@ class LatentUpscaleWorkflowBuilder(DiffusionWorkflowBuilder):
             positive_out_idx = ApplyControlNetNode.IDX_POSITIVE
             negative_node = tile_control_apply_node
             negative_out_idx = ApplyControlNetNode.IDX_NEGATIVE
-            print('CONNECTED TILE NODES')
 
         # Load upscale model node, if available:
         upscale_model_node: Optional[LoadUpscalerNode] = None
@@ -176,12 +192,25 @@ class LatentUpscaleWorkflowBuilder(DiffusionWorkflowBuilder):
             upscale_node_params.sampler_name = self.sampler
             upscale_node_params.scheduler = self.scheduler
             upscale_node_params.denoise = self.denoising_strength
+            upscale_node_params.mode_type = self.redraw_mode  # type: ignore[assignment]
             upscale_node_params.tile_width = self.tile_size.width()
             upscale_node_params.tile_height = self.tile_size.height()
+            upscale_node_params.mask_blur = self.mask_blur
+            upscale_node_params.tile_padding = self.tile_padding
+            upscale_node_params.force_uniform_tiles = self.force_uniform_tiles
+            upscale_node_params.tiled_decode = self.tiled_decode
             if upscale_model_node is not None:
                 upscale_node_params.upscale_by = self._upscale_multiplier
 
-            ultimate_upscale_node = UltimateUpscaleNode(upscale_node_params, upscale_model_node is not None)
+            seam_fix_params = SeamFixInputs()
+            seam_fix_params.seam_fix_mode = self.seam_fix_mode  # type: ignore[assignment]
+            seam_fix_params.seam_fix_denoise = self.seam_fix_denoise
+            seam_fix_params.seam_fix_width = self.seam_fix_width
+            seam_fix_params.seam_fix_mask_blur = self.seam_fix_mask_blur
+            seam_fix_params.seam_fix_padding = self.seam_fix_padding
+
+            ultimate_upscale_node = UltimateUpscaleNode(upscale_node_params, upscale_model_node is not None,
+                                                        seam_fix_params)
             workflow.connect_nodes(ultimate_upscale_node, UltimateUpscaleNode.IMAGE,
                                    image_node, image_out_index)
             workflow.connect_nodes(ultimate_upscale_node, UltimateUpscaleNode.MODEL,

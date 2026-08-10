@@ -21,44 +21,77 @@ Then put the `intrapaint_api/` directory on your import path (or `pip install` i
 `pyproject.toml`/`setup.py` is added).
 
 Requires **Python 3.11+** (uses `match` statements and PEP 604 / `X | Y` type aliases).
-Runtime dependencies: `pillow`, `requests`, `platformdirs`, `websocket-client`.
+Runtime dependencies: `pillow`, `requests`, `platformdirs`, `websocket-client`, `pydantic`.
 
 ## Layout
 
 ```
 intrapaint_api/
-  api/                 # the client code (was src/api)
+  api/
     webservice.py            # base HTTP/session helper
-    a1111_webservice.py      # Forge / A1111 WebUI client
-    comfyui_webservice.py    # ComfyUI client
-    comfyui/                 # ComfyUI node-graph + workflow builders
-    webui/                   # WebUI request/response body formats
-    controlnet/              # backend-agnostic ControlNet model
-  config/              # trimmed JSON-backed config system (Cache / AppConfig)
-  util/                # parameter model, shared constants, Size, PIL image helpers
-  resources/config/    # the JSON definitions that back Cache / AppConfig
+    a1111_webservice.py      # Forge / A1111 WebUI client (synchronous)
+    comfyui_webservice.py    # ComfyUI client (async queue + polling)
+    shared_data/             # backend-agnostic pydantic models
+      diffusion_params.py        # DiffusionParams: shared generation parameters
+      api_datatypes.py           # DiffusionUpscalingParams and friends
+      controlnet/                # ControlNetUnit / PreprocessorParams / ControlNet model
+    comfyui/                 # ComfyUI node-graph + workflow builders (+ ComfyUIDiffusionParams)
+    webui/                   # WebUI request/response formats (+ DiffusionRequestBody)
+  util/                    # shared constants, Size, PIL image helpers
 ```
 
 ## Usage
 
-Images passed in and returned are `PIL.Image` objects. No `QApplication` or event loop is needed.
+Generation parameters are passed explicitly as [pydantic](https://docs.pydantic.dev/) models — there
+is no hidden config/cache layer. Images passed in and returned are `PIL.Image` objects; no
+`QApplication` or event loop is needed.
+
+`DiffusionParams` (in `shared_data`) holds the parameters common to both backends. Each backend
+extends it: `DiffusionRequestBody` (WebUI) and `ComfyUIDiffusionParams` (ComfyUI) add
+backend-specific fields.
+
+### Forge / A1111 WebUI (synchronous)
 
 ```python
-from PIL import Image
-from intrapaint_api.config.cache import Cache
-from intrapaint_api.api.comfyui_webservice import ComfyUiWebservice
+from intrapaint_api.api.a1111_webservice import A1111Webservice
+from intrapaint_api.api.webui.diffusion_request_body import DiffusionRequestBody
 
-Cache().set(Cache.PROMPT, 'a corgi astronaut, detailed')
-service = ComfyUiWebservice('http://localhost:8188')
-# ... call service methods to queue generation, upload images (PIL), download results (PIL), etc.
+service = A1111Webservice('http://localhost:7860')
+body = DiffusionRequestBody(prompt='a corgi astronaut, detailed',
+                            steps=30, cfg_scale=7.0, width=512, height=512)
+result = service.txt2img(body)     # blocks until the image is generated
+images = result['images']          # list[PIL.Image]
 ```
 
-The client still reads generation parameters out of the JSON-backed config singletons
-(`Cache` / `AppConfig`), exactly as it does inside IntraPaint. Their values persist to a per-user
-data directory (via `platformdirs`, currently under the "IntraPaint"/"centuryglass" app dir — change
-that in `intrapaint_api/util/shared_constants.py`, or pass an explicit path to
-`Cache(path)` / `AppConfig(path)`, if you want a separate location). Note that with the default
-path this shares IntraPaint's own config files.
+For img2img / inpainting, pass the source image (and, for inpainting, a mask) to
+`service.img2img(image, mask, body)`.
+
+### ComfyUI (asynchronous)
+
+ComfyUI generation is queued: the call returns immediately with a prompt id, and you poll for
+completion, then download the results.
+
+```python
+from intrapaint_api.api.comfyui_webservice import ComfyUiWebservice
+from intrapaint_api.api.comfyui.comfyui_diffusion_params import ComfyUIDiffusionParams
+
+service = ComfyUiWebservice('http://localhost:8188')
+params = ComfyUIDiffusionParams(sd_model_name='deliberate_v3.safetensors',
+                                prompt='a corgi astronaut, detailed',
+                                steps=20, sampler='euler', scheduler='karras')
+response = service.txt2img(params)                 # queues a job
+# poll service.check_queue_entry(response.prompt_id, response.number) until it reports FINISHED,
+# then service.download_images(progress.outputs.images) to get the PIL images.
+```
+
+Set `init_images` (and `mask`) on the params for img2img / inpainting.
+
+### ControlNet
+
+ControlNet units are backend-agnostic: build a `ControlNetUnit` (with an optional `ControlNetModel`
+and a `PreprocessorParams`) and add it to `diffusion_params.controlnet_units`. Each backend serializes
+them into the form it expects — WebUI's `alwayson_scripts` ControlNet args, or ComfyUI ControlNet
+nodes.
 
 ### Authentication (A1111 / Forge)
 
@@ -73,52 +106,27 @@ service = A1111Webservice('http://localhost:7860',
                           credentials_provider=lambda: ('user', 'password'))
 ```
 
-## What was changed during extraction
+## Design notes
 
-Starting from a faithful copy of `src/api`, two rounds of decoupling were applied.
+Extracted from IntraPaint's `src/api` and then decoupled in two ways:
 
-**1. Slim vendor** — dropped the parts of IntraPaint that only exist to render editing UI:
-
-- All `src.` imports were rewritten to `intrapaint_api.`.
-- The Qt **input-widget-building** code was removed (it pulled in IntraPaint's entire
-  `ui/input_fields` widget library and isn't needed to build/send requests):
-  `Parameter.get_input_widget()`, `Config.get_control_widget()`, and
-  `ControlParameter.get_input_widget()` / `disconnect_input_widget()`. These classes still hold
-  values, validate, and serialize/deserialize exactly as before.
-- `LORA_KEY_PATH` (one constant previously imported from `ui/window/extra_network_window`) is now
-  defined inline in `api/comfyui/diffusion_workflow_builder.py`.
-- `PROJECT_DIR` in `util/shared_constants.py` resolves to this package root so the bundled
-  `resources/config/*.json` definitions load correctly.
-
-**2. Qt removal** — eliminated the PySide6 dependency entirely:
-
-- **Images:** `QImage` → `PIL.Image`. `util/visual/image_utils.py` was replaced with a small
-  PIL-based module (`image_to_base64` / `image_from_base64` / `image_to_png_bytes` /
-  `image_from_bytes`). Downloaded/decoded images are normalized to RGBA. (This dropped `cv2` and
-  `numpy`, which were only used by the old image helpers.)
-- **`QSize`** → a minimal `Size` value class in `util/geometry.py` (same `.width()` / `.height()`
-  API), used both for image dimensions and size-typed config values.
-- **Translation:** the `QApplication.translate`-based `_tr()` helpers became no-op shims that return
-  the source string (there is no bundled translation catalog).
-- **Signals:** `ControlParameter`'s `QObject`/`Signal` became a tiny Qt-free callback object
-  (`value_changed.connect(...)` / `.emit(...)` still work for external subscribers).
-- **Save debounce:** the `QTimer` that batched config writes now writes synchronously (no event loop
-  required).
-- **Deleted UI-only support:** the widget-geometry cache in `Cache` (and `util/visual/display_size`),
-  the theme/style setup in `AppConfig._adjust_defaults`, `config.get_color()` / `get_keycodes()`,
-  and the `LoginModal` dialog (replaced by the `credentials_provider` callback above).
-
-The request-building and networking logic itself was not modified.
+- **No Qt.** `QImage` → `PIL.Image` (via the small helpers in `util/visual/image_utils.py`; decoded
+  images are normalized to RGBA), `QSize` → the minimal `Size` value class in `util/geometry.py`, and
+  the `QApplication.translate`-based `_tr()` helpers are no-op shims that return the source string.
+  Dropping Qt also dropped `cv2` / `numpy`, which were only used by the old image helpers.
+- **No config layer.** The original client read generation parameters out of JSON-backed `Cache` /
+  `AppConfig` singletons. That whole system (and the `resources/config/*.json` definitions behind it)
+  has been removed; parameters are now passed explicitly as the pydantic models described above.
+  Moving to pydantic also replaced the hand-rolled request/response typing with validated models.
 
 ## Verifying against a live backend
 
-The extraction preserves the PNG-over-HTTP wire behavior, but image encoding now goes through Pillow
-instead of Qt. If you rely on img2img / inpainting / ControlNet, it's worth a real round-trip against
-a running ComfyUI or A1111/Forge instance rather than trusting imports alone.
+The client's wire behavior is exercised by an integration test suite under `tests/` that runs against
+real ComfyUI and A1111/Forge servers (see `tests/README.md`). If you rely on img2img / inpainting /
+ControlNet, a real round-trip is worth more than trusting imports alone.
 
-## Possible next step: a fully data-driven library
+## Status
 
-The remaining coupling is to the JSON-backed config singletons: the client reads generation
-parameters from `Cache` / `AppConfig` rather than from arguments. A future pass could have the API
-take those parameters as plain dataclasses/dicts, removing the config layer entirely. That's a
-larger, interface-changing refactor; the current package already works headless when copied out.
+This package is under active refactoring. The core txt2img / img2img / inpainting / ControlNet paths
+work end-to-end against both backends (covered by the integration tests), but some areas — notably the
+ComfyUI node classes' migration to pydantic and the tiled-upscaling workflow — are still in progress.
