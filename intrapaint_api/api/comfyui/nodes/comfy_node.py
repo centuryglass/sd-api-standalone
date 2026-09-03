@@ -24,10 +24,14 @@ class ComfyNode:
         self._output_count = output_count
 
     def __deepcopy__(self, memo: dict[int, Any]) -> 'ComfyNode':
-        data = deepcopy(self._inputs)
-        input_keys = set(self._node_input_keys)
-        node_copy = ComfyNode(self._class_type, data, input_keys, self._output_count)
+        # Reconstruct as the concrete subclass without re-invoking __init__ (subclass constructors have varied
+        # signatures). Copying every instance attribute preserves subclass-specific state and, critically, the subclass
+        # type itself, so overrides like UltimateUpscaleNode.add_input survive a graph deepcopy.
+        cls = self.__class__
+        node_copy = cls.__new__(cls)
         memo[id(self)] = node_copy
+        for key, value in self.__dict__.items():
+            setattr(node_copy, key, deepcopy(value, memo))
         return node_copy
 
     @property

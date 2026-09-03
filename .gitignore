@@ -1,6 +1,7 @@
 __pycache__
 tests/output/
 .pytest_cache
+*.egg-info/
 
 # JetBrains IDE files
 .idea/
