@@ -1,4 +1,4 @@
-# intrapaint_api
+# sd-api-standalone
 
 A standalone, self-contained copy of IntraPaint's Stable Diffusion backend client
 (`src/api`). It talks to **ComfyUI**, **Forge/Automatic1111 WebUI**, and their
@@ -11,14 +11,25 @@ be dropped into other projects without pulling in the rest of the editor. Everyt
 **No Qt / PySide6 dependency.** Images are plain [Pillow](https://python-pillow.org/) `PIL.Image`
 objects and the package has no GUI requirements — it runs headless.
 
+## Status
+
+This package is under active refactoring. The core txt2img / img2img / inpainting / ControlNet paths
+work end-to-end against both backends (covered by the integration tests), but some areas — notably the
+ComfyUI node classes' migration to pydantic and the tiled-upscaling workflow — are still in progress.
+
+My eventual goal is to provide an API-agnostic interface, allowing complex image generation requests
+to pass to either ComfyUI or Stable-Diffusion-WebUI without needing to care which interface is
+actually available. To accomplish this, response data formats still need to be unified, and work
+towards queued vs. blocking request handling still needs to be fully completed and tested.
+
 ## Installation
 
 ```
-pip install -r requirements.txt
+pip install -e .
 ```
 
-Then put the `intrapaint_api/` directory on your import path (or `pip install` it once a
-`pyproject.toml`/`setup.py` is added).
+This installs the package (and its dependencies) in editable mode, so `intrapaint_api` is importable
+from anywhere without manually managing `sys.path`.
 
 Requires **Python 3.11+** (uses `match` statements and PEP 604 / `X | Y` type aliases).
 Runtime dependencies: `pillow`, `requests`, `platformdirs`, `websocket-client`, `pydantic`.
@@ -125,8 +136,3 @@ The client's wire behavior is exercised by an integration test suite under `test
 real ComfyUI and A1111/Forge servers (see `tests/README.md`). If you rely on img2img / inpainting /
 ControlNet, a real round-trip is worth more than trusting imports alone.
 
-## Status
-
-This package is under active refactoring. The core txt2img / img2img / inpainting / ControlNet paths
-work end-to-end against both backends (covered by the integration tests), but some areas — notably the
-ComfyUI node classes' migration to pydantic and the tiled-upscaling workflow — are still in progress.
