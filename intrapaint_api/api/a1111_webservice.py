@@ -12,12 +12,15 @@ from PIL import Image  # type: ignore
 from requests import Response
 
 from intrapaint_api.api.shared_data.controlnet.controlnet_category_builder import ControlNetCategoryBuilder
-from intrapaint_api.api.shared_data.controlnet.controlnet_preprocessor import ControlNetPreprocessor
+from intrapaint_api.api.shared_data.controlnet.controlnet_preprocessor import ControlNetPreprocessor, \
+    PreprocessorParams
 from intrapaint_api.api.shared_data.api_datatypes import DiffusionUpscalingParams, REDRAW_MODES, SEAM_FIX_MODES
 from intrapaint_api.api.shared_data.controlnet.controlnet_unit import ControlNetUnit
 from intrapaint_api.api.webservice import WebService
 from intrapaint_api.api.webui.controlnet_webui_constants import (ControlNetModelResponse, ControlNetModuleResponse,
-                                                      ControlTypeDef, ControlTypeResponse)
+                                                      ControlTypeDef, ControlTypeResponse,
+                                                      FIRST_GENERIC_PARAMETER_KEY, SECOND_GENERIC_PARAMETER_KEY,
+                                                      PREPROCESSOR_RES_PARAM_KEY)
 from intrapaint_api.api.webui.controlnet_webui_utils import get_all_preprocessors
 from intrapaint_api.api.webui.diffusion_request_body import DiffusionRequestBody
 from intrapaint_api.api.webui.request_formats import UpscalingRequestBody
@@ -255,15 +258,29 @@ class A1111Webservice(WebService):
         return self._handle_image_response(res)
 
     def controlnet_preprocessor_preview(self, image: Image.Image, mask: Optional[Image.Image],
-                                        preprocessor: ControlNetPreprocessor) -> Image.Image:
-        """Gets a preview image for a ControlNet preprocessor. The server applies its own parameter defaults."""
+                                        preprocessor: ControlNetPreprocessor | PreprocessorParams) -> Image.Image:
+        """Gets a preview image for a ControlNet preprocessor.
+
+        `preprocessor` may be a bare `ControlNetPreprocessor`, in which case the server applies its own
+        parameter defaults, or a `PreprocessorParams` to override threshold_a/threshold_b/processor_res.
+        """
         input_images: list[str] = [image_to_base64(image, True)]
         if mask is not None:
             input_images.append(image_to_base64(mask, True))
+        typedef = preprocessor.typedef if isinstance(preprocessor, PreprocessorParams) else preprocessor
         body: dict[str, int | float | str | list[str]] = {
-            'controlnet_module': preprocessor.name,
+            'controlnet_module': typedef.name,
             'controlnet_input_images': input_images
         }
+        if isinstance(preprocessor, PreprocessorParams):
+            detect_param_keys = {
+                FIRST_GENERIC_PARAMETER_KEY: 'controlnet_threshold_a',
+                SECOND_GENERIC_PARAMETER_KEY: 'controlnet_threshold_b',
+                PREPROCESSOR_RES_PARAM_KEY: 'controlnet_processor_res',
+            }
+            for param_key, detect_key in detect_param_keys.items():
+                if param_key in preprocessor.parameter_values:
+                    body[detect_key] = preprocessor.parameter_values[param_key]
         res = self.post(A1111Webservice.Endpoints.CONTROLNET_PREVIEW, body)
         return self._handle_image_response(res)['images'][0]
 
