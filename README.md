@@ -136,3 +136,8 @@ The client's wire behavior is exercised by an integration test suite under `test
 real ComfyUI and A1111/Forge servers (see `tests/README.md`). If you rely on img2img / inpainting /
 ControlNet, a real round-trip is worth more than trusting imports alone.
 
+## License
+
+Public domain, dedicated under [The Unlicense](https://unlicense.org) — see `LICENSE`. Use it for
+anything, with no attribution or other obligations.
+
