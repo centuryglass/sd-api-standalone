@@ -1,5 +1,6 @@
 """WebUI API custom script data definitions."""
-from typing import TypedDict, Any, Optional
+from typing import Any, Optional
+from typing_extensions import TypedDict
 
 from pydantic import BaseModel
 

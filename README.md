@@ -32,7 +32,7 @@ This installs the package (and its dependencies) in editable mode, so `intrapain
 from anywhere without manually managing `sys.path`.
 
 Requires **Python 3.11+** (uses `match` statements and PEP 604 / `X | Y` type aliases).
-Runtime dependencies: `pillow`, `requests`, `platformdirs`, `websocket-client`, `pydantic`.
+Runtime dependencies: `pillow`, `requests`, `platformdirs`, `websocket-client`, `pydantic`, `typing-extensions`.
 
 ## Layout
 
@@ -135,6 +135,13 @@ Extracted from IntraPaint's `src/api` and then decoupled in two ways:
 The client's wire behavior is exercised by an integration test suite under `tests/` that runs against
 real ComfyUI and A1111/Forge servers (see `tests/README.md`). If you rely on img2img / inpainting /
 ControlNet, a real round-trip is worth more than trusting imports alone.
+
+## Development
+
+`pip install -r requirements-dev.txt` adds the test and lint tools. CI (`.github/workflows/ci.yml`) runs the unit
+tests on Python 3.11-3.14 and a pylint check on every pull request into `main`. Releases are cut by
+[release-please](https://github.com/googleapis/release-please) from Conventional Commits pull request titles; see
+`CHANGELOG.md` once the first release lands. Rules for coding agents are in `AGENTS.md`.
 
 ## License
 

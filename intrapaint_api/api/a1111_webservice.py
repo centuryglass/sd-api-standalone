@@ -5,7 +5,8 @@ through Stable Diffusion.
 import json
 import logging
 from copy import deepcopy
-from typing import Optional, Any, Callable, cast, TypedDict, TYPE_CHECKING
+from typing import Optional, Any, Callable, cast, TYPE_CHECKING
+from typing_extensions import TypedDict
 
 import requests  # type: ignore
 from PIL import Image  # type: ignore

@@ -1,5 +1,6 @@
 """A ComfyUI node used to load image mask data."""
-from typing import TypedDict, Literal, cast, Any
+from typing import Literal, cast, Any
+from typing_extensions import TypedDict
 
 from intrapaint_api.api.comfyui.nodes.comfy_node import ComfyNode
 

@@ -1,5 +1,6 @@
 """A ComfyUI node used to initialize a batch of latent images."""
-from typing import TypedDict, cast, Any
+from typing import cast, Any
+from typing_extensions import TypedDict
 
 from intrapaint_api.util.geometry import Size
 

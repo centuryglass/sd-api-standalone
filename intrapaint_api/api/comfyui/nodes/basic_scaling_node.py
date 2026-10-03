@@ -1,5 +1,6 @@
 """A ComfyUI node used to scale an image using a basic pixel scaling algorithm."""
-from typing import TypedDict, NotRequired, Literal, cast
+from typing import NotRequired, Literal, cast
+from typing_extensions import TypedDict
 
 from intrapaint_api.api.comfyui.nodes.comfy_node import NodeConnection, ComfyNode
 

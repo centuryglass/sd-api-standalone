@@ -1,5 +1,6 @@
 """WebUI API response data formats."""
-from typing import Any, TypeAlias, Optional, TypedDict
+from typing import Any, TypeAlias, Optional
+from typing_extensions import TypedDict
 
 from pydantic import BaseModel
 

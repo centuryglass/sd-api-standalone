@@ -2,7 +2,8 @@
 
 Output slots are [positive_conditioning, negative_conditioning, latent_image]
 """
-from typing import TypedDict, NotRequired
+from typing import NotRequired
+from typing_extensions import TypedDict
 
 from intrapaint_api.api.comfyui.nodes.comfy_node import NodeConnection, ComfyNode
 

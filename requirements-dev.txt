@@ -1,0 +1,10 @@
+# Development tools, on top of the runtime requirements: `pip install -r requirements-dev.txt` sets up everything
+# needed to run the tests and the lint check. Unlike the runtime requirements, these are pinned exactly, so CI's
+# results don't change underneath an unrelated pull request.
+-r requirements.txt
+
+# `pytest tests/` runs the unit tests and skips the integration tests whose backend isn't running (tests/README.md).
+pytest==9.1.1
+
+# `python scripts/pylint_check.py` is the CI lint gate; `scripts/pylint.sh` shows the full report.
+pylint==4.1.2

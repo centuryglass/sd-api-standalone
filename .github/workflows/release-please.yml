@@ -1,0 +1,32 @@
+name: release-please
+
+# Keeps a release pull request open against main, collecting the Conventional Commits titles of merged pull requests
+# into CHANGELOG.md and bumping pyproject.toml's version (release-please-config.json). Merging it tags the release and
+# publishes a GitHub release with that changelog section as its notes. While the version is below 1.0.0, a breaking
+# change bumps the minor version (bump-minor-pre-major).
+#
+# Pull requests opened with GITHUB_TOKEN don't trigger workflows, so CI has to be started by hand on the release pull
+# request: run the ci workflow from the Actions tab on its branch. The repository setting "Allow GitHub Actions to
+# create and approve pull requests" must be on for this workflow to open it.
+on:
+  push:
+    branches: [main]
+
+permissions:
+  contents: write
+  issues: write
+  pull-requests: write
+
+concurrency:
+  group: release-please
+  cancel-in-progress: false
+
+jobs:
+  release-please:
+    name: release-please
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: googleapis/release-please-action@v5
+        with:
+          target-branch: main

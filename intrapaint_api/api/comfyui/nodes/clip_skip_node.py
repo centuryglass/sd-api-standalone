@@ -1,5 +1,6 @@
 """A ComfyUI node used to apply the 'CLIP skip' option to prompt conditioning."""
-from typing import TypedDict, NotRequired, cast
+from typing import NotRequired, cast
+from typing_extensions import TypedDict
 
 from intrapaint_api.api.comfyui.nodes.comfy_node import NodeConnection, ComfyNode
 
