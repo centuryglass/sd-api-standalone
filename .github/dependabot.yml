@@ -1,0 +1,22 @@
+version: 2
+updates:
+  # Proposes bumps to the dev tools pinned in requirements-dev.txt, and CI checks each one. The runtime dependencies in
+  # pyproject.toml and requirements.txt are unpinned, since a library's pins would constrain its users' environments,
+  # so Dependabot leaves them alone.
+  - package-ecosystem: pip
+    directory: /
+    # Conventional Commits prefixes, which the changelog (release-please-config.json) reads from squash-merge titles.
+    commit-message:
+      prefix: build(deps)
+    schedule:
+      interval: weekly
+    groups:
+      python-dependencies:
+        patterns: ['*']
+
+  - package-ecosystem: github-actions
+    directory: /
+    commit-message:
+      prefix: ci(deps)
+    schedule:
+      interval: weekly
