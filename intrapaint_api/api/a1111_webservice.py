@@ -29,7 +29,8 @@ from intrapaint_api.api.webui.response_formats import GenerationInfoData, Progre
     InterrogateResponse, PromptStyleData, SamplerInfo, UpscalerInfo, ModelInfo, VaeInfo, LoraInfo
 from intrapaint_api.api.webui.script_info_types import ScriptResponseData, ScriptInfo
 from intrapaint_api.util.shared_constants import INTERROGATE_DEFAULT_MODEL
-from intrapaint_api.util.visual.image_utils import image_to_base64, image_from_base64, image_from_bytes
+from intrapaint_api.util.visual.image_utils import (image_to_base64, image_from_base64, image_from_bytes,
+                                                    mask_to_grayscale)
 
 if TYPE_CHECKING:
     from intrapaint_api.api.webui.webui_generation_handle import WebUIDispatcher, WebUIGenerationHandle
@@ -267,7 +268,7 @@ class A1111Webservice(WebService):
         """
         input_images: list[str] = [image_to_base64(image, True)]
         if mask is not None:
-            input_images.append(image_to_base64(mask, True))
+            input_images.append(image_to_base64(mask_to_grayscale(mask), True))
         typedef = preprocessor.typedef if isinstance(preprocessor, PreprocessorParams) else preprocessor
         body: dict[str, int | float | str | list[str]] = {
             'controlnet_module': typedef.name,
