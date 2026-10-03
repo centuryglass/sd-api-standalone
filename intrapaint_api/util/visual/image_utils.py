@@ -8,7 +8,7 @@ import hashlib
 import io
 from typing import TypeAlias, Union
 
-from PIL import Image
+from PIL import Image, ImageChops
 
 BASE_64_PREFIX = 'data:image/png;base64,'
 
@@ -50,6 +50,29 @@ def image_from_base64(image_str: str) -> Image.Image:
         image_str = image_str[len(BASE_64_PREFIX):]
     data = base64.b64decode(image_str)
     return image_from_bytes(data)
+
+
+def mask_to_grayscale(mask: Image.Image) -> Image.Image:
+    """Convert an inpainting mask to an opaque `L`-mode image: white where masked, black where not.
+
+    The source channel depends on the mask's content:
+    - Opaque and grayscale (R == G == B everywhere, including any `L`-mode image): brightness is the source luminance.
+    - Anything else: brightness is the source alpha. A fully opaque colored image becomes all white.
+
+    Hazard: decoded images are normalized to RGBA, so an opaque grayscale mask arrives with alpha 255 everywhere.
+    Reading alpha without the opaque-grayscale check would turn it into an all-white mask.
+
+    Forge's ControlNet extension flattens RGBA input over white before reading it, which loses an alpha-based mask.
+    IntraPaint's `mask_to_grayscale` reads alpha only; this version also accepts pre-converted grayscale masks.
+    """
+    rgba = mask if mask.mode == 'RGBA' else mask.convert('RGBA')
+    red, green, blue, alpha = rgba.split()
+    is_opaque = alpha.getextrema() == (255, 255)
+    is_grayscale = ImageChops.difference(red, green).getbbox() is None \
+        and ImageChops.difference(green, blue).getbbox() is None
+    if is_opaque and is_grayscale:
+        return red
+    return alpha
 
 
 ImageKey: TypeAlias = tuple[str, tuple[int, int], bytes]

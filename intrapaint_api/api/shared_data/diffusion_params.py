@@ -69,7 +69,7 @@ class DiffusionParams(BaseModel):
 
     ### Inpainting only:
     mask: Optional[Image.Image] = None
-    """Inpainting mask image."""
+    """Inpainting mask image: an alpha mask, or an opaque grayscale mask (WebUI only, see `mask_to_grayscale`)."""
 
     controlnet_units: list[ControlNetUnit] = []
 

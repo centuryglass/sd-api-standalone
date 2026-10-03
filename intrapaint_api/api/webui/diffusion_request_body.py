@@ -6,7 +6,7 @@ from typing import Any, Optional
 from intrapaint_api.api.shared_data.diffusion_params import DiffusionParams
 from intrapaint_api.api.webui.controlnet_webui_constants import CONTROLNET_SCRIPT_KEY, ControlNetUnitDict
 from intrapaint_api.api.webui.script_info_types import ScriptRequestData
-from intrapaint_api.util.visual.image_utils import image_to_base64
+from intrapaint_api.util.visual.image_utils import image_to_base64, mask_to_grayscale
 
 logger = logging.getLogger(__name__)
 
@@ -234,5 +234,5 @@ class DiffusionRequestBody(DiffusionParams):
             for i in range(len(images)):
                 images[i] = image_to_base64(images[i], include_prefix=True)
         if 'mask' in data:
-            data['mask'] = image_to_base64(data['mask'], include_prefix=True)
+            data['mask'] = image_to_base64(mask_to_grayscale(data['mask']), include_prefix=True)
         return data
