@@ -19,3 +19,8 @@ dependencies = [
 
 [tool.setuptools.packages.find]
 include = ["intrapaint_api*"]
+
+# CI's typecheck job runs `mypy` with these settings (AGENTS.md, "Type checking").
+[tool.mypy]
+files = ["intrapaint_api"]
+python_version = "3.11"

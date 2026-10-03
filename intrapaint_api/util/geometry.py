@@ -11,6 +11,8 @@ class Size:
     """An immutable-ish (width, height) pair mirroring the QSize methods used by the API."""
 
     def __init__(self, width: Union[int, 'Size'] = 0, height: int = 0) -> None:
+        self._width: int
+        self._height: int
         if isinstance(width, Size):  # copy constructor, matching QSize(other)
             self._width = width._width
             self._height = width._height

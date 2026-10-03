@@ -21,7 +21,7 @@ def _resize_mode_parameter() -> ParameterDef:
                         default_value=RESIZE_MODE_DEFAULT,
                         description=RESIZE_MODE_LABEL,
                         required=True,
-                        option_list=RESIZE_MODE_OPTIONS)
+                        option_list=list(RESIZE_MODE_OPTIONS))
 
 
 def get_all_preprocessors(preprocessor_names: list[str],
@@ -39,7 +39,7 @@ def get_all_preprocessors(preprocessor_names: list[str],
                                               default_value=CONTROL_MODE_DEFAULT,
                                               description=CONTROL_MODE_LABEL,
                                               required=True,
-                                              option_list=CONTROL_MODE_OPTIONS)
+                                              option_list=list(CONTROL_MODE_OPTIONS))
             parameters.append(control_type_param)
 
         # Load preprocessor parameters from API details if possible:

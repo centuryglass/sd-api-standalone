@@ -202,12 +202,15 @@ don't need rewriting to conform, and nothing enforces these rules mechanically.
   - No retry markers. Beyond the conftest skips above, the only allowed markers are `skip`, with a reason and an
     issue link, and `xfail(strict=True)`.
 - CI (`.github/workflows/ci.yml`) runs on every pull request into `main` and every push to it: `pytest tests/` on
-  Python 3.11-3.14, plus the lint check below. Its `ci` job is the single check to require for merging.
+  Python 3.11-3.14, plus the lint and type checks below. Its `ci` job is the single check to require for merging.
 
 ## Type checking
 
-The codebase aims to be well-typed, but strict mypy cleanliness isn't enforced. Improving typing is welcome but not a
-priority; don't block work on a clean mypy run.
+`mypy` (no arguments, configured in `pyproject.toml`'s `[tool.mypy]`) is CI's type-check gate. It runs with mypy's
+default, non-strict settings, and the package must pass it with zero errors.
+
+- **Strictness is opt-in per module,** through `[[tool.mypy.overrides]]` sections. Don't turn on a strict flag
+  globally: improving typing is welcome but not a priority, and work shouldn't block on it.
 
 - **Loose data gets an honest type.** Where data is loose by design (parsed JSON, backend API responses, ComfyUI node
   inputs), type it as loosely as it is (`Any`, `object`, a partial `TypedDict`) until there is a real type to write.
@@ -237,8 +240,8 @@ valid for the version it was generated with.
   stop. Reading code to form the answer is fine; edits, commits and PRs wait for a go-ahead. A message that both asks
   and directs gets the answer first, and the work proceeds only if the answer leaves the plan unchanged.
 - **Open a PR against `main` once work is complete and checked, without waiting to be asked.** This overrides a coding
-  agent's default of only opening a PR on explicit request. Run `pytest tests/` and `scripts/pylint_check.py` first.
-  Agents may also commit and push to their working branch and create issues without asking.
+  agent's default of only opening a PR on explicit request. Run `pytest tests/`, `scripts/pylint_check.py` and `mypy`
+  first. Agents may also commit and push to their working branch and create issues without asking.
 - **PR titles use [Conventional Commits](https://www.conventionalcommits.org/) format:** `type: summary`, with a type
   such as `feat`, `fix`, `docs`, `refactor`, `perf`, `test`, `build`, `ci` or `chore`, and an optional scope
   (`fix(comfyui): ...`). Mark a change that breaks the public API with `!` (`feat!: ...`). PRs into `main` are
@@ -273,5 +276,5 @@ valid for the version it was generated with.
 
 `.claude/hooks/session-start.sh` refreshes the issue cache in every session (see "Tracking open work"). At the start
 of a Claude Code on the web session it also creates `.venv` with Python 3.13, installs `requirements-dev.txt` and the
-package in editable mode, and puts `.venv/bin` first on `PATH`, so `pytest` and `scripts/pylint_check.py` work without
-further setup.
+package in editable mode, and puts `.venv/bin` first on `PATH`, so `pytest`, `scripts/pylint_check.py` and `mypy` work
+without further setup.

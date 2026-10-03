@@ -54,7 +54,7 @@ _STATUS_MAP: dict[AsyncTaskStatus, GenerationStatus] = {
 class ComfyGenerationHandle(GenerationHandle):
     """Handle to one ComfyUI ``/prompt`` job, identified by its ``prompt_id`` (+ queue ``number``)."""
 
-    def __init__(self, service: 'ComfyUiWebservice', prompt_id: str, number: Optional[int],
+    def __init__(self, service: 'ComfyUiWebservice', prompt_id: str, number: int,
                  seed: Optional[int] = None) -> None:
         super().__init__(prompt_id)
         self._service = service
@@ -70,10 +70,10 @@ class ComfyGenerationHandle(GenerationHandle):
                             response: 'QueueAdditionResponse') -> 'ComfyGenerationHandle':
         """Build a handle from a ``txt2img`` / ``img2img`` / ``inpaint`` queue response.
 
-        Raises ``RuntimeError`` if the server rejected the workflow (no ``prompt_id`` — e.g. a node
-        validation error), surfacing the error/node_errors the way the polling helpers do.
+        Raises ``RuntimeError`` if the server rejected the workflow (no ``prompt_id`` or queue ``number``,
+        e.g. a node validation error), surfacing the error/node_errors the way the polling helpers do.
         """
-        if response.prompt_id is None:
+        if response.prompt_id is None or response.number is None:
             raise RuntimeError(f'ComfyUI rejected the workflow: '
                                f'{response.node_errors or response.error or response}')
         return cls(service, response.prompt_id, response.number, seed=response.seed)

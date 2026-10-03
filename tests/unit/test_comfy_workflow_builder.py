@@ -8,7 +8,10 @@ builder's inputs become a params dataclass, only the *setup* here should change 
 structural assertions on the built graph stay put, and that's precisely what protects the
 refactor from silently changing the emitted workflow.
 """
+from intrapaint_api.api.comfyui.comfyui_types import ImageFileReference
 from intrapaint_api.api.comfyui.diffusion_workflow_builder import DiffusionWorkflowBuilder
+from intrapaint_api.api.shared_data.controlnet.controlnet_preprocessor import (
+    ControlNetPreprocessor, ParameterDef, PreprocessorParams)
 from intrapaint_api.util.geometry import Size
 
 
@@ -123,3 +126,35 @@ def test_batch_size_is_validated():
             raise AssertionError(f'batch_size={bad} should have been rejected')
     builder.batch_size = 4  # in range, no raise
     assert builder.batch_size == 4
+
+
+def _canny_params() -> PreprocessorParams:
+    """A fresh but equal set of Canny preprocessor params on each call."""
+    typedef = ControlNetPreprocessor(name='Canny', has_mask_input=False, parameters=[
+        ParameterDef(key='low_threshold', default_value=0.4, required=True)])
+    return PreprocessorParams(typedef=typedef)
+
+
+def test_model_only_controlnet_unit_feeds_control_image_directly():
+    """A model with no preprocessor, used for an already-preprocessed control image, applies the image as-is."""
+    builder = make_txt2img_builder()
+    control_image = ImageFileReference(filename='control.png', subfolder='IntraPaint')
+    builder.add_controlnet_unit('control_canny.safetensors', None, control_image, 1.0, 0.0, 1.0)
+    workflow = builder.build_workflow().get_workflow_dict()
+
+    apply_node = single_node(workflow, 'ControlNetApplyAdvanced')
+    load_image_key = next(key for key, node in workflow.items() if node['class_type'] == 'LoadImage')
+    assert apply_node['inputs']['image'][0] == load_image_key
+    assert workflow[load_image_key]['inputs']['image'] == 'IntraPaint/control.png'
+
+
+def test_identical_preprocessor_and_image_share_one_preprocessor_node():
+    """Units with equal preprocessor params and the same control image reuse one preprocessor node."""
+    builder = make_txt2img_builder()
+    control_image = ImageFileReference(filename='control.png', subfolder='IntraPaint')
+    builder.add_controlnet_unit('model_a.safetensors', _canny_params(), control_image, 1.0, 0.0, 1.0)
+    builder.add_controlnet_unit('model_b.safetensors', _canny_params(), control_image, 0.5, 0.0, 1.0)
+    workflow = builder.build_workflow().get_workflow_dict()
+
+    single_node(workflow, 'Canny')
+    assert len(nodes_of_type(workflow, 'ControlNetApplyAdvanced')) == 2

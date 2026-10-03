@@ -78,7 +78,7 @@ def get_all_preprocessors(node_data: dict[str, NodeInfoResponse]) -> list[Contro
                 min_val: Optional[int | float] = None
                 max_val: Optional[int | float] = None
                 step_val: Optional[int | float] = None
-                options: Optional[list[str]] = None
+                options: Optional[list[str | int | float | bool]] = None
 
                 # Re-validate the raw param dict as the specific subclass; casting the base ParamDef wouldn't
                 # populate default/min/max/step.
