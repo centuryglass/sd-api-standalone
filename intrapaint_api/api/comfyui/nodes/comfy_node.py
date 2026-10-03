@@ -1,6 +1,7 @@
 """Abstract interface for all ComfyUI workflow nodes."""
 from copy import deepcopy
-from typing import TypeAlias, Any, TypedDict
+from typing import TypeAlias, Any
+from typing_extensions import TypedDict
 
 NodeId: TypeAlias = str  # Should be an integer string
 SlotIndex: TypeAlias = int  # connection index within the connected node, not the current one.

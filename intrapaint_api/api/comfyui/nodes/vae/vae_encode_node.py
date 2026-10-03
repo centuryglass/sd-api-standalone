@@ -1,5 +1,6 @@
 """A ComfyUI node used to encode latent image data."""
-from typing import TypedDict, NotRequired
+from typing import NotRequired
+from typing_extensions import TypedDict
 
 from intrapaint_api.api.comfyui.nodes.comfy_node import NodeConnection, ComfyNode
 

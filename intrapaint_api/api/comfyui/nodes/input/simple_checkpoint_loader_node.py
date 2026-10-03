@@ -1,5 +1,6 @@
 """A ComfyUI node used to load a basic Stable Diffusion model."""
-from typing import TypedDict, cast, Any
+from typing import cast, Any
+from typing_extensions import TypedDict
 
 from intrapaint_api.api.comfyui.nodes.comfy_node import ComfyNode
 

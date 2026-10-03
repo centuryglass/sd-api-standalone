@@ -1,6 +1,7 @@
 """Types and constants associated with ControlNet.  All values are either not specific to a single API, or are reused
    because they don't have a useful equivalent in both APIs."""
-from typing import TypedDict, NotRequired, Optional
+from typing import NotRequired, Optional
+from typing_extensions import TypedDict
 
 
 # The `QCoreApplication.translate` context for strings in this file

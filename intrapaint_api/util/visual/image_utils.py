@@ -6,7 +6,7 @@ needs to encode images for upload and decode them from responses.
 import base64
 import hashlib
 import io
-from typing import Union
+from typing import TypeAlias, Union
 
 from PIL import Image
 
@@ -51,7 +51,10 @@ def image_from_base64(image_str: str) -> Image.Image:
     data = base64.b64decode(image_str)
     return image_from_bytes(data)
 
-type ImageKey = tuple[str, tuple[int, int], bytes]
+
+ImageKey: TypeAlias = tuple[str, tuple[int, int], bytes]
+
+
 def get_image_key(image: Image.Image) -> ImageKey:
     """Creates a key usable for hashing image values."""
     return image.mode, image.size, hashlib.blake2b(image.tobytes(), digest_size=16).digest()

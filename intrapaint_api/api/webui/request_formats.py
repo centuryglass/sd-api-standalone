@@ -1,6 +1,7 @@
 """Defines expected data formats for WebUI API requests.  For the main image generation body format, see
    src/api/webui/diffusion_request_body.py."""
-from typing import TypedDict, NotRequired, Any
+from typing import NotRequired, Any
+from typing_extensions import TypedDict
 
 from intrapaint_api.api.webui.script_info_types import ScriptRequestData
 

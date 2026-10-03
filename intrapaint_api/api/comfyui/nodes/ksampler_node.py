@@ -1,5 +1,6 @@
 """A ComfyUI node used to control the diffusion sampling process."""
-from typing import TypedDict, NotRequired, cast, Any
+from typing import NotRequired, cast, Any
+from typing_extensions import TypedDict
 
 from intrapaint_api.api.comfyui.nodes.comfy_node import NodeConnection, ComfyNode
 

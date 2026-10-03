@@ -1,5 +1,6 @@
 """Data format definitions for the WebUI API's ControlNet endpoints."""
-from typing import TypedDict, Dict, Optional, Literal
+from typing import Dict, Optional, Literal
+from typing_extensions import TypedDict
 
 from pydantic import BaseModel
 
