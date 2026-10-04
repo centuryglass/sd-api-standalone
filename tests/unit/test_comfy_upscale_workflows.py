@@ -54,6 +54,15 @@ def test_basic_workflow_resizes_model_output_to_target():
     assert source_class(workflow, save['inputs']['images']) == 'ImageScale'
 
 
+def test_basic_workflow_without_size_skips_resize():
+    """With no final size, the model output goes straight to SaveImage."""
+    workflow = build_basic_upscaling_workflow(SOURCE, 'esrgan.pth').get_workflow_dict()
+
+    assert not nodes_of_type(workflow, 'ImageScale')
+    save = single_node(workflow, 'SaveImage')
+    assert source_class(workflow, save['inputs']['images']) == 'ImageUpscaleWithModel'
+
+
 def test_latent_workflow_without_ultimate_applies_upscale_model_then_resizes():
     """Without Ultimate SD Upscale, the upscale model runs before the resize and VAE encode."""
     workflow = build_latent_workflow(False, 'esrgan.pth')
