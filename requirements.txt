@@ -1,6 +1,5 @@
 pillow
 requests
-platformdirs
 websocket-client
 pydantic
 typing-extensions

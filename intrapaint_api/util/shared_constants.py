@@ -1,9 +1,7 @@
 """Assorted constants required in multiple areas."""
-import os.path
 from typing import Optional
 
 from PIL import Image
-from platformdirs import user_data_dir, user_log_dir
 
 # The `QCoreApplication.translate` context for strings in this file
 TR_ID = 'util.shared_constants'
@@ -13,15 +11,6 @@ def _tr(key: str, disambiguation: Optional[str] = None, n: int = -1) -> str:
     """Standalone no-op translation shim (returns the source string unchanged)."""
     return key
 
-
-# Root of the standalone package (the directory containing the bundled `resources/` folder). This module lives at
-# `<package>/util/shared_constants.py`, so two `dirname` calls resolve the package root.
-PROJECT_DIR = os.path.dirname(os.path.dirname(__file__))
-DATA_DIR = user_data_dir('IntraPaint', 'centuryglass')
-LOG_DIR = user_log_dir('IntraPaint', 'centuryglass')
-for app_dir in [DATA_DIR, LOG_DIR]:
-    if not os.path.isdir(app_dir):
-        os.makedirs(app_dir)
 
 # Numeric:
 INT_MIN = -2147483647
