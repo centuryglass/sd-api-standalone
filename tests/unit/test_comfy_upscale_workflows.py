@@ -6,8 +6,14 @@ from PIL import Image
 
 from intrapaint_api.api.comfyui.basic_upscale_workflow_builder import build_basic_upscaling_workflow
 from intrapaint_api.api.comfyui.comfyui_types import ImageFileReference
+from intrapaint_api.api.comfyui.diffusion_workflow_builder import ExtensionModelType
 from intrapaint_api.api.comfyui.latent_upscale_workflow_builder import LatentUpscaleWorkflowBuilder
+from intrapaint_api.api.comfyui.nodes.ultimate_upscale_node import ULTIMATE_UPSCALE_NODE_WITHOUT_UPSCALE_MODEL
+from intrapaint_api.api.comfyui.nodes.vae.vae_encode_tiled_node import TILE_MAX, TILE_MIN
 from intrapaint_api.api.comfyui_webservice import ComfyUiWebservice
+from intrapaint_api.api.shared_data.controlnet.controlnet_model import ControlNetModel
+from intrapaint_api.api.shared_data.controlnet.controlnet_preprocessor import ControlNetPreprocessor, PreprocessorParams
+from intrapaint_api.api.shared_data.controlnet.controlnet_unit import ControlNetUnit
 from intrapaint_api.util.geometry import Size
 
 SOURCE = ImageFileReference(filename='source.png', subfolder='')
@@ -31,11 +37,17 @@ def source_class(workflow: dict, connection: list) -> str:
     return workflow[connection[0]]['class_type']
 
 
+def latent_builder(ultimate: bool, upscale_model: Optional[str],
+                   tile_unit: Optional[ControlNetUnit] = None) -> LatentUpscaleWorkflowBuilder:
+    """A latent upscale builder for a 3x upscale to FINAL_SIZE."""
+    builder = LatentUpscaleWorkflowBuilder(SOURCE, 3.0, FINAL_SIZE, Size(512, 512), ultimate, upscale_model, tile_unit)
+    builder.sd_model = 'model.safetensors'
+    return builder
+
+
 def build_latent_workflow(ultimate: bool, upscale_model: Optional[str]) -> dict:
     """Build the latent upscale graph for a 3x upscale to FINAL_SIZE."""
-    builder = LatentUpscaleWorkflowBuilder(SOURCE, 3.0, FINAL_SIZE, Size(512, 512), ultimate, upscale_model)
-    builder.sd_model = 'model.safetensors'
-    return builder.build_workflow().get_workflow_dict()
+    return latent_builder(ultimate, upscale_model).build_workflow().get_workflow_dict()
 
 
 def test_basic_workflow_resizes_model_output_to_target():
@@ -119,3 +131,100 @@ def test_upscale_rejects_non_enlarging_size(size: tuple[int, int]):
     service = ComfyUiWebservice('http://127.0.0.1:1')
     with pytest.raises(ValueError, match='must exceed'):
         service.upscale(Image.new('RGBA', (64, 64)), *size)
+
+
+def _tile_unit() -> ControlNetUnit:
+    """A tile ControlNet unit with an image-input preprocessor."""
+    typedef = ControlNetPreprocessor(name='TilePreprocessor', has_image_input=True, has_mask_input=False)
+    return ControlNetUnit(model=ControlNetModel('control_tile.safetensors'),
+                          preprocessor=PreprocessorParams(typedef=typedef), control_strength=0.6)
+
+
+@pytest.mark.parametrize('ultimate', [True, False])
+def test_latent_workflow_chains_extension_models(ultimate: bool):
+    """LoRAs chain model and CLIP, hypernetworks chain the model only, and the sampler gets the last model."""
+    builder = latent_builder(ultimate, None)
+    builder.add_extension_model('detail.safetensors', 0.8, 0.5, ExtensionModelType.LORA)
+    builder.add_extension_model('style.pt', 0.3, 0.3, ExtensionModelType.HYPERNETWORK)
+    workflow = builder.build_workflow().get_workflow_dict()
+
+    lora = single_node(workflow, 'LoraLoader')
+    hypernet = single_node(workflow, 'HypernetworkLoader')
+    assert source_class(workflow, lora['inputs']['model']) == 'CheckpointLoaderSimple'
+    assert source_class(workflow, lora['inputs']['clip']) == 'CheckpointLoaderSimple'
+    assert source_class(workflow, hypernet['inputs']['model']) == 'LoraLoader'
+    for encoder in nodes_of_type(workflow, 'CLIPTextEncode'):
+        assert source_class(workflow, encoder['inputs']['clip']) == 'LoraLoader'
+    sampler = single_node(workflow, ULTIMATE_UPSCALE_NODE_WITHOUT_UPSCALE_MODEL if ultimate else 'KSampler')
+    assert source_class(workflow, sampler['inputs']['model']) == 'HypernetworkLoader'
+
+
+def test_latent_workflow_uses_config_loader_when_config_is_set():
+    """A model config path switches the checkpoint loader to CheckpointLoader with that config."""
+    builder = latent_builder(True, None)
+    builder.model_config_path = 'v1-inference.yaml'
+    workflow = builder.build_workflow().get_workflow_dict()
+
+    loader = single_node(workflow, 'CheckpointLoader')
+    assert loader['inputs']['config_name'] == 'v1-inference.yaml'
+    assert not nodes_of_type(workflow, 'CheckpointLoaderSimple')
+
+
+@pytest.mark.parametrize('ultimate', [True, False])
+def test_latent_workflow_applies_tile_controlnet_to_conditioning(ultimate: bool):
+    """The tile unit preprocesses the source image and its conditioning feeds the sampler."""
+    workflow = latent_builder(ultimate, None, _tile_unit()).build_workflow().get_workflow_dict()
+
+    preprocessor = single_node(workflow, 'TilePreprocessor')
+    assert source_class(workflow, preprocessor['inputs']['image']) == 'LoadImage'
+    apply_node = single_node(workflow, 'ControlNetApplyAdvanced')
+    assert apply_node['inputs']['strength'] == 0.6
+    assert source_class(workflow, apply_node['inputs']['image']) == 'TilePreprocessor'
+    assert source_class(workflow, apply_node['inputs']['control_net']) == 'ControlNetLoader'
+    apply_key = next(key for key, node in workflow.items() if node['class_type'] == 'ControlNetApplyAdvanced')
+    sampler = single_node(workflow, ULTIMATE_UPSCALE_NODE_WITHOUT_UPSCALE_MODEL if ultimate else 'KSampler')
+    assert tuple(sampler['inputs']['positive']) == (apply_key, 0)
+    assert tuple(sampler['inputs']['negative']) == (apply_key, 1)
+
+
+def test_latent_workflow_builds_repeatably():
+    """Building twice gives the same graph, so connections on reused extension and ControlNet nodes don't leak."""
+    builder = latent_builder(True, 'esrgan.pth', _tile_unit())
+    builder.add_extension_model('detail.safetensors', 0.8, 0.5, ExtensionModelType.LORA)
+    assert builder.build_workflow().get_workflow_dict() == builder.build_workflow().get_workflow_dict()
+
+
+@pytest.mark.parametrize('requested, emitted', [
+    (100, TILE_MIN),
+    (700, 640),
+    (TILE_MAX + 512, TILE_MAX),
+])
+def test_latent_workflow_snaps_vae_tile_size_into_range(requested: int, emitted: int):
+    """Without Ultimate SD Upscale, the VAE tile size is rounded down to a TILE_STEP multiple and clamped."""
+    builder = latent_builder(False, None)
+    builder.vae_tile_size = requested
+    workflow = builder.build_workflow().get_workflow_dict()
+
+    assert single_node(workflow, 'VAEEncodeTiled')['inputs']['tile_size'] == emitted
+    assert single_node(workflow, 'VAEDecodeTiled')['inputs']['tile_size'] == emitted
+
+
+def test_latent_workflow_passes_ultimate_tunables():
+    """Tunables set on the builder reach the UltimateSDUpscale node."""
+    builder = latent_builder(True, 'esrgan.pth')
+    builder.tile_size = Size(768, 640)
+    builder.seam_fix_mode = 'Band Pass'
+    builder.mask_blur = 4
+    ultimate = single_node(builder.build_workflow().get_workflow_dict(), 'UltimateSDUpscale')
+
+    assert (ultimate['inputs']['tile_width'], ultimate['inputs']['tile_height']) == (768, 640)
+    assert ultimate['inputs']['seam_fix_mode'] == 'Band Pass'
+    assert ultimate['inputs']['mask_blur'] == 4
+
+
+def test_latent_workflow_without_source_image_raises():
+    """A builder whose source image was cleared refuses to build."""
+    builder = latent_builder(True, None)
+    builder.source_image = None
+    with pytest.raises(RuntimeError, match='No image'):
+        builder.build_workflow()

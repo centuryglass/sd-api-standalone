@@ -52,7 +52,7 @@ def get_all_preprocessors(preprocessor_names: list[str],
             # threshold_b are identified by their order.
             for parameter_definition in preprocessor_dict.sliders:
                 name = parameter_definition.name
-                if name.lower() == PREPROCESSOR_RES_PARAM_NAME:
+                if name.lower() == PREPROCESSOR_RES_PARAM_NAME.lower():
                     parameters.insert(resize_insert_index, _resize_mode_parameter())
                     res_param = ParameterDef(key=PREPROCESSOR_RES_PARAM_KEY,
                                              description=PREPROCESSOR_RES_LABEL,
