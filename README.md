@@ -32,7 +32,7 @@ This installs the package (and its dependencies) in editable mode, so `intrapain
 from anywhere without manually managing `sys.path`.
 
 Requires **Python 3.11+** (uses `match` statements and PEP 604 / `X | Y` type aliases).
-Runtime dependencies: `pillow`, `requests`, `platformdirs`, `websocket-client`, `pydantic`, `typing-extensions`.
+Runtime dependencies: `pillow`, `requests`, `websocket-client`, `pydantic`, `typing-extensions`.
 
 ## Layout
 
