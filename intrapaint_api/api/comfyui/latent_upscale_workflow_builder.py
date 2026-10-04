@@ -8,12 +8,14 @@ from intrapaint_api.util.geometry import Size
 
 from intrapaint_api.api.comfyui.comfyui_types import ImageFileReference
 from intrapaint_api.api.comfyui.diffusion_workflow_builder import DiffusionWorkflowBuilder
+from intrapaint_api.api.comfyui.nodes.apply_upscaler_node import ApplyUpscalerNode
 from intrapaint_api.api.comfyui.nodes.basic_scaling_node import BasicScalingNode
 from intrapaint_api.api.comfyui.nodes.comfy_node import ComfyNode
 from intrapaint_api.api.comfyui.nodes.comfy_node_graph import ComfyNodeGraph
 from intrapaint_api.api.comfyui.nodes.controlnet.apply_controlnet_node import ApplyControlNetNode
 from intrapaint_api.api.comfyui.nodes.controlnet.dynamic_preprocessor_node import DynamicPreprocessorNode
 from intrapaint_api.api.comfyui.nodes.controlnet.load_controlnet_node import LoadControlNetNode
+from intrapaint_api.api.comfyui.nodes.image_scale_node import ImageScaleNode
 from intrapaint_api.api.comfyui.nodes.input.checkpoint_loader_node import CheckpointLoaderNode
 from intrapaint_api.api.comfyui.nodes.input.clip_text_encode_node import ClipTextEncodeNode
 from intrapaint_api.api.comfyui.nodes.input.load_image_node import LoadImageNode
@@ -83,7 +85,13 @@ class LatentUpscaleWorkflowBuilder(DiffusionWorkflowBuilder):
         self._tile_size = Size(size)
 
     def build_workflow(self) -> ComfyNodeGraph:
-        """Use the provided parameters to build a complete workflow graph."""
+        """Use the provided parameters to build a complete workflow graph.
+
+        With Ultimate SD Upscale, the output is the source size times `upscale_by` on both axes, where `upscale_by`
+        is the larger of the requested width and height ratios. A requested aspect ratio that differs from the
+        source's is not honored on this path. Without it, the image goes through the upscale model (if any), is
+        resized to the exact final size, then refined with tiled img2img.
+        """
         # TODO: lots of code duplication here, and no opportunity to specify particular values for a lot of the
         #       upscaler options.  Both of those things should be fixed.
         workflow = ComfyNodeGraph()
@@ -228,6 +236,18 @@ class LatentUpscaleWorkflowBuilder(DiffusionWorkflowBuilder):
             image_out_index = UltimateUpscaleNode.IDX_IMAGE
 
         else:  # No ultimate SD upscale, we'll try to get by with img2img with tiled VAE encoding/decoding.
+            if upscale_model_node is not None:
+                apply_upscaler_node = ApplyUpscalerNode()
+                workflow.connect_nodes(apply_upscaler_node, ApplyUpscalerNode.UPSCALE_MODEL,
+                                       upscale_model_node, LoadUpscalerNode.IDX_UPSCALE_MODEL)
+                workflow.connect_nodes(apply_upscaler_node, ApplyUpscalerNode.IMAGE,
+                                       image_node, image_out_index)
+                resize_node = ImageScaleNode(self._final_image_size.width(), self._final_image_size.height())
+                workflow.connect_nodes(resize_node, ImageScaleNode.IMAGE,
+                                       apply_upscaler_node, ApplyUpscalerNode.IDX_IMAGE)
+                image_node = resize_node
+                image_out_index = ImageScaleNode.IDX_IMAGE
+
             vae_tile_size = self.vae_tile_size
             vae_tile_size -= (vae_tile_size % TILE_STEP)
             if vae_tile_size < TILE_MIN:

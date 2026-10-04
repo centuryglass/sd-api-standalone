@@ -511,7 +511,9 @@ class ComfyUiWebservice(WebService):
         if upscale_params is None:
             upscale_params = DiffusionUpscalingParams()
         upscale_multiplier = max(width / image.width, height / image.height)
-        assert upscale_multiplier > 1.0
+        if upscale_multiplier <= 1.0:
+            raise ValueError(f'Requested size {width}x{height} must exceed the source size '
+                             f'{image.width}x{image.height} in at least one dimension')
 
         image_reference = self.upload_image(image)
 
@@ -555,7 +557,8 @@ class ComfyUiWebservice(WebService):
         else:  # Basic upscaling workflow:
             if upscale_model is None:
                 raise RuntimeError(f'No valid upscaling model, provided value was "{upscale_params.upscaling_mode}"')
-            workflow_node_graph = build_basic_upscaling_workflow(image_reference, upscale_params.upscaling_mode)
+            workflow_node_graph = build_basic_upscaling_workflow(image_reference, upscale_params.upscaling_mode,
+                                                                Size(width, height))
 
         prompt = workflow_node_graph.get_workflow_dict()
         body = QueueAdditionRequest(prompt=prompt, client_id=self._client_id)
