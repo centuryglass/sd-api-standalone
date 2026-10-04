@@ -6,6 +6,7 @@ handed to the HTTP layer.
 """
 import io
 from typing import Any
+from unittest.mock import patch
 
 from PIL import Image
 
@@ -31,8 +32,8 @@ def _upload(mask: Image.Image) -> tuple[Image.Image, str]:
         sent['files'] = kwargs['files']
         return _FakeResponse()
 
-    service.post = fake_post  # type: ignore[method-assign]
-    service.upload_mask(mask, ImageFileReference(filename='src.png', subfolder='', type='input'))
+    with patch.object(service, 'post', fake_post):
+        service.upload_mask(mask, ImageFileReference(filename='src.png', subfolder='', type='input'))
     _name, data, _type = next(iter(sent['files'].values()))
     return Image.open(io.BytesIO(data)).convert('RGBA'), sent['endpoint']
 
