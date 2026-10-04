@@ -129,26 +129,29 @@ class A1111Webservice(WebService):
         The blocking POST is deferred to the client-side dispatcher (see ``webui_generation_handle``), so
         the returned handle starts ``PENDING`` and is cleanly cancellable until it is actually dispatched.
         Call ``handle.wait()`` for the blocking result, or poll ``handle.poll()`` for progress.
+        The request body is copied at submit time, so later changes to the caller's body do not affect the job and
+        the body can be reused for further submissions.
         """
         from intrapaint_api.api.webui.webui_generation_handle import create_task_id
-        if request_body is None:
-            request_body = DiffusionRequestBody()
-        task_id = request_body.force_task_id or create_task_id('txt2img')
-        request_body.force_task_id = task_id
-        return self._generation_dispatcher.submit(lambda: self.txt2img(request_body), task_id)
+        snapshot = DiffusionRequestBody() if request_body is None else request_body.model_copy(deep=True)
+        task_id = snapshot.force_task_id or create_task_id('txt2img')
+        snapshot.force_task_id = task_id
+        return self._generation_dispatcher.submit(lambda: self.txt2img(snapshot), task_id)
 
     def submit_img2img(self, image: Image.Image, mask: Optional[Image.Image] = None,
                        request_body: Optional[DiffusionRequestBody] = None) -> 'WebUIGenerationHandle':
         """Async counterpart to :meth:`img2img`: enqueue the job and return a handle immediately.
 
-        See :meth:`submit_txt2img` for the dispatch/cancel semantics.
+        See :meth:`submit_txt2img` for the dispatch/cancel semantics. The image, mask and request body are copied at
+        submit time.
         """
         from intrapaint_api.api.webui.webui_generation_handle import create_task_id
-        if request_body is None:
-            request_body = DiffusionRequestBody()
-        task_id = request_body.force_task_id or create_task_id('img2img')
-        request_body.force_task_id = task_id
-        return self._generation_dispatcher.submit(lambda: self.img2img(image, mask, request_body), task_id)
+        snapshot = DiffusionRequestBody() if request_body is None else request_body.model_copy(deep=True)
+        image_copy = image.copy()
+        mask_copy = None if mask is None else mask.copy()
+        task_id = snapshot.force_task_id or create_task_id('img2img')
+        snapshot.force_task_id = task_id
+        return self._generation_dispatcher.submit(lambda: self.img2img(image_copy, mask_copy, snapshot), task_id)
 
     # General utility:
     def login_check(self):
@@ -223,6 +226,7 @@ class A1111Webservice(WebService):
             Optional inpainting mask.  This will also be ignored if request_body is not None, and it already has a mask.
         request_body : Optional[DiffusionRequestBody] = None
             Optional initial request body to use. If None, a new one will be constructed from cache/config parameters.
+            The caller's body is not modified.
         Returns
         -------
         ImageResponse
@@ -233,10 +237,11 @@ class A1111Webservice(WebService):
             request_body.init_images = [image]
             request_body.mask=mask
         else:
-            if request_body.init_images is None:
+            request_body = request_body.model_copy()
+            if not request_body.init_images:
                 request_body.init_images = [image]
-            elif len(request_body.init_images) == 0:
-                request_body.init_images.append(image)
+            else:
+                request_body.init_images = list(request_body.init_images)
             if request_body.mask is None and mask is not None:
                 request_body.mask = mask
         res = self.post(A1111Webservice.Endpoints.IMG2IMG, request_body.to_dict())
