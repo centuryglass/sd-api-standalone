@@ -72,6 +72,13 @@ def test_from_queue_response_rejects_missing_prompt_id():
         ComfyGenerationHandle.from_queue_response(FakeComfyService([]), response)
 
 
+def test_from_queue_response_rejects_missing_number():
+    """A response without a queue number is rejected, since check_queue_entry needs it to find a pending job."""
+    response = QueueAdditionResponse(prompt_id='abc', number=None)
+    with pytest.raises(RuntimeError, match='rejected the workflow'):
+        ComfyGenerationHandle.from_queue_response(FakeComfyService([]), response)
+
+
 # --------------------------------------------------------------------------- #
 # Status mapping
 # --------------------------------------------------------------------------- #

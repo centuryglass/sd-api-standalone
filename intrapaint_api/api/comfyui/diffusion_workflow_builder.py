@@ -32,7 +32,7 @@ from intrapaint_api.api.comfyui.nodes.vae.vae_decode_tiled_node import VAEDecode
 from intrapaint_api.api.comfyui.nodes.vae.vae_encode_node import VAEEncodeNode
 from intrapaint_api.api.comfyui.nodes.vae.vae_encode_tiled_node import VAEEncodeTiledNode
 from intrapaint_api.api.comfyui.workflow_builder_utils import random_seed, image_ref_to_str
-from intrapaint_api.api.shared_data.controlnet.controlnet_preprocessor import ControlNetPreprocessor, PreprocessorParams
+from intrapaint_api.api.shared_data.controlnet.controlnet_preprocessor import PreprocessorParams
 from intrapaint_api.api.shared_data.diffusion_params import DiffusionParams
 from intrapaint_api.util.geometry import Size
 
@@ -61,7 +61,7 @@ class ControlNetNodeData:
     model_node: Optional[LoadControlNetNode]
     preprocessor_node: Optional[DynamicPreprocessorNode]
     control_apply_node: ApplyControlNetNode
-    preprocessor: Optional[ControlNetPreprocessor]
+    preprocessor: Optional[PreprocessorParams]
     control_image: str
 
 
@@ -332,7 +332,7 @@ class DiffusionWorkflowBuilder:
                                                         preprocessor.typedef.has_image_input,
                                                         preprocessor.typedef.has_mask_input)
         control_apply_node = ApplyControlNetNode(strength, start_step, end_step)
-        new_control_unit = ControlNetNodeData(model_node, preprocessor_node, control_apply_node, preprocessor.typedef,
+        new_control_unit = ControlNetNodeData(model_node, preprocessor_node, control_apply_node, preprocessor,
                                                control_image_str)
         self._controlnet_units.append(new_control_unit)
 
@@ -567,8 +567,8 @@ class DiffusionWorkflowBuilder:
         self.clip_skip = diffusion_params.clip_skip
 
         # TODO: Find and add LoRA and Hypernetwork models:
-        available_loras = [] # [lora[LORA_KEY_PATH] for lora in cache.get(Cache.LORA_MODELS)]
-        available_hypernetworks = [] # cache.get(Cache.HYPERNETWORK_MODELS)
+        available_loras: list[str] = [] # [lora[LORA_KEY_PATH] for lora in cache.get(Cache.LORA_MODELS)]
+        available_hypernetworks: list[str] = [] # cache.get(Cache.HYPERNETWORK_MODELS)
         lora_name_map: dict[str, str] = {}
         hypernet_name_map: dict[str, str] = {}
         for model_list, model_dict in ((available_loras, lora_name_map),

@@ -22,7 +22,7 @@ def image_to_png_bytes(image: Image.Image) -> bytes:
 
 def image_from_bytes(data: bytes) -> Image.Image:
     """Load a PIL image from raw encoded image bytes (PNG, JPEG, etc.), normalized to RGBA."""
-    image = Image.open(io.BytesIO(data))
+    image: Image.Image = Image.open(io.BytesIO(data))
     image.load()
     if image.mode != 'RGBA':
         image = image.convert('RGBA')

@@ -1,8 +1,8 @@
 name: ci
 
-# Runs the test suite and the lint check on every pull request into main and every push to it, so a change's state
-# is known before it merges and main's state is known after. workflow_dispatch also allows running it by hand from the
-# Actions tab, which release-please's pull requests need (see release-please.yml).
+# Runs the test suite, the lint check and the type check on every pull request into main and every push to it, so a
+# change's state is known before it merges and main's state is known after. workflow_dispatch also allows running it by
+# hand from the Actions tab, which release-please's pull requests need (see release-please.yml).
 on:
   push:
     branches: [main]
@@ -70,17 +70,40 @@ jobs:
       - name: pylint (no new messages)
         run: python scripts/pylint_check.py
 
+  typecheck:
+    name: typecheck
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-python@v7
+        with:
+          python-version: '3.13'
+          cache: pip
+          cache-dependency-path: requirements*.txt
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements-dev.txt
+
+      - name: mypy
+        # Targets and options come from pyproject.toml's [tool.mypy].
+        run: python -m mypy
+
   # A single check to require for merging, so branch protection doesn't need updating whenever the matrix or the
   # set of jobs changes.
   ci:
     name: ci
     if: always()
-    needs: [test, lint]
+    needs: [test, lint, typecheck]
     runs-on: ubuntu-latest
     steps:
       - name: All checks passed
-        if: needs.test.result != 'success' || needs.lint.result != 'success'
+        if: needs.test.result != 'success' || needs.lint.result != 'success' || needs.typecheck.result != 'success'
         run: |
           echo "test result: ${{ needs.test.result }}"
           echo "lint result: ${{ needs.lint.result }}"
+          echo "typecheck result: ${{ needs.typecheck.result }}"
           exit 1

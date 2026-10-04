@@ -138,10 +138,10 @@ ControlNet, a real round-trip is worth more than trusting imports alone.
 
 ## Development
 
-`pip install -r requirements-dev.txt` adds the test and lint tools. CI (`.github/workflows/ci.yml`) runs the unit
-tests on Python 3.11-3.14 and a pylint check on every pull request into `main`. Releases are cut by
-[release-please](https://github.com/googleapis/release-please) from Conventional Commits pull request titles; see
-`CHANGELOG.md` once the first release lands. Rules for coding agents are in `AGENTS.md`.
+`pip install -r requirements-dev.txt` adds the test, lint and type-check tools. CI (`.github/workflows/ci.yml`) runs
+the unit tests on Python 3.11-3.14, a pylint check and a mypy check on every pull request into `main`. Releases are
+cut by [release-please](https://github.com/googleapis/release-please) from Conventional Commits pull request titles;
+see `CHANGELOG.md` once the first release lands. Rules for coding agents are in `AGENTS.md`.
 
 ## License
 
