@@ -12,7 +12,7 @@ from typing import cast, Optional, Any, Generator, TYPE_CHECKING
 
 import binascii
 import websocket
-from PIL import Image
+from PIL import Image, ImageChops
 from pydantic import BaseModel, ValidationError
 
 from intrapaint_api.api.comfyui.basic_upscale_workflow_builder import build_basic_upscaling_workflow
@@ -35,7 +35,7 @@ from intrapaint_api.api.shared_data.diffusion_params import DiffusionParams
 from intrapaint_api.api.webservice import WebService, MULTIPART_FORM_DATA_TYPE
 from intrapaint_api.util.geometry import Size
 from intrapaint_api.util.visual.image_utils import image_to_png_bytes, image_from_bytes, image_from_base64, ImageKey, \
-    get_image_key
+    get_image_key, mask_to_grayscale
 
 if TYPE_CHECKING:
     from intrapaint_api.api.comfyui.comfyui_generation_handle import ComfyGenerationHandle
@@ -316,11 +316,23 @@ class ComfyUiWebservice(WebService):
         The ref_image parameter should contain data returned by a previous upload_image request. Mask size must match
         original image size.
 
-        IMPORTANT: ComfyUI's use of masks is inverted from IntraPaint's usual expectations. Transparency marks the
-                   areas where changes are allowed, instead of the areas where changes should be blocked. Make sure
-                   to invert mask images before using them here.
+        `mask` follows the `DiffusionParams.mask` convention: opaque/white pixels mark the region to change. It is
+        converted with `mask_to_grayscale` and uploaded as an RGBA PNG whose alpha is `255 - luminance`, because
+        ComfyUI's `LoadImageMask` (channel `alpha`) treats transparent pixels as the region to change. Callers must
+        not pre-invert the mask.
         """
-        return self._upload_image_file(mask, ComfyEndpoints.MASK_UPLOAD, f'mask_{ref_image.filename}',
+        if isinstance(mask, str):
+            if os.path.isfile(mask):
+                with open(mask, 'rb') as mask_file:
+                    mask = image_from_bytes(mask_file.read())
+            else:
+                try:
+                    mask = image_from_base64(mask)
+                except binascii.Error as err:
+                    raise ValueError(f"invalid mask string {mask}: expected base64") from err
+        comfy_mask = Image.new('RGBA', mask.size, (0, 0, 0, 255))
+        comfy_mask.putalpha(ImageChops.invert(mask_to_grayscale(mask)))
+        return self._upload_image_file(comfy_mask, ComfyEndpoints.MASK_UPLOAD, f'mask_{ref_image.filename}',
                                        subfolder, False, overwrite, original_ref=ref_image)
 
 

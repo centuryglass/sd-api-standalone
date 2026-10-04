@@ -60,7 +60,7 @@ def test_inpaint_respects_mask(comfy_service, comfy_checkpoint, output_dir):
     """Inpainting must change the masked (editable) region while preserving the rest.
 
     Uses a textured source and full denoising so the change is unmistakable, and a mask
-    whose transparent center is the editable region (ComfyUI's inverted alpha polarity).
+    whose white center is the editable region (the shared `DiffusionParams.mask` convention).
     The assertion is region-aware: the center should change far more than the border,
     which proves the mask is actually being followed rather than the whole image being
     regenerated (or nothing happening at all).

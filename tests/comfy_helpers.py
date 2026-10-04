@@ -34,18 +34,16 @@ def build_comfy_params(checkpoint: str, sampler: str = 'euler', scheduler: str =
 
 
 def make_comfy_mask(editable_box: tuple[int, int, int, int], size: int = COMFY_SIZE) -> Image.Image:
-    """Build a ComfyUI inpainting mask that encodes the editable region in the ALPHA channel.
+    """Build an inpainting mask in the shared `DiffusionParams.mask` convention: white (opaque) is changed.
 
-    ComfyUI's LoadImageMask reads channel='alpha', so a fully-opaque RGB mask carries no
-    spatial information. ComfyUI's polarity is also inverted from the intuitive one
-    (verified empirically): **transparent (alpha=0) is the region that gets inpainted, and
-    opaque (alpha=255) is preserved**. So the editable box gets alpha=0 and the rest 255.
+    `ComfyUiWebservice.upload_mask` converts this to ComfyUI's alpha polarity, so the same mask works on WebUI.
     """
-    mask = Image.new('RGBA', (size, size), (255, 255, 255, 255))  # opaque => preserved
+    mask = Image.new('RGBA', (size, size), (0, 0, 0, 255))
     editable = Image.new('RGBA', (editable_box[2] - editable_box[0], editable_box[3] - editable_box[1]),
-                         (255, 255, 255, 0))  # transparent => inpainted
+                         (255, 255, 255, 255))
     mask.paste(editable, (editable_box[0], editable_box[1]))
     return mask
+
 
 def find_canny_preprocessor(service: ComfyUiWebservice):
     """Return a Canny-style preprocessor object, or None if none is installed."""

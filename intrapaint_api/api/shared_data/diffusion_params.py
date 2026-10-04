@@ -69,7 +69,11 @@ class DiffusionParams(BaseModel):
 
     ### Inpainting only:
     mask: Optional[Image.Image] = None
-    """Inpainting mask image: an alpha mask, or an opaque grayscale mask (WebUI only, see `mask_to_grayscale`)."""
+    """Inpainting mask image on both backends: opaque or white pixels mark the region to change.
+
+    Either an alpha mask or an opaque grayscale mask is accepted (see `mask_to_grayscale`). Each backend converts to
+    its own wire format, so callers never invert the mask for ComfyUI.
+    """
 
     controlnet_units: list[ControlNetUnit] = []
 
