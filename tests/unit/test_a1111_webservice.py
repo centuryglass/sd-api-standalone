@@ -1,9 +1,11 @@
 """Unit tests for the request bodies A1111Webservice builds inline, with `post` replaced so no server is needed."""
 from typing import Any
 
+import pytest
 from PIL import Image
 
 from intrapaint_api.api.a1111_webservice import A1111Webservice
+from intrapaint_api.api.shared_data.api_datatypes import DiffusionUpscalingParams
 from intrapaint_api.api.shared_data.controlnet.controlnet_preprocessor import ControlNetPreprocessor
 from intrapaint_api.api.webui.diffusion_request_body import DiffusionRequestBody
 from intrapaint_api.util.visual.image_utils import image_from_base64, image_to_base64
@@ -102,3 +104,117 @@ def test_img2img_does_not_modify_request_body(monkeypatch):
     assert body.mask is None
     assert len(sent[0][1]['init_images']) == 1
     assert 'mask' in sent[0][1]
+
+
+UPSCALERS = [{'name': name, 'model_name': None, 'model_path': None, 'model_url': None, 'scale': 4.0}
+             for name in ('None', 'Lanczos', 'R-ESRGAN 4x+')]
+
+
+class _RoutedResponse:
+    """A `requests.Response` stand-in carrying a JSON body and a status."""
+
+    def __init__(self, body: Any, status_code: int = 200) -> None:
+        self._body = body
+        self.status_code = status_code
+
+    def json(self) -> Any:
+        """Return the canned body."""
+        return self._body
+
+
+def _service_with_routes(monkeypatch, get_routes: dict[str, Any],
+                         post_body: Any) -> tuple[A1111Webservice, list[tuple[str, Any]]]:
+    """A service whose `get` answers from `get_routes` (an exception value is raised) and whose `post` records
+    (endpoint, body) and returns `post_body`."""
+    service = A1111Webservice('http://unused.invalid')
+    sent: list[tuple[str, Any]] = []
+
+    def fake_get(endpoint: str, *_args: Any, **_kwargs: Any) -> _RoutedResponse:
+        body = get_routes[endpoint]
+        if isinstance(body, BaseException):
+            raise body
+        return _RoutedResponse(body)
+
+    def fake_post(endpoint: str, body: Any, *_args: Any, **_kwargs: Any) -> _RoutedResponse:
+        sent.append((endpoint, body))
+        return _RoutedResponse(post_body)
+
+    monkeypatch.setattr(service, 'get', fake_get)
+    monkeypatch.setattr(service, 'post', fake_post)
+    return service, sent
+
+
+def test_basic_upscale_defaults_to_first_real_upscaler(monkeypatch):
+    """Without a requested upscaler, the first one that isn't 'None' is used, and the single image is decoded."""
+    result_image = image_to_base64(Image.new('RGBA', (8, 4)))
+    service, sent = _service_with_routes(monkeypatch, {A1111Webservice.Endpoints.UPSCALERS: UPSCALERS},
+                                         {'image': result_image})
+    result = service.upscale(Image.new('RGBA', (4, 2)), 8, 4)
+
+    endpoint, body = sent[0]
+    assert endpoint == A1111Webservice.Endpoints.UPSCALE
+    assert (body['upscaler_1'], body['upscaling_resize_w'], body['upscaling_resize_h']) == ('Lanczos', 8, 4)
+    assert result['images'][0].size == (8, 4)
+    assert result['info'] is None
+
+
+def test_ultimate_upscale_sends_script_args_through_img2img(monkeypatch):
+    """SD upscaling with the script posts img2img with the script's positional args and the requested size."""
+    service, sent = _service_with_routes(monkeypatch, {A1111Webservice.Endpoints.UPSCALERS: UPSCALERS},
+                                         {'images': [image_to_base64(Image.new('RGBA', (1, 1)))]})
+    params = DiffusionUpscalingParams(upscaling_mode='R-ESRGAN 4x+', use_stable_diffusion_upscaling=True,
+                                      tile_width=640, tile_height=512)
+    service.upscale(Image.new('RGBA', (4, 2)), 16, 8, params)
+
+    endpoint, body = sent[0]
+    assert endpoint == A1111Webservice.Endpoints.IMG2IMG
+    assert body['script_name'] == 'ultimate sd upscale'
+    args = body['script_args']
+    assert len(args) == 18
+    assert (args[1], args[2]) == (640, 512)
+    assert args[8] == 2  # index of 'R-ESRGAN 4x+' in /sdapi/v1/upscalers
+    assert (args[14], args[15], args[16]) == (1, 16, 8)
+    assert (body['width'], body['height'], body['batch_size'], body['n_iter']) == (16, 8, 1, 1)
+
+
+def test_image_response_with_invalid_info_keeps_images(monkeypatch):
+    """An info string that isn't JSON leaves info None without dropping the images."""
+    service, _ = _service_with_routes(monkeypatch, {}, {'images': [image_to_base64(Image.new('RGBA', (1, 1)))],
+                                                        'info': 'not json'})
+    result = service.txt2img(DiffusionRequestBody())
+    assert len(result['images']) == 1
+    assert result['info'] is None
+
+
+def test_get_vae_falls_back_to_forge_endpoint(monkeypatch):
+    """When /sdapi/v1/sd-vae fails, Forge's /sdapi/v1/sd-modules is used."""
+    service, _ = _service_with_routes(monkeypatch, {
+        A1111Webservice.Endpoints.VAE_MODELS: RuntimeError('404: Not Found'),
+        A1111Webservice.ForgeEndpoints.SD_MODULES: [{'model_name': 'ae', 'filename': '/models/VAE/ae.safetensors'}],
+    }, None)
+    assert [vae.model_name for vae in service.get_vae()] == ['ae']
+
+
+def test_controlnet_preprocessors_are_fetched_once_and_returned_as_copies(monkeypatch):
+    """The parsed module list is cached, and callers get copies they can modify."""
+    calls: list[str] = []
+    service, _ = _service_with_routes(monkeypatch, {}, None)
+
+    def fake_get(endpoint: str, *_args: Any, **_kwargs: Any) -> _RoutedResponse:
+        calls.append(endpoint)
+        return _RoutedResponse({'module_list': ['none', 'canny']})
+
+    monkeypatch.setattr(service, 'get', fake_get)
+    first = service.get_controlnet_preprocessors()
+    first[0].name = 'changed'
+    second = service.get_controlnet_preprocessors()
+    assert [preprocessor.name for preprocessor in second] == ['none', 'canny']
+    assert calls == [A1111Webservice.Endpoints.CONTROLNET_MODULES]
+
+
+@pytest.mark.parametrize('response, caption', [({'caption': 'a cat'}, 'a cat'), ('a dog', 'a dog')])
+def test_interrogate_accepts_object_or_string_response(monkeypatch, response: Any, caption: str):
+    """Interrogation captions are read from either response form."""
+    service, sent = _service_with_routes(monkeypatch, {}, response)
+    assert service.interrogate(Image.new('RGBA', (1, 1))) == caption
+    assert sent[0][1]['model'] == 'clip'
