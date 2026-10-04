@@ -17,7 +17,7 @@ from intrapaint_api.api.shared_data.controlnet.controlnet_preprocessor import Co
     PreprocessorParams
 from intrapaint_api.api.shared_data.api_datatypes import DiffusionUpscalingParams, REDRAW_MODES, SEAM_FIX_MODES
 from intrapaint_api.api.shared_data.controlnet.controlnet_unit import ControlNetUnit
-from intrapaint_api.api.webservice import WebService
+from intrapaint_api.api.webservice import WebService, AuthError
 from intrapaint_api.api.webui.controlnet_webui_constants import (ControlNetModelResponse, ControlNetModuleResponse,
                                                       ControlTypeDef, ControlTypeResponse,
                                                       FIRST_GENERIC_PARAMETER_KEY, SECOND_GENERIC_PARAMETER_KEY,
@@ -38,10 +38,6 @@ if TYPE_CHECKING:
 logger = logging.getLogger(__name__)
 
 
-class AuthError(Exception):
-    """Identifies login failures."""
-
-
 class ImageResponse(TypedDict):
     """Defines image generation response format."""
     images: list[Image.Image]
@@ -50,6 +46,7 @@ class ImageResponse(TypedDict):
 
 ULTIMATE_UPSCALE_SCRIPT = 'ultimate sd upscale'
 DEFAULT_TIMEOUT = 30
+MAX_LOGIN_ATTEMPTS = 3
 SETTINGS_UPDATE_TIMEOUT = 90
 
 
@@ -607,16 +604,32 @@ class A1111Webservice(WebService):
                          throw_on_failure=False)
 
     def _handle_auth_error(self):
+        """Asks the credentials provider for credentials, up to MAX_LOGIN_ATTEMPTS times.
+
+        Credentials are checked with an authenticated GET to an /sdapi/v1/ endpoint, which is what --api-auth
+        protects. They are installed on the session only once accepted. Raises AuthError if no provider is
+        configured, the provider returns None, or every attempt is rejected."""
         if self._credentials_provider is None:
             raise AuthError('Authentication required, but no credentials_provider was configured.')
-        while True:
+        for attempt in range(1, MAX_LOGIN_ATTEMPTS + 1):
             credentials = self._credentials_provider()
             if credentials is None:
                 logger.info('Login aborted')
-                raise AuthError()
-            username, password = credentials
-            response = self.login(username, password)
-            if response.status_code == 200:
-                self.set_auth((username, password))
+                raise AuthError('Login aborted: the credentials provider returned no credentials.')
+            previous_auth = self._session.auth
+            self.set_auth(credentials)
+            try:
+                response = self.get(A1111Webservice.Endpoints.PROGRESS, timeout=DEFAULT_TIMEOUT,
+                                    url_params={'skip_current_image': 'true'},
+                                    fail_on_auth_error=True, throw_on_failure=False)
+            except BaseException:
+                self.set_auth(previous_auth)
+                raise
+            if response.status_code != 401:
+                if not response.ok:
+                    logger.warning(f'Credential check returned status {response.status_code}')
                 return
-            logger.warning('Login failed, requesting credentials again.')
+            self.set_auth(previous_auth)
+            logger.warning(f'Login attempt {attempt} of {MAX_LOGIN_ATTEMPTS} was rejected (status 401).')
+        raise AuthError(f'Authentication failed after {MAX_LOGIN_ATTEMPTS} attempts: the server returned status 401.'
+                        ' Check the credentials and the server\'s --api-auth setting.')
