@@ -184,7 +184,11 @@ class DiffusionRequestBody(DiffusionParams):
     """Positional arguments passed to the script named by script_name."""
 
     alwayson_scripts: Optional[dict[str, ScriptRequestData]] = None
-    """Data for "always-on" scripts (e.g. ControlNet) applied to the generation."""
+    """Data for "always-on" scripts (e.g. ControlNet) applied to the generation.
+
+    `to_dict` replaces any `alwayson_scripts['controlNet']` entry with args built from `controlnet_units`, so set
+    ControlNet through `controlnet_units`. `to_dict` does not modify this field.
+    """
 
 
     ### Karras(?) sampler parameters (probably don't need to use these)
@@ -212,19 +216,17 @@ class DiffusionRequestBody(DiffusionParams):
 
     def to_dict(self) -> dict[str, Any]:
         """Convert the request body to a dict, removing unused optional parameters."""
-        # Rebuild ControlNet request parameters in sync with self.controlnet_units:
-        if self.alwayson_scripts is None:
-            self.alwayson_scripts = {}
-        elif CONTROLNET_SCRIPT_KEY in self.alwayson_scripts:
-            self.alwayson_scripts[CONTROLNET_SCRIPT_KEY] = {'args': []}  # Make sure to clear any old ControlNet defs
+        data = super().to_dict()
+        # Build ControlNet request parameters into the output only, so self is left unchanged.
+        scripts = data.setdefault('alwayson_scripts', {})
+        if CONTROLNET_SCRIPT_KEY in scripts:
+            scripts[CONTROLNET_SCRIPT_KEY] = {'args': []}  # controlnet_units replaces any caller-supplied entry
         for control_unit in self.controlnet_units:
             control_unit_dict = ControlNetUnitDict.from_unit(control_unit)
-            if CONTROLNET_SCRIPT_KEY not in self.alwayson_scripts:
-                self.alwayson_scripts[CONTROLNET_SCRIPT_KEY] = {'args': []}
+            scripts.setdefault(CONTROLNET_SCRIPT_KEY, {'args': []})
             # exclude_none: omit unset optionals (processor_res / threshold_a / threshold_b) rather than sending them
             # as null, which the ControlNet extension chokes on (e.g. `unit.processor_res < 0`). The server defaults them.
-            self.alwayson_scripts[CONTROLNET_SCRIPT_KEY]['args'].append(control_unit_dict.model_dump(exclude_none=True))
-        data = super().to_dict()
+            scripts[CONTROLNET_SCRIPT_KEY]['args'].append(control_unit_dict.model_dump(exclude_none=True))
         if 'controlnet_units' in data:
             del data['controlnet_units']  # Include only under scripts
         # Ensure images are prefixed base64:

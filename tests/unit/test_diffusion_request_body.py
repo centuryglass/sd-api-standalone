@@ -10,6 +10,7 @@ import io
 
 from PIL import Image
 
+from intrapaint_api.api.shared_data.controlnet.controlnet_unit import ControlNetUnit
 from intrapaint_api.api.webui.diffusion_request_body import DiffusionRequestBody
 from intrapaint_api.util.visual.image_utils import BASE_64_PREFIX, image_from_base64, image_to_base64
 
@@ -104,6 +105,27 @@ def test_to_dict_passes_through_core_generation_params():
     assert data['seed'] == 99
     assert data['steps'] == 7
     assert data['sampler_name'] == 'Euler a'
+
+
+def test_to_dict_does_not_modify_the_body():
+    """to_dict builds ControlNet args into its output only, so repeated calls are identical and self is unchanged."""
+    body = DiffusionRequestBody(controlnet_units=[ControlNetUnit()])
+    body.alwayson_scripts = {'controlNet': {'args': [{'stale': True}]}, 'other': {'args': [1]}}
+    before = body.model_dump()
+    first = body.to_dict()
+    second = body.to_dict()
+    assert body.model_dump() == before
+    assert first == second
+    assert len(first['alwayson_scripts']['controlNet']['args']) == 1
+    assert 'stale' not in first['alwayson_scripts']['controlNet']['args'][0]
+    assert first['alwayson_scripts']['other'] == {'args': [1]}
+
+
+def test_to_dict_leaves_alwayson_scripts_unset():
+    """A body with no scripts keeps alwayson_scripts None after to_dict."""
+    body = DiffusionRequestBody()
+    body.to_dict()
+    assert body.alwayson_scripts is None
 
 
 # def test_add_init_image_appends_base64_data_uri():
