@@ -685,4 +685,4 @@ class ComfyUiWebservice(WebService):
     def free_memory(self) -> None:
         """Clear cached data to free GPU memory."""
         body = FreeMemoryRequest(unload_models=True, free_memory=True)
-        self.post(ComfyEndpoints.FREE, body, timeout=DEFAULT_TIMEOUT)
+        self.post(ComfyEndpoints.FREE, body.model_dump(), timeout=DEFAULT_TIMEOUT)
