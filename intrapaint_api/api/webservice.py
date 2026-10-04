@@ -12,6 +12,10 @@ JSON_DATA_TYPE = 'application/json'
 MULTIPART_FORM_DATA_TYPE = 'multipart/form-data'
 
 
+class AuthError(Exception):
+    """Raised when the server rejects authentication and it could not be fixed by retrying."""
+
+
 class WebService:
     """
     WebService establishes a connection to a URL, handles basic auth, and provides convenience methods for GET and
@@ -134,7 +138,8 @@ class WebService:
               headers: Optional[dict[str, str]] = None,
               files: Optional[dict[str, tuple[str, bytes, str]]] = None,
               fail_on_auth_error: bool = False,
-              throw_on_failure: bool = True) -> requests.Response:
+              throw_on_failure: bool = True,
+              _auth_retried: bool = False) -> requests.Response:
         address = self._build_address(endpoint, url_params)
         if headers is None:
             headers = {}
@@ -156,6 +161,9 @@ class WebService:
             if fail_on_auth_error and throw_on_failure:
                 raise RuntimeError(f'HTTP method {method} failed with status 401: unauthorized')
             if not fail_on_auth_error:
+                if _auth_retried:
+                    raise AuthError(f'HTTP method {method} to {endpoint} still failed with status 401 after '
+                                    'authenticating. Check the credentials and the server\'s auth settings.')
                 self._handle_auth_error()
                 return self._send(endpoint,
                                   method,
@@ -166,7 +174,8 @@ class WebService:
                                   headers,
                                   files,
                                   fail_on_auth_error,
-                                  throw_on_failure)
+                                  throw_on_failure,
+                                  _auth_retried=True)
         elif res.status_code != 200 and throw_on_failure:
             raise RuntimeError(f'{res.status_code}: {res.text}')
         return res
