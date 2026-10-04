@@ -361,17 +361,15 @@ class ComfyUiWebservice(WebService):
             workflow_builder.seed = diffusion_params.seed
         config_names = self.get_models(ComfyModelType.CONFIG)
         if workflow_builder.model_config_path not in config_names:
+            if workflow_builder.model_config_path is not None:
+                logger.warning(f'Model config {workflow_builder.model_config_path} not found on the server,'
+                               ' looking for one matching the model name')
             # Check available config, and if one matches the stable diffusion model name, use that one:
             workflow_builder.model_config_path = None
-            model_name = workflow_builder.sd_model
-            if '.' in model_name:
-                ext_idx = model_name.rindex('.')
-                model_name = model_name[:ext_idx]
+            model_name = os.path.splitext(workflow_builder.sd_model)[0]
             for config_file in config_names:
-                config_ext_idx = config_file.index('.')
-                if config_ext_idx != -1:
-                    if config_file[:config_ext_idx] == model_name:
-                        workflow_builder.model_config_path = config_file
+                if os.path.splitext(config_file)[0] == model_name:
+                    workflow_builder.model_config_path = config_file
         return workflow_builder
 
     def _prepare_controlnet_data(self, workflow_builder: DiffusionWorkflowBuilder,
