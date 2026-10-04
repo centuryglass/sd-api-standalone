@@ -8,6 +8,8 @@ builder's inputs become a params dataclass, only the *setup* here should change 
 structural assertions on the built graph stay put, and that's precisely what protects the
 refactor from silently changing the emitted workflow.
 """
+import pytest
+
 from intrapaint_api.api.comfyui.comfyui_types import ImageFileReference
 from intrapaint_api.api.comfyui.diffusion_workflow_builder import DiffusionWorkflowBuilder
 from intrapaint_api.api.shared_data.controlnet.controlnet_preprocessor import (
@@ -158,3 +160,25 @@ def test_identical_preprocessor_and_image_share_one_preprocessor_node():
 
     single_node(workflow, 'Canny')
     assert len(nodes_of_type(workflow, 'ControlNetApplyAdvanced')) == 2
+
+
+def test_controlnet_unit_without_image_reuses_source_image():
+    """A unit with no control image is fed the source image, matching the WebUI extension."""
+    builder = make_txt2img_builder()
+    builder.set_source_image_from_reference(ImageFileReference(filename='source.png', subfolder='IntraPaint'))
+    builder.add_controlnet_unit('control_canny.safetensors', _canny_params(), None, 1.0, 0.0, 1.0)
+    workflow = builder.build_workflow().get_workflow_dict()
+
+    load_image = single_node(workflow, 'LoadImage')
+    assert load_image['inputs']['image'] == 'IntraPaint/source.png'
+    assert all(node['inputs'].get('image') != '' for node in nodes_of_type(workflow, 'LoadImage'))
+    load_image_key = next(key for key, node in workflow.items() if node['class_type'] == 'LoadImage')
+    assert single_node(workflow, 'Canny')['inputs']['image'][0] == load_image_key
+
+
+def test_controlnet_unit_without_any_image_raises_naming_the_unit():
+    """With neither a control image nor a source image, building fails instead of emitting LoadImage ''."""
+    builder = make_txt2img_builder()
+    builder.add_controlnet_unit('control_canny.safetensors', None, None, 1.0, 0.0, 1.0)
+    with pytest.raises(ValueError, match='control_canny.safetensors'):
+        builder.build_workflow()

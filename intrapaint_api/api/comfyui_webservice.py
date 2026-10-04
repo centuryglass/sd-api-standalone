@@ -392,9 +392,11 @@ class ComfyUiWebservice(WebService):
             if preprocessor is None and model_name is None:
                 logger.info(f'Skipping unit {i}, no model or preprocessor set')
                 continue
-            elif model_name is None and preprocessor is not None and not preprocessor.typedef.model_free:
-                logger.info(f'Skipping unit {i} with preprocessor {preprocessor.typedef.name}: no model set and'
-                            ' preprocessor is not model-free')
+            elif model_name is None:
+                # ControlNetApplyAdvanced requires a control_net input, so model-free units can't be applied.
+                preprocessor_name = preprocessor.typedef.name if preprocessor is not None else None
+                logger.warning(f'Skipping unit {i} with preprocessor {preprocessor_name}: ComfyUI requires a'
+                               ' ControlNet model for every unit')
                 continue
 
             control_image_ref: Optional[ImageFileReference] = None
