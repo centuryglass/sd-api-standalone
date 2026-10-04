@@ -462,7 +462,16 @@ class DiffusionWorkflowBuilder:
             loaded_images[source_image] = image_loading_node
         for controlnet_unit in self._controlnet_units:
             control_img_str = controlnet_unit.control_image
-            if control_img_str in loaded_images:
+            if control_img_str == '':
+                # No control image: reuse the source image, as the WebUI ControlNet extension does.
+                if image_loading_node is None:
+                    unit_name = controlnet_unit.model_node.model_name if controlnet_unit.model_node is not None \
+                        else controlnet_unit.preprocessor.typedef.name if controlnet_unit.preprocessor is not None \
+                        else 'unnamed'
+                    raise ValueError(f'ControlNet unit "{unit_name}" has no control image and there is no source'
+                                     ' image to use instead. Set an image on the unit or provide an init image.')
+                control_image_node = image_loading_node
+            elif control_img_str in loaded_images:
                 control_image_node = loaded_images[control_img_str]
             else:
                 control_image_node = LoadImageNode(control_img_str)
