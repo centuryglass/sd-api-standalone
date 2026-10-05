@@ -1,6 +1,6 @@
 {
   "(repository)": {
-    "duplicate-code": 13
+    "duplicate-code": 12
   },
   "sd_backend_client/api/a1111_webservice.py": {
     "import-outside-toplevel": 3
@@ -44,9 +44,6 @@
     "fixme": 1,
     "line-too-long": 3
   },
-  "sd_backend_client/api/shared_data/controlnet/controlnet_constants.py": {
-    "unused-argument": 2
-  },
   "sd_backend_client/api/shared_data/controlnet/controlnet_model.py": {
     "line-too-long": 1
   },
@@ -56,13 +53,11 @@
     "trailing-newlines": 1
   },
   "sd_backend_client/api/shared_data/controlnet/controlnet_unit.py": {
-    "missing-final-newline": 1,
-    "unused-argument": 2
+    "missing-final-newline": 1
   },
   "sd_backend_client/api/webui/controlnet_webui_constants.py": {
     "line-too-long": 2,
-    "unsupported-membership-test": 1,
-    "unused-argument": 2
+    "unsupported-membership-test": 1
   },
   "sd_backend_client/api/webui/controlnet_webui_utils.py": {
     "missing-final-newline": 1
@@ -76,15 +71,8 @@
     "missing-function-docstring": 2,
     "protected-access": 5
   },
-  "sd_backend_client/util/api_defaults.py": {
-    "fixme": 1
-  },
   "sd_backend_client/util/geometry.py": {
     "invalid-name": 5
-  },
-  "sd_backend_client/util/shared_constants.py": {
-    "inconsistent-quotes": 1,
-    "unused-argument": 2
   },
   "tests/conftest.py": {
     "inconsistent-return-statements": 1,

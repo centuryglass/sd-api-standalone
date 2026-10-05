@@ -1,28 +1,8 @@
 """Types and constants associated with ControlNet.  All values are either not specific to a single API, or are reused
    because they don't have a useful equivalent in both APIs."""
-from typing import NotRequired, Optional
+from typing import NotRequired
 from typing_extensions import TypedDict
 
-
-# The `QCoreApplication.translate` context for strings in this file
-TR_ID = 'api.controlnet_constants'
-
-
-def _tr(key: str, disambiguation: Optional[str] = None, n: int = -1) -> str:
-    """Helper to make `QCoreApplication.translate` more concise."""
-    return key
-
-
-CONTROLNET_TAB = _tr('ControlNet')
-CONTROLNET_UNIT_TAB = _tr('ControlNet Unit {unit_number}')
-TOOLTIP_CONTROLNET_WEIGHT = _tr('A multiplier that controls how strongly the ControlNet unit will affect image'
-                                ' generation.')
-TOOLTIP_START_STEP = _tr('The step in the image generation process where the ControlNet unit will be enabled, as a'
-                         ' fraction of the total step count.')
-TOOLTIP_END_STEP = _tr('The step in the image generation process where the ControlNet unit will be disabled, as a'
-                       ' fraction of the total step count.')
-TOOLTIP_RESIZE_MODE = _tr('Controls how preprocessor images are adjusted to fit the preprocessor resolution.')
-TOOLTIP_CONTROL_MODE = _tr('Secondary control to set how ControlNet and prompt influence are weighted.')
 
 
 # FORGE/COMFYUI CONTROLNET CONSTANTS:

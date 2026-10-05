@@ -9,8 +9,8 @@ KSAMPLER_NAME = 'KSampler'
 
 class KSamplerInputs(TypedDict):
     """A ComfyUI node used to control the diffusion sampling process."""
-    cfg: float  # Cache.GUIDANCE_SCALE
-    denoise: float  # Cache.DENOISING_STRENGTH, 1.0 for txt2img
+    cfg: float  # Guidance scale
+    denoise: float  # Denoising strength, 1.0 for txt2img
     latent_image: NotRequired[NodeConnection]  # Image source node, e.g. EmptyLatentImage
     model: NotRequired[NodeConnection]  # Usually CheckpointLoaderSimple
     negative: NotRequired[NodeConnection]  # Usually CLIPTextEncode

@@ -33,9 +33,6 @@ from sd_backend_client.api.comfyui.nodes.vae.vae_encode_tiled_node import (TILE_
                                                                            VAEEncodeTiledNode)
 from sd_backend_client.api.comfyui.workflow_builder_utils import image_ref_to_str
 
-USE_TILED_VAE = False
-
-
 class LatentUpscaleWorkflowBuilder(DiffusionWorkflowBuilder):
     """Creates a ComfyUI workflow for tiled latent upscaling, using the Ultimate SD Upscale script, the ControlNet tile
        model, and a secondary upscaling model when possible."""

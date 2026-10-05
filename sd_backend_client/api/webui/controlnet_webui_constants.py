@@ -8,15 +8,6 @@ from sd_backend_client.api.shared_data.controlnet.controlnet_constants import Co
 from sd_backend_client.api.shared_data.controlnet.controlnet_unit import ControlNetUnit
 from sd_backend_client.util.visual.image_utils import image_to_base64
 
-# The `QCoreApplication.translate` context for strings in this file
-TR_ID = 'api.webui.controlnet_webui'
-
-
-def _tr(key: str, disambiguation: Optional[str] = None, n: int = -1) -> str:
-    """Helper to make `QCoreApplication.translate` more concise."""
-    return key
-
-
 CONTROLNET_SCRIPT_KEY = 'controlNet'
 
 
@@ -99,14 +90,14 @@ class ControlNetUnitDict(BaseModel):
 
 # Constants defining the "Control mode" option shared by most preprocessors:
 CONTROL_MODE_PARAM_KEY = 'control_mode'
-CONTROL_MODE_LABEL = _tr('Control mode')
+CONTROL_MODE_LABEL = 'Control mode'
 CONTROL_MODE_OPTIONS = ['Balanced', 'My prompt is more important', 'ControlNet is more important']
 CONTROL_MODE_DEFAULT = CONTROL_MODE_OPTIONS[0]
 
 # Constants defining the "Resolution" option shared by most preprocessors:
 PREPROCESSOR_RES_PARAM_NAME = 'Resolution'  # For identifying it in an API "sliders" list
 PREPROCESSOR_RES_PARAM_KEY = 'processor_res'
-PREPROCESSOR_RES_LABEL = _tr('Resolution')
+PREPROCESSOR_RES_LABEL = 'Resolution'
 PREPROCESSOR_RES_MIN = 128
 PREPROCESSOR_RES_MAX = 2048
 PREPROCESSOR_RES_DEFAULT = 512
@@ -114,7 +105,7 @@ PREPROCESSOR_RES_STEP = 8
 
 # Constants defining the "Resize mode" option shared by all preprocessors that also accept a resolution:
 RESIZE_MODE_PARAM_KEY = 'resize_mode'
-RESIZE_MODE_LABEL = _tr('Resize mode')
+RESIZE_MODE_LABEL = 'Resize mode'
 RESIZE_MODE_OPTIONS = ['Just Resize', 'Crop and Resize', 'Resize and Fill']
 RESIZE_MODE_DEFAULT = RESIZE_MODE_OPTIONS[1]
 
@@ -138,9 +129,6 @@ class ControlTypeResponse(TypedDict):
 # "control_mode", and "resize_mode" keys. The Automatic1111 WebUI API sends parameter definitions we can use to handle
 # differences in how these parameters are used, but the Forge WebUI does not. Instead, follow these steps when
 # creating Parameter objects for Forge preprocessors and displaying UI controls:
-#
-#  For all of these values except the variable threshold_a and threshold_b, parameter names are mapped to translated
-# display names in PREPROCESSOR_PRESET_LABELS above. The threshold_* parameters will go untranslated for now.
 #
 # "processor_res":
 #   If the preprocessor name is in the PREPROCESSOR_NO_RESOLUTION set below, omit this parameter. Otherwise, use the

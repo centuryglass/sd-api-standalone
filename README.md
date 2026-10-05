@@ -123,7 +123,7 @@ Extracted from IntraPaint's `src/api` and then decoupled in two ways:
 
 - **No Qt.** `QImage` → `PIL.Image` (via the small helpers in `util/visual/image_utils.py`; decoded
   images are normalized to RGBA), `QSize` → the minimal `Size` value class in `util/geometry.py`, and
-  the `QApplication.translate`-based `_tr()` helpers are no-op shims that return the source string.
+  the UI strings and `_tr()` translation helpers are removed.
   Dropping Qt also dropped `cv2` / `numpy`, which were only used by the old image helpers.
 - **No config layer.** The original client read generation parameters out of JSON-backed `Cache` /
   `AppConfig` singletons. That whole system (and the `resources/config/*.json` definitions behind it)

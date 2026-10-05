@@ -28,7 +28,7 @@ INVALID_PREPROCESSOR_NODES = {
 
 
 def get_all_preprocessors(node_data: dict[str, NodeInfoResponse]) -> list[ControlNetPreprocessor]:
-    """Parses available node data to find the complete list of usable ControlNet preprocessiors."""
+    """Parses available node data to find the complete list of usable ControlNet preprocessors."""
     none_preprocessor_found = False
     preprocessors: list[ControlNetPreprocessor] = []
     for node_info in node_data.values():

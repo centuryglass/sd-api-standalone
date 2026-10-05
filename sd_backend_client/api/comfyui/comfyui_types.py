@@ -119,15 +119,6 @@ class MaskUploadParams(ImageUploadParams):
     original_ref: str  # when parsed as JSON, should be ImageFileReference
 
 
-class ViewUrlParams(BaseModel):
-    """URL parameters used with the VIEW_IMAGE endpoint."""
-    filename: Optional[str] = None
-    type: Optional[FileType] = None  # default = 'output'
-    subfolder: Optional[str] = None
-    channel: Optional[Literal['rgb', 'rgba']] = None  # default = 'rgba'
-    preview: Optional[str] = None  # should be '{format};{quality}',  default = 'webp;90', format can also be 'jpeg'
-
-
 class SystemObject(BaseModel):
     """System data object used in SYSTEM_STATS responses."""
     os: str
@@ -225,12 +216,8 @@ class QueueAdditionResponse(BaseModel):
     error: Optional[str | ErrorEntry] = None
     node_errors: dict[str, NodeErrorEntry] = {}  # keyed by node id; empty on success
 
-    # IntraPaint extensions:
-    # These properties won't ever be set by ComfyUI, they're additions that IntraPaint uses to simplify passing data
-    # back from ComfyUIWebservice.
-    uploaded_images: Optional[dict[str, ImageFileReference]] = None  # Uploaded image references reused across batches.
-    uploaded_mask: Optional[ImageFileReference] = None  # Uploaded mask reference reused across batches.
-    seed: Optional[int] = None # Not added by the API, used for tracking last seed values/handling sequential batches.
+    # Set by ComfyUiWebservice, not by ComfyUI: the seed the queued workflow used.
+    seed: Optional[int] = None
 
 
 class QueueDeletionRequest(BaseModel):
