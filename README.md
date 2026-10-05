@@ -1,5 +1,9 @@
 # sd-backend-client
 
+[![CI](https://github.com/centuryglass/sd-backend-client/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/centuryglass/sd-backend-client/actions/workflows/ci.yml)
+[![Python 3.11 | 3.12 | 3.13 | 3.14](https://img.shields.io/badge/python-3.11%20%7C%203.12%20%7C%203.13%20%7C%203.14-blue)](.github/workflows/ci.yml)
+[![License: Unlicense](https://img.shields.io/badge/license-Unlicense-blue)](LICENSE)
+
 A standalone, self-contained copy of IntraPaint's Stable Diffusion backend client
 (`src/api`). It talks to **ComfyUI**, **Forge/Automatic1111 WebUI**, and their
 **ControlNet** extensions, and builds the request bodies / node graphs those backends expect.
