@@ -5,7 +5,7 @@ from unittest.mock import MagicMock
 import pytest
 import requests
 
-from intrapaint_api.api.webservice import JSON_DATA_TYPE, MULTIPART_FORM_DATA_TYPE, WebService
+from sd_backend_client.api.webservice import JSON_DATA_TYPE, MULTIPART_FORM_DATA_TYPE, WebService
 
 
 def _response(status: int = 200, text: str = '') -> MagicMock:

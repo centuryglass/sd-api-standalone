@@ -9,8 +9,8 @@ import time
 
 from PIL import Image
 
-from intrapaint_api.api.comfyui.comfyui_diffusion_params import ComfyUIDiffusionParams
-from intrapaint_api.api.comfyui_webservice import AsyncTaskStatus, ComfyUiWebservice
+from sd_backend_client.api.comfyui.comfyui_diffusion_params import ComfyUIDiffusionParams
+from sd_backend_client.api.comfyui_webservice import AsyncTaskStatus, ComfyUiWebservice
 
 # ComfyUI SD1.5 defaults kept small/cheap but coherent enough to compare.
 COMFY_SIZE = 256

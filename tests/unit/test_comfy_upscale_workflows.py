@@ -4,17 +4,18 @@ from typing import Optional
 import pytest
 from PIL import Image
 
-from intrapaint_api.api.comfyui.basic_upscale_workflow_builder import build_basic_upscaling_workflow
-from intrapaint_api.api.comfyui.comfyui_types import ImageFileReference
-from intrapaint_api.api.comfyui.diffusion_workflow_builder import ExtensionModelType
-from intrapaint_api.api.comfyui.latent_upscale_workflow_builder import LatentUpscaleWorkflowBuilder
-from intrapaint_api.api.comfyui.nodes.ultimate_upscale_node import ULTIMATE_UPSCALE_NODE_WITHOUT_UPSCALE_MODEL
-from intrapaint_api.api.comfyui.nodes.vae.vae_encode_tiled_node import TILE_MAX, TILE_MIN
-from intrapaint_api.api.comfyui_webservice import ComfyUiWebservice
-from intrapaint_api.api.shared_data.controlnet.controlnet_model import ControlNetModel
-from intrapaint_api.api.shared_data.controlnet.controlnet_preprocessor import ControlNetPreprocessor, PreprocessorParams
-from intrapaint_api.api.shared_data.controlnet.controlnet_unit import ControlNetUnit
-from intrapaint_api.util.geometry import Size
+from sd_backend_client.api.comfyui.basic_upscale_workflow_builder import build_basic_upscaling_workflow
+from sd_backend_client.api.comfyui.comfyui_types import ImageFileReference
+from sd_backend_client.api.comfyui.diffusion_workflow_builder import ExtensionModelType
+from sd_backend_client.api.comfyui.latent_upscale_workflow_builder import LatentUpscaleWorkflowBuilder
+from sd_backend_client.api.comfyui.nodes.ultimate_upscale_node import ULTIMATE_UPSCALE_NODE_WITHOUT_UPSCALE_MODEL
+from sd_backend_client.api.comfyui.nodes.vae.vae_encode_tiled_node import TILE_MAX, TILE_MIN
+from sd_backend_client.api.comfyui_webservice import ComfyUiWebservice
+from sd_backend_client.api.shared_data.controlnet.controlnet_model import ControlNetModel
+from sd_backend_client.api.shared_data.controlnet.controlnet_preprocessor import (ControlNetPreprocessor,
+                                                                              PreprocessorParams)
+from sd_backend_client.api.shared_data.controlnet.controlnet_unit import ControlNetUnit
+from sd_backend_client.util.geometry import Size
 
 SOURCE = ImageFileReference(filename='source.png', subfolder='')
 FINAL_SIZE = Size(1536, 1024)

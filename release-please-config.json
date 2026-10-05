@@ -4,7 +4,7 @@
   "packages": {
     ".": {
       "release-type": "python",
-      "package-name": "intrapaint_api",
+      "package-name": "sd-backend-client",
       "include-component-in-tag": false,
       "bump-minor-pre-major": true,
       "changelog-path": "CHANGELOG.md"

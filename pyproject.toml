@@ -3,7 +3,7 @@ requires = ["setuptools>=68"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "intrapaint_api"
+name = "sd-backend-client"
 version = "0.1.0"
 description = "Standalone, headless Stable Diffusion backend client (ComfyUI / Forge / A1111 WebUI, ControlNet)"
 readme = "README.md"
@@ -17,9 +17,9 @@ dependencies = [
 ]
 
 [tool.setuptools.packages.find]
-include = ["intrapaint_api*"]
+include = ["sd_backend_client*"]
 
 # CI's typecheck job runs `mypy` with these settings (AGENTS.md, "Type checking").
 [tool.mypy]
-files = ["intrapaint_api"]
+files = ["sd_backend_client"]
 python_version = "3.11"

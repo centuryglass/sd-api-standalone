@@ -8,9 +8,9 @@ import argparse
 
 from PIL import Image
 
-from intrapaint_api.api.a1111_webservice import A1111Webservice
-from intrapaint_api.api.shared_data.controlnet.controlnet_preprocessor import PreprocessorParams
-from intrapaint_api.api.webui.controlnet_webui_constants import (FIRST_GENERIC_PARAMETER_KEY,
+from sd_backend_client.api.a1111_webservice import A1111Webservice
+from sd_backend_client.api.shared_data.controlnet.controlnet_preprocessor import PreprocessorParams
+from sd_backend_client.api.webui.controlnet_webui_constants import (FIRST_GENERIC_PARAMETER_KEY,
                                                                   SECOND_GENERIC_PARAMETER_KEY)
 
 CANNY_MODULE_NAME = 'canny'

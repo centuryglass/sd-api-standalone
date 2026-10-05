@@ -6,7 +6,7 @@ Pure logic, no server.
 """
 import pytest
 
-from intrapaint_api.api.shared_data.controlnet.controlnet_preprocessor import (
+from sd_backend_client.api.shared_data.controlnet.controlnet_preprocessor import (
     ControlNetPreprocessor, ParameterDef, PreprocessorParams)
 
 

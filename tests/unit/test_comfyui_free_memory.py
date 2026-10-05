@@ -5,7 +5,7 @@ from unittest.mock import MagicMock
 
 import requests
 
-from intrapaint_api.api.comfyui_webservice import ComfyUiWebservice
+from sd_backend_client.api.comfyui_webservice import ComfyUiWebservice
 
 
 def test_free_memory_sends_json_serializable_body(monkeypatch):

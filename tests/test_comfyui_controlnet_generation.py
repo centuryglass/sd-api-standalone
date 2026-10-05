@@ -13,9 +13,9 @@ import os
 import pytest
 from PIL import Image
 
-from intrapaint_api.api.shared_data.controlnet.controlnet_model import ControlNetModel
-from intrapaint_api.api.shared_data.controlnet.controlnet_preprocessor import PreprocessorParams
-from intrapaint_api.api.shared_data.controlnet.controlnet_unit import ControlNetUnit
+from sd_backend_client.api.shared_data.controlnet.controlnet_model import ControlNetModel
+from sd_backend_client.api.shared_data.controlnet.controlnet_preprocessor import PreprocessorParams
+from sd_backend_client.api.shared_data.controlnet.controlnet_unit import ControlNetUnit
 from .comfy_helpers import find_canny_model, find_canny_preprocessor, wait_for_comfy_images, build_comfy_params
 from .helpers import images_differ, make_edge_image, save_output
 

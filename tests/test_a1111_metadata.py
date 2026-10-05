@@ -3,7 +3,7 @@
 These are fast and non-destructive: they only query the server for its capabilities,
 models, and current state. They exercise the ``get_*`` accessors on
 :class:`A1111Webservice` and validate the shapes documented in
-``intrapaint_api/api/webui/response_formats.py``.
+``sd_backend_client/api/webui/response_formats.py``.
 """
 import pytest
 

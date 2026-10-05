@@ -22,7 +22,7 @@ from collections import Counter
 PROJECT_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 BASELINE_PATH = os.path.join(PROJECT_DIR, 'scripts', 'pylint_baseline.json')
 PYLINT_USAGE_ERROR = 32
-LINTED_PATHS = ['intrapaint_api', 'tests', 'examples', 'scripts']
+LINTED_PATHS = ['sd_backend_client', 'tests', 'examples', 'scripts']
 
 # pylint reports each of these against one of the files involved, picked by the order it reads files in, which
 # differs between filesystems. They're counted once for the whole repository instead.

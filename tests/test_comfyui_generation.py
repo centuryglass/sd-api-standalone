@@ -96,8 +96,8 @@ def test_inpaint_respects_mask(comfy_service, comfy_checkpoint, output_dir):
 
 
 def test_upscale(comfy_service, output_dir):
-    from intrapaint_api.api.comfyui_webservice import ComfyModelType
-    from intrapaint_api.api.shared_data.api_datatypes import DiffusionUpscalingParams
+    from sd_backend_client.api.comfyui_webservice import ComfyModelType
+    from sd_backend_client.api.shared_data.api_datatypes import DiffusionUpscalingParams
 
     upscale_models = comfy_service.get_models(ComfyModelType.UPSCALING)
     if not upscale_models:

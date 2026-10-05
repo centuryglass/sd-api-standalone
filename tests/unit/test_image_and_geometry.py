@@ -6,8 +6,8 @@ fast, no server.
 """
 from PIL import Image
 
-from intrapaint_api.util.geometry import Size
-from intrapaint_api.util.visual.image_utils import (BASE_64_PREFIX, image_from_base64, image_from_bytes,
+from sd_backend_client.util.geometry import Size
+from sd_backend_client.util.visual.image_utils import (BASE_64_PREFIX, image_from_base64, image_from_bytes,
                                                     image_to_base64, image_to_png_bytes)
 
 

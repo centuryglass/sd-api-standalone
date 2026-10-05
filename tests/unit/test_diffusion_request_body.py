@@ -10,9 +10,9 @@ import io
 
 from PIL import Image
 
-from intrapaint_api.api.shared_data.controlnet.controlnet_unit import ControlNetUnit
-from intrapaint_api.api.webui.diffusion_request_body import DiffusionRequestBody
-from intrapaint_api.util.visual.image_utils import BASE_64_PREFIX, image_from_base64, image_to_base64
+from sd_backend_client.api.shared_data.controlnet.controlnet_unit import ControlNetUnit
+from sd_backend_client.api.webui.diffusion_request_body import DiffusionRequestBody
+from sd_backend_client.util.visual.image_utils import BASE_64_PREFIX, image_from_base64, image_to_base64
 
 
 def test_to_dict_strips_unset_optional_fields():

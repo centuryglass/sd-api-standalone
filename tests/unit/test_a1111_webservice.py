@@ -4,11 +4,11 @@ from typing import Any
 import pytest
 from PIL import Image
 
-from intrapaint_api.api.a1111_webservice import A1111Webservice
-from intrapaint_api.api.shared_data.api_datatypes import DiffusionUpscalingParams
-from intrapaint_api.api.shared_data.controlnet.controlnet_preprocessor import ControlNetPreprocessor
-from intrapaint_api.api.webui.diffusion_request_body import DiffusionRequestBody
-from intrapaint_api.util.visual.image_utils import image_from_base64, image_to_base64
+from sd_backend_client.api.a1111_webservice import A1111Webservice
+from sd_backend_client.api.shared_data.api_datatypes import DiffusionUpscalingParams
+from sd_backend_client.api.shared_data.controlnet.controlnet_preprocessor import ControlNetPreprocessor
+from sd_backend_client.api.webui.diffusion_request_body import DiffusionRequestBody
+from sd_backend_client.util.visual.image_utils import image_from_base64, image_to_base64
 
 
 class _FakeResponse:

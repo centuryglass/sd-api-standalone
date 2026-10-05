@@ -6,7 +6,7 @@ authentication, so there is no login/credentials story to test here.
 """
 import pytest
 
-from intrapaint_api.api.comfyui_webservice import ComfyModelType
+from sd_backend_client.api.comfyui_webservice import ComfyModelType
 
 pytestmark = pytest.mark.integration
 

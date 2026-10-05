@@ -10,11 +10,11 @@ refactor from silently changing the emitted workflow.
 """
 import pytest
 
-from intrapaint_api.api.comfyui.comfyui_types import ImageFileReference
-from intrapaint_api.api.comfyui.diffusion_workflow_builder import DiffusionWorkflowBuilder
-from intrapaint_api.api.shared_data.controlnet.controlnet_preprocessor import (
+from sd_backend_client.api.comfyui.comfyui_types import ImageFileReference
+from sd_backend_client.api.comfyui.diffusion_workflow_builder import DiffusionWorkflowBuilder
+from sd_backend_client.api.shared_data.controlnet.controlnet_preprocessor import (
     ControlNetPreprocessor, ParameterDef, PreprocessorParams)
-from intrapaint_api.util.geometry import Size
+from sd_backend_client.util.geometry import Size
 
 
 def nodes_of_type(workflow: dict, class_type: str) -> list[dict]:

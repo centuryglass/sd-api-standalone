@@ -8,7 +8,7 @@ authenticated *and* an unauthenticated instance.
 """
 import pytest
 
-from intrapaint_api.api.a1111_webservice import A1111Webservice, AuthError
+from sd_backend_client.api.a1111_webservice import A1111Webservice, AuthError
 
 pytestmark = pytest.mark.integration
 

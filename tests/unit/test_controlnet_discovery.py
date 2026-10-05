@@ -6,12 +6,12 @@ from typing import Any
 
 import pytest
 
-from intrapaint_api.api.comfyui.comfyui_types import NodeInfoResponse
-from intrapaint_api.api.comfyui.controlnet_comfyui_utils import get_all_preprocessors as comfy_preprocessors
-from intrapaint_api.api.shared_data.controlnet.controlnet_category_builder import ControlNetCategoryBuilder
-from intrapaint_api.api.shared_data.controlnet.controlnet_preprocessor import ControlNetPreprocessor
-from intrapaint_api.api.webui.controlnet_webui_constants import ModuleDetail
-from intrapaint_api.api.webui.controlnet_webui_utils import get_all_preprocessors as webui_preprocessors
+from sd_backend_client.api.comfyui.comfyui_types import NodeInfoResponse
+from sd_backend_client.api.comfyui.controlnet_comfyui_utils import get_all_preprocessors as comfy_preprocessors
+from sd_backend_client.api.shared_data.controlnet.controlnet_category_builder import ControlNetCategoryBuilder
+from sd_backend_client.api.shared_data.controlnet.controlnet_preprocessor import ControlNetPreprocessor
+from sd_backend_client.api.webui.controlnet_webui_constants import ModuleDetail
+from sd_backend_client.api.webui.controlnet_webui_utils import get_all_preprocessors as webui_preprocessors
 
 PREPROCESSOR_CATEGORY = 'ControlNet Preprocessors/Line Extractors'
 
@@ -64,7 +64,7 @@ def test_comfyui_parses_each_parameter_type():
     assert preprocessor.category_name == PREPROCESSOR_CATEGORY
 
 
-@pytest.mark.xfail(strict=True, reason='https://github.com/centuryglass/sd-api-standalone/issues/34')
+@pytest.mark.xfail(strict=True, reason='https://github.com/centuryglass/sd-backend-client/issues/34')
 def test_comfyui_combo_inputs_keep_their_options():
     """A combo input's choices become the parameter's option_list."""
     node = _node('ModePreprocessor', {'image': ['IMAGE'], 'mode': [['a', 'b'], {}]})

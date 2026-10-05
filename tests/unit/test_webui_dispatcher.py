@@ -10,10 +10,10 @@ from typing import Any, Optional
 import pytest
 from PIL import Image
 
-from intrapaint_api.api.shared_data.generation_handle import GenerationError, GenerationStatus
-from intrapaint_api.api.webui import webui_generation_handle
-from intrapaint_api.api.webui.response_formats import ProgressResponseBody
-from intrapaint_api.api.webui.webui_generation_handle import WebUIDispatcher, WebUIGenerationHandle, create_task_id
+from sd_backend_client.api.shared_data.generation_handle import GenerationError, GenerationStatus
+from sd_backend_client.api.webui import webui_generation_handle
+from sd_backend_client.api.webui.response_formats import ProgressResponseBody
+from sd_backend_client.api.webui.webui_generation_handle import WebUIDispatcher, WebUIGenerationHandle, create_task_id
 
 SAFETY_TIMEOUT_S = 5.0
 
