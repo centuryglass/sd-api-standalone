@@ -2,7 +2,7 @@
 from typing import Dict, Optional, Literal
 from typing_extensions import TypedDict
 
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 from sd_backend_client.api.shared_data.controlnet.controlnet_constants import ControlTypeDef
 from sd_backend_client.api.shared_data.controlnet.controlnet_unit import ControlNetUnit
@@ -34,16 +34,29 @@ class ControlNetSliderDef(BaseModel):
     step: float | int
 
 
+class ModuleSliderDef(BaseModel):
+    """One preprocessor slider as the sd-webui-controlnet extension's /controlnet/module_list endpoint returns it."""
+    name: str
+    value: float | int  # The slider's default.
+    min: float | int
+    max: float | int
+    step: Optional[float | int] = None  # Omitted by older extension versions.
+
+
 class ModuleDetail(BaseModel):
     """Defines a ControlNet preprocessor's parameters as returned by the preprocessor module list endpoint."""
     model_free: bool  # Whether the preprocessor module can be used without a model.
-    sliders: list[ControlNetSliderDef]
+    sliders: list[ModuleSliderDef]
 
 
 class ControlNetModuleResponse(BaseModel):
-    """Response format when loading ControlNet preprocessor options."""
+    """Response format when loading ControlNet preprocessor options.
+
+    The A1111 extension sends the details under the `module_detail` key, which `module_details` reads. Forge omits it,
+    so it defaults to None.
+    """
     module_list: list[str]
-    module_details: Optional[Dict[str, ModuleDetail]] = None  # NOTE: not included in Forge, so must default to None.
+    module_details: Optional[Dict[str, ModuleDetail]] = Field(default=None, validation_alias='module_detail')
 
 
 class ControlNetUnitDict(BaseModel):
