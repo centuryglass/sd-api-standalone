@@ -5,8 +5,8 @@ from unittest.mock import patch
 
 import pytest
 
-from intrapaint_api.api.comfyui.comfyui_diffusion_params import ComfyUIDiffusionParams
-from intrapaint_api.api.comfyui_webservice import ComfyUiWebservice
+from sd_backend_client.api.comfyui.comfyui_diffusion_params import ComfyUIDiffusionParams
+from sd_backend_client.api.comfyui_webservice import ComfyUiWebservice
 
 CONFIGS = ('v1-inference.yaml', 'README', 'sd_xl.v1.yaml')
 

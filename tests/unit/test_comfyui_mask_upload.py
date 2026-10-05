@@ -10,8 +10,8 @@ from unittest.mock import patch
 
 from PIL import Image
 
-from intrapaint_api.api.comfyui.comfyui_types import ImageFileReference
-from intrapaint_api.api.comfyui_webservice import ComfyEndpoints, ComfyUiWebservice
+from sd_backend_client.api.comfyui.comfyui_types import ImageFileReference
+from sd_backend_client.api.comfyui_webservice import ComfyEndpoints, ComfyUiWebservice
 
 
 class _FakeResponse:

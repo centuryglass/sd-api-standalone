@@ -2,29 +2,29 @@
   "(repository)": {
     "duplicate-code": 13
   },
-  "intrapaint_api/api/a1111_webservice.py": {
+  "sd_backend_client/api/a1111_webservice.py": {
     "import-outside-toplevel": 3
   },
-  "intrapaint_api/api/comfyui/comfyui_diffusion_params.py": {
+  "sd_backend_client/api/comfyui/comfyui_diffusion_params.py": {
     "trailing-newlines": 1
   },
-  "intrapaint_api/api/comfyui/comfyui_generation_handle.py": {
+  "sd_backend_client/api/comfyui/comfyui_generation_handle.py": {
     "broad-exception-caught": 1
   },
-  "intrapaint_api/api/comfyui/comfyui_types.py": {
+  "sd_backend_client/api/comfyui/comfyui_types.py": {
     "fixme": 2
   },
-  "intrapaint_api/api/comfyui/controlnet_comfyui_utils.py": {
+  "sd_backend_client/api/comfyui/controlnet_comfyui_utils.py": {
     "inconsistent-quotes": 2,
     "unused-variable": 1
   },
-  "intrapaint_api/api/comfyui/diffusion_workflow_builder.py": {
+  "sd_backend_client/api/comfyui/diffusion_workflow_builder.py": {
     "fixme": 1
   },
-  "intrapaint_api/api/comfyui/latent_upscale_workflow_builder.py": {
+  "sd_backend_client/api/comfyui/latent_upscale_workflow_builder.py": {
     "fixme": 1
   },
-  "intrapaint_api/api/comfyui_webservice.py": {
+  "sd_backend_client/api/comfyui_webservice.py": {
     "consider-using-dict-items": 1,
     "consider-using-enumerate": 1,
     "import-outside-toplevel": 3,
@@ -34,55 +34,55 @@
     "raise-missing-from": 1,
     "unused-import": 1
   },
-  "intrapaint_api/api/shared_data/__init__.py": {
+  "sd_backend_client/api/shared_data/__init__.py": {
     "missing-final-newline": 1
   },
-  "intrapaint_api/api/shared_data/api_datatypes.py": {
+  "sd_backend_client/api/shared_data/api_datatypes.py": {
     "inconsistent-quotes": 1
   },
-  "intrapaint_api/api/shared_data/controlnet/controlnet_category_builder.py": {
+  "sd_backend_client/api/shared_data/controlnet/controlnet_category_builder.py": {
     "fixme": 1,
     "line-too-long": 3
   },
-  "intrapaint_api/api/shared_data/controlnet/controlnet_constants.py": {
+  "sd_backend_client/api/shared_data/controlnet/controlnet_constants.py": {
     "unused-argument": 2
   },
-  "intrapaint_api/api/shared_data/controlnet/controlnet_model.py": {
+  "sd_backend_client/api/shared_data/controlnet/controlnet_model.py": {
     "line-too-long": 1
   },
-  "intrapaint_api/api/shared_data/controlnet/controlnet_preprocessor.py": {
+  "sd_backend_client/api/shared_data/controlnet/controlnet_preprocessor.py": {
     "inconsistent-quotes": 3,
     "missing-function-docstring": 1,
     "trailing-newlines": 1
   },
-  "intrapaint_api/api/shared_data/controlnet/controlnet_unit.py": {
+  "sd_backend_client/api/shared_data/controlnet/controlnet_unit.py": {
     "missing-final-newline": 1,
     "unused-argument": 2
   },
-  "intrapaint_api/api/webui/controlnet_webui_constants.py": {
+  "sd_backend_client/api/webui/controlnet_webui_constants.py": {
     "line-too-long": 2,
     "unsupported-membership-test": 1,
     "unused-argument": 2
   },
-  "intrapaint_api/api/webui/controlnet_webui_utils.py": {
+  "sd_backend_client/api/webui/controlnet_webui_utils.py": {
     "missing-final-newline": 1
   },
-  "intrapaint_api/api/webui/diffusion_request_body.py": {
+  "sd_backend_client/api/webui/diffusion_request_body.py": {
     "consider-using-enumerate": 1,
     "line-too-long": 1
   },
-  "intrapaint_api/api/webui/webui_generation_handle.py": {
+  "sd_backend_client/api/webui/webui_generation_handle.py": {
     "broad-exception-caught": 5,
     "missing-function-docstring": 2,
     "protected-access": 5
   },
-  "intrapaint_api/util/api_defaults.py": {
+  "sd_backend_client/util/api_defaults.py": {
     "fixme": 1
   },
-  "intrapaint_api/util/geometry.py": {
+  "sd_backend_client/util/geometry.py": {
     "invalid-name": 5
   },
-  "intrapaint_api/util/shared_constants.py": {
+  "sd_backend_client/util/shared_constants.py": {
     "inconsistent-quotes": 1,
     "unused-argument": 2
   },

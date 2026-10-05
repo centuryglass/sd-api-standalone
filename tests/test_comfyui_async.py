@@ -19,7 +19,7 @@ import time
 import pytest
 from PIL import Image
 
-from intrapaint_api.api.shared_data.generation_handle import GenerationError, GenerationStatus
+from sd_backend_client.api.shared_data.generation_handle import GenerationError, GenerationStatus
 
 from .comfy_helpers import build_comfy_params
 from .helpers import save_output

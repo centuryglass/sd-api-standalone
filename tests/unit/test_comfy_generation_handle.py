@@ -13,11 +13,11 @@ from PIL import Image
 
 import pytest
 
-from intrapaint_api.api.comfyui.comfyui_generation_handle import ComfyGenerationHandle
-from intrapaint_api.api.comfyui.comfyui_types import (ImageFileReference, PromptExecOutputs,
+from sd_backend_client.api.comfyui.comfyui_generation_handle import ComfyGenerationHandle
+from sd_backend_client.api.comfyui.comfyui_types import (ImageFileReference, PromptExecOutputs,
                                                       QueueAdditionResponse)
-from intrapaint_api.api.comfyui_webservice import AsyncTaskProgress, AsyncTaskStatus
-from intrapaint_api.api.shared_data.generation_handle import (GenerationError, GenerationStatus)
+from sd_backend_client.api.comfyui_webservice import AsyncTaskProgress, AsyncTaskStatus
+from sd_backend_client.api.shared_data.generation_handle import (GenerationError, GenerationStatus)
 
 
 class FakeComfyService:

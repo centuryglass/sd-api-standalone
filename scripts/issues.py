@@ -87,7 +87,7 @@ def fetch_with_api() -> str:
     """
     owner, repo = origin_repo()
     headers = {'Accept': 'application/vnd.github+json', 'X-GitHub-Api-Version': '2022-11-28',
-               'User-Agent': 'sd-api-standalone-issues-cache'}
+               'User-Agent': 'sd-backend-client-issues-cache'}
     token = next((os.environ[name] for name in TOKEN_VARIABLES if os.environ.get(name)), None)
     if token is not None:
         headers['Authorization'] = f'Bearer {token}'

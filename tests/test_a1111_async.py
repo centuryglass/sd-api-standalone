@@ -23,9 +23,9 @@ import time
 import pytest
 from PIL import Image
 
-from intrapaint_api.api.a1111_webservice import A1111Webservice
-from intrapaint_api.api.shared_data.generation_handle import GenerationError, GenerationStatus
-from intrapaint_api.api.webui.diffusion_request_body import DiffusionRequestBody
+from sd_backend_client.api.a1111_webservice import A1111Webservice
+from sd_backend_client.api.shared_data.generation_handle import GenerationError, GenerationStatus
+from sd_backend_client.api.webui.diffusion_request_body import DiffusionRequestBody
 
 from .helpers import save_output
 

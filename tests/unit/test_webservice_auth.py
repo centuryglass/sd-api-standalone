@@ -4,8 +4,8 @@ from unittest.mock import MagicMock
 
 import pytest
 
-from intrapaint_api.api.a1111_webservice import A1111Webservice, AuthError, MAX_LOGIN_ATTEMPTS
-from intrapaint_api.api.webservice import WebService
+from sd_backend_client.api.a1111_webservice import A1111Webservice, AuthError, MAX_LOGIN_ATTEMPTS
+from sd_backend_client.api.webservice import WebService
 
 
 def _response(status: int) -> MagicMock:

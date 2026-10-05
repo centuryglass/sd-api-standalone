@@ -1,4 +1,4 @@
-# sd-api-standalone
+# sd-backend-client
 
 A standalone, self-contained copy of IntraPaint's Stable Diffusion backend client
 (`src/api`). It talks to **ComfyUI**, **Forge/Automatic1111 WebUI**, and their
@@ -6,7 +6,7 @@ A standalone, self-contained copy of IntraPaint's Stable Diffusion backend clien
 
 This package was extracted from [IntraPaint](https://github.com/centuryglass/IntraPaint) so it can
 be dropped into other projects without pulling in the rest of the editor. Everything lives under the
-`intrapaint_api` package and imports only from within it (plus third-party libraries).
+`sd_backend_client` package and imports only from within it (plus third-party libraries).
 
 **No Qt / PySide6 dependency.** Images are plain [Pillow](https://python-pillow.org/) `PIL.Image`
 objects and the package has no GUI requirements — it runs headless.
@@ -28,7 +28,7 @@ towards queued vs. blocking request handling still needs to be fully completed a
 pip install -e .
 ```
 
-This installs the package (and its dependencies) in editable mode, so `intrapaint_api` is importable
+This installs the package (and its dependencies) in editable mode, so `sd_backend_client` is importable
 from anywhere without manually managing `sys.path`.
 
 Requires **Python 3.11+** (uses `match` statements and PEP 604 / `X | Y` type aliases).
@@ -37,7 +37,7 @@ Runtime dependencies: `pillow`, `requests`, `websocket-client`, `pydantic`, `typ
 ## Layout
 
 ```
-intrapaint_api/
+sd_backend_client/
   api/
     webservice.py            # base HTTP/session helper
     a1111_webservice.py      # Forge / A1111 WebUI client (synchronous)
@@ -64,8 +64,8 @@ backend-specific fields.
 ### Forge / A1111 WebUI (synchronous)
 
 ```python
-from intrapaint_api.api.a1111_webservice import A1111Webservice
-from intrapaint_api.api.webui.diffusion_request_body import DiffusionRequestBody
+from sd_backend_client.api.a1111_webservice import A1111Webservice
+from sd_backend_client.api.webui.diffusion_request_body import DiffusionRequestBody
 
 service = A1111Webservice('http://localhost:7860')
 body = DiffusionRequestBody(prompt='a corgi astronaut, detailed',
@@ -83,8 +83,8 @@ ComfyUI generation is queued: the call returns immediately with a prompt id, and
 completion, then download the results.
 
 ```python
-from intrapaint_api.api.comfyui_webservice import ComfyUiWebservice
-from intrapaint_api.api.comfyui.comfyui_diffusion_params import ComfyUIDiffusionParams
+from sd_backend_client.api.comfyui_webservice import ComfyUiWebservice
+from sd_backend_client.api.comfyui.comfyui_diffusion_params import ComfyUIDiffusionParams
 
 service = ComfyUiWebservice('http://localhost:8188')
 params = ComfyUIDiffusionParams(sd_model_name='deliberate_v3.safetensors',
@@ -111,7 +111,7 @@ IntraPaint prompted for credentials with a Qt login dialog. The standalone clien
 `(username, password)` pair to try, or `None` to abort:
 
 ```python
-from intrapaint_api.api.a1111_webservice import A1111Webservice
+from sd_backend_client.api.a1111_webservice import A1111Webservice
 
 service = A1111Webservice('http://localhost:7860',
                           credentials_provider=lambda: ('user', 'password'))

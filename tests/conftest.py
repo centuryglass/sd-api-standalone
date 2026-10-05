@@ -26,8 +26,8 @@ import os
 import pytest
 from pydantic import ValidationError
 
-from intrapaint_api.api.a1111_webservice import A1111Webservice, AuthError
-from intrapaint_api.api.comfyui_webservice import ComfyUiWebservice
+from sd_backend_client.api.a1111_webservice import A1111Webservice, AuthError
+from sd_backend_client.api.comfyui_webservice import ComfyUiWebservice
 
 DEFAULT_PORT = 7860
 COMFY_DEFAULT_PORT = 8188

@@ -1,8 +1,8 @@
 # AGENTS.md
 
-Rules for coding agents working in the sd-api-standalone codebase. Human-facing setup and usage docs are in
+Rules for coding agents working in the sd-backend-client codebase. Human-facing setup and usage docs are in
 [`README.md`](README.md) and [`tests/README.md`](tests/README.md). Open work lives in
-[GitHub issues](https://github.com/centuryglass/sd-api-standalone/issues); see "Tracking open work".
+[GitHub issues](https://github.com/centuryglass/sd-backend-client/issues); see "Tracking open work".
 
 ## How to use this file
 
@@ -28,10 +28,10 @@ Rules for coding agents working in the sd-api-standalone codebase. Human-facing 
 
 ## What this is
 
-`intrapaint_api` is a standalone, headless Stable Diffusion backend client extracted from
+`sd_backend_client` is a standalone, headless Stable Diffusion backend client extracted from
 [IntraPaint](https://github.com/centuryglass/IntraPaint)'s `src/api`. It talks to **ComfyUI**, **Forge/Automatic1111
 WebUI**, and their **ControlNet** extensions, building the request bodies and node graphs each backend expects.
-Everything lives under the `intrapaint_api` package and imports only from within it plus third-party libraries.
+Everything lives under the `sd_backend_client` package and imports only from within it plus third-party libraries.
 Python **3.11+** (see "Conventions").
 
 Status: under active refactoring. Core txt2img / img2img / inpainting / ControlNet paths work end-to-end on both
@@ -41,7 +41,7 @@ backends; the ComfyUI node classes' pydantic migration and tiled upscaling are s
 
 In priority order:
 
-1. **Library users.** People who install `intrapaint_api` into their own projects. They see the package only through
+1. **Library users.** People who install `sd_backend_client` into their own projects. They see the package only through
    its public API, the README and its errors. Keep the README's usage examples working, mark any change that breaks
    the public API (see "Working with GitHub"), and make errors say what went wrong and what to do.
 2. **The maintainer.** The package is the maintainer's backend client for IntraPaint and other projects. A change that
@@ -258,7 +258,7 @@ valid for the version it was generated with.
 
 ## Tracking open work
 
-- **Open work lives only in [GitHub issues](https://github.com/centuryglass/sd-api-standalone/issues).** Nothing in the
+- **Open work lives only in [GitHub issues](https://github.com/centuryglass/sd-backend-client/issues).** Nothing in the
   repo tracks tasks.
 - **A found bug that isn't a same-pass fix opens an issue**: what was observed, how to reproduce it, and what is ruled
   out.

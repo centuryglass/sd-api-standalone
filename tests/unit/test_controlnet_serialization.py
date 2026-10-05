@@ -6,11 +6,11 @@ but the units themselves still round-trip through this code. Pure logic, no serv
 """
 from PIL import Image
 
-from intrapaint_api.api.shared_data.controlnet.controlnet_model import ControlNetModel
-from intrapaint_api.api.shared_data.controlnet.controlnet_preprocessor import (
+from sd_backend_client.api.shared_data.controlnet.controlnet_model import ControlNetModel
+from sd_backend_client.api.shared_data.controlnet.controlnet_preprocessor import (
     ControlNetPreprocessor, ParameterDef, PreprocessorParams)
-from intrapaint_api.api.shared_data.controlnet.controlnet_unit import ControlNetUnit
-from intrapaint_api.api.webui.controlnet_webui_constants import ControlNetUnitDict
+from sd_backend_client.api.shared_data.controlnet.controlnet_unit import ControlNetUnit
+from sd_backend_client.api.webui.controlnet_webui_constants import ControlNetUnitDict
 
 
 def _make_unit() -> ControlNetUnit:

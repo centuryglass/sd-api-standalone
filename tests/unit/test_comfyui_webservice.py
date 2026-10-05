@@ -12,10 +12,10 @@ from unittest.mock import MagicMock
 import pytest
 from PIL import Image
 
-from intrapaint_api.api.comfyui.comfyui_types import ImageFileReference
-from intrapaint_api.api.comfyui.comfyui_diffusion_params import ComfyUIDiffusionParams
-from intrapaint_api.api.comfyui_webservice import AsyncTaskStatus, ComfyEndpoints, ComfyModelType, ComfyUiWebservice
-from intrapaint_api.util.visual.image_utils import image_to_png_bytes
+from sd_backend_client.api.comfyui.comfyui_types import ImageFileReference
+from sd_backend_client.api.comfyui.comfyui_diffusion_params import ComfyUIDiffusionParams
+from sd_backend_client.api.comfyui_webservice import AsyncTaskStatus, ComfyEndpoints, ComfyModelType, ComfyUiWebservice
+from sd_backend_client.util.visual.image_utils import image_to_png_bytes
 
 PROMPT_ID = '7d4c0f0e-6a3b-4c1e-9f6e-0a1b2c3d4e5f'
 OTHER_ID = '11111111-2222-3333-4444-555555555555'

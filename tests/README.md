@@ -2,8 +2,8 @@
 
 Live-API integration tests for the two backend clients:
 
-- `intrapaint_api.api.a1111_webservice.A1111Webservice` (A1111 / Forge / ReForge)
-- `intrapaint_api.api.comfyui_webservice.ComfyUiWebservice` (ComfyUI)
+- `sd_backend_client.api.a1111_webservice.A1111Webservice` (A1111 / Forge / ReForge)
+- `sd_backend_client.api.comfyui_webservice.ComfyUiWebservice` (ComfyUI)
 
 They talk to a **real, running** server rather than mocking HTTP. Point the suite at
 whichever backend is up — the other backend's tests skip themselves automatically, so

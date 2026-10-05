@@ -3,10 +3,11 @@ import os
 
 from PIL import Image, ImageChops, ImageDraw
 
-from intrapaint_api.api.shared_data.controlnet.controlnet_model import ControlNetModel
-from intrapaint_api.api.shared_data.controlnet.controlnet_preprocessor import ControlNetPreprocessor, PreprocessorParams
-from intrapaint_api.api.shared_data.controlnet.controlnet_unit import ControlNetUnit
-from intrapaint_api.api.webui.diffusion_request_body import DiffusionRequestBody
+from sd_backend_client.api.shared_data.controlnet.controlnet_model import ControlNetModel
+from sd_backend_client.api.shared_data.controlnet.controlnet_preprocessor import (ControlNetPreprocessor,
+                                                                              PreprocessorParams)
+from sd_backend_client.api.shared_data.controlnet.controlnet_unit import ControlNetUnit
+from sd_backend_client.api.webui.diffusion_request_body import DiffusionRequestBody
 
 # Keep generation cheap: tiny canvas, minimal steps, single image.
 TEST_SIZE = 256

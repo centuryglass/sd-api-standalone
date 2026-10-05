@@ -1,10 +1,11 @@
 """Unit tests for ``ComfyUiWebservice._prepare_controlnet_data`` unit filtering. No network access."""
 from unittest.mock import MagicMock
 
-from intrapaint_api.api.comfyui_webservice import ComfyUiWebservice
-from intrapaint_api.api.shared_data.controlnet.controlnet_model import ControlNetModel
-from intrapaint_api.api.shared_data.controlnet.controlnet_preprocessor import ControlNetPreprocessor, PreprocessorParams
-from intrapaint_api.api.shared_data.controlnet.controlnet_unit import ControlNetUnit
+from sd_backend_client.api.comfyui_webservice import ComfyUiWebservice
+from sd_backend_client.api.shared_data.controlnet.controlnet_model import ControlNetModel
+from sd_backend_client.api.shared_data.controlnet.controlnet_preprocessor import (ControlNetPreprocessor,
+                                                                              PreprocessorParams)
+from sd_backend_client.api.shared_data.controlnet.controlnet_unit import ControlNetUnit
 
 
 def _prepare(units: list[ControlNetUnit]) -> MagicMock:
