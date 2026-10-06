@@ -3,6 +3,10 @@ tests/output/
 .pytest_cache
 *.egg-info/
 
+# Output of `python -m build` (CI's package job)
+build/
+dist/
+
 # JetBrains IDE files
 .idea/
 
