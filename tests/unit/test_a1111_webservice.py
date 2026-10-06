@@ -1,14 +1,16 @@
 """Unit tests for the request bodies A1111Webservice builds inline, with `post` replaced so no server is needed."""
 from typing import Any
+from unittest.mock import MagicMock
 
 import pytest
 from PIL import Image
 
-from sd_backend_client.api.a1111_webservice import A1111Webservice
+from sd_backend_client.api.a1111_webservice import A1111Webservice, DEFAULT_GENERATION_TIMEOUT
 from sd_backend_client.api.shared_data.api_datatypes import DiffusionUpscalingParams
 from sd_backend_client.api.shared_data.controlnet.controlnet_preprocessor import ControlNetPreprocessor
 from sd_backend_client.api.webui.diffusion_request_body import DiffusionRequestBody
-from sd_backend_client.util.visual.image_utils import image_from_base64, image_to_base64
+from sd_backend_client.api.webservice import DEFAULT_REQUEST_TIMEOUT
+from sd_backend_client.util.visual.image_utils import image_from_base64, image_to_base64, image_to_png_bytes
 
 
 class _FakeResponse:
@@ -218,3 +220,46 @@ def test_interrogate_accepts_object_or_string_response(monkeypatch, response: An
     service, sent = _service_with_routes(monkeypatch, {}, response)
     assert service.interrogate(Image.new('RGBA', (1, 1))) == caption
     assert sent[0][1]['model'] == 'clip'
+
+
+def _service_with_mock_session(**kwargs: Any) -> tuple[A1111Webservice, MagicMock]:
+    """A service whose `requests.Session` is a mock answering every request with a one-image response."""
+    service = A1111Webservice('http://unused.invalid/', **kwargs)
+    session = MagicMock()
+    session.get.return_value = session.post.return_value = MagicMock(status_code=200, ok=True,
+                                                                     json=_FakeResponse().json)
+    service._session = session  # pylint: disable=protected-access
+    return service, session
+
+
+def test_generation_requests_use_generation_timeout():
+    """Requests that block until images are ready use generation_timeout, other requests use request_timeout."""
+    service, session = _service_with_mock_session(request_timeout=5, generation_timeout=900)
+    image = Image.new('RGBA', (1, 1))
+    service.txt2img(DiffusionRequestBody())
+    service.img2img(image, None, DiffusionRequestBody())
+    service.controlnet_preprocessor_preview(image, None, ControlNetPreprocessor(name='canny'))
+    service.interrupt()
+    assert [call.kwargs['timeout'] for call in session.post.call_args_list] == [900, 900, 900, 5]
+    assert [call.args[0] for call in session.post.call_args_list] == [
+        'http://unused.invalid/sdapi/v1/txt2img', 'http://unused.invalid/sdapi/v1/img2img',
+        'http://unused.invalid/controlnet/detect', 'http://unused.invalid/sdapi/v1/interrupt']
+
+
+def test_default_timeouts_are_bounded():
+    """Without arguments neither kind of request waits indefinitely."""
+    service, session = _service_with_mock_session()
+    service.txt2img(DiffusionRequestBody())
+    session.get.return_value.json = lambda: []
+    service.get_styles()
+    assert session.post.call_args.kwargs['timeout'] == DEFAULT_GENERATION_TIMEOUT
+    assert session.get.call_args.kwargs['timeout'] == DEFAULT_REQUEST_TIMEOUT
+
+
+def test_get_thumbnail_sends_file_path_as_query_param():
+    """The thumbnail path goes to requests as a parameter, so reserved characters in it are encoded."""
+    service, session = _service_with_mock_session()
+    session.get.return_value.content = image_to_png_bytes(Image.new('RGBA', (1, 1)))
+    assert service.get_thumbnail('models/Lora/a&b #1.png') is not None
+    assert session.get.call_args.args[0] == 'http://unused.invalid/sd_extra_networks/thumb'
+    assert session.get.call_args.kwargs['params'] == {'filename': 'models/Lora/a&b #1.png'}

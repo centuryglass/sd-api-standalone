@@ -17,7 +17,7 @@ from sd_backend_client.api.shared_data.controlnet.controlnet_preprocessor import
     PreprocessorParams
 from sd_backend_client.api.shared_data.api_datatypes import DiffusionUpscalingParams, REDRAW_MODES, SEAM_FIX_MODES
 from sd_backend_client.api.shared_data.controlnet.controlnet_unit import ControlNetUnit
-from sd_backend_client.api.webservice import WebService, AuthError
+from sd_backend_client.api.webservice import WebService, AuthError, DEFAULT_REQUEST_TIMEOUT
 from sd_backend_client.api.webui.controlnet_webui_constants import (ControlNetModelResponse, ControlNetModuleResponse,
                                                       ControlTypeDef, ControlTypeResponse,
                                                       FIRST_GENERIC_PARAMETER_KEY, SECOND_GENERIC_PARAMETER_KEY,
@@ -45,7 +45,7 @@ class ImageResponse(TypedDict):
 
 ULTIMATE_UPSCALE_SCRIPT = 'ultimate sd upscale'
 INTERROGATE_DEFAULT_MODEL = 'clip'
-DEFAULT_TIMEOUT = 30
+DEFAULT_GENERATION_TIMEOUT = 600.0
 MAX_LOGIN_ATTEMPTS = 3
 SETTINGS_UPDATE_TIMEOUT = 90
 
@@ -94,7 +94,9 @@ class A1111Webservice(WebService):
         SD_MODULES = '/sdapi/v1/sd-modules'
 
     def __init__(self, url: str,
-                 credentials_provider: Optional[Callable[[], Optional[tuple[str, str]]]] = None) -> None:
+                 credentials_provider: Optional[Callable[[], Optional[tuple[str, str]]]] = None,
+                 request_timeout: Optional[float] = DEFAULT_REQUEST_TIMEOUT,
+                 generation_timeout: Optional[float] = DEFAULT_GENERATION_TIMEOUT) -> None:
         """Create the webservice client.
 
         Parameters
@@ -105,11 +107,22 @@ class A1111Webservice(WebService):
             Invoked with no arguments when the server requires authentication. It should return a
             (username, password) pair to attempt, or None to abort (raising AuthError). IntraPaint prompted for
             these through a Qt login dialog; a standalone caller injects its own prompt or fixed credentials here.
+        request_timeout: float, optional, default=DEFAULT_REQUEST_TIMEOUT
+            Timeout in seconds for metadata, settings and other non-generation requests. None waits indefinitely.
+        generation_timeout: float, optional, default=DEFAULT_GENERATION_TIMEOUT
+            Timeout in seconds for requests that block until images are ready: txt2img, img2img, upscale and
+            ControlNet preprocessor previews. None waits indefinitely.
         """
-        super().__init__(url)
+        super().__init__(url, request_timeout)
+        self._generation_timeout = generation_timeout
         self._preprocessor_cache: Optional[list[ControlNetPreprocessor]] = None
         self._credentials_provider = credentials_provider
         self._dispatcher: Optional['WebUIDispatcher'] = None
+
+    @property
+    def generation_timeout(self) -> Optional[float]:
+        """Timeout in seconds for requests that block until images are ready, or None to wait indefinitely."""
+        return self._generation_timeout
 
     @property
     def _generation_dispatcher(self) -> 'WebUIDispatcher':
@@ -207,7 +220,7 @@ class A1111Webservice(WebService):
     def progress_check(self) -> ProgressResponseBody:
         """Checks the progress of an ongoing image operation."""
         return ProgressResponseBody.model_validate(
-            self.get(A1111Webservice.Endpoints.PROGRESS, timeout=DEFAULT_TIMEOUT).json())
+            self.get(A1111Webservice.Endpoints.PROGRESS).json())
 
     # Image manipulation:
     def img2img(self, image: Image.Image, mask: Optional[Image.Image] = None,
@@ -241,7 +254,7 @@ class A1111Webservice(WebService):
                 request_body.init_images = list(request_body.init_images)
             if request_body.mask is None and mask is not None:
                 request_body.mask = mask
-        res = self.post(A1111Webservice.Endpoints.IMG2IMG, request_body.to_dict())
+        res = self.post(A1111Webservice.Endpoints.IMG2IMG, request_body.to_dict(), timeout=self._generation_timeout)
         return self._handle_image_response(res)
 
     def txt2img(self, request_body: Optional[DiffusionRequestBody] = None) -> ImageResponse:
@@ -258,7 +271,7 @@ class A1111Webservice(WebService):
         """
         if request_body is None:
             request_body = DiffusionRequestBody()
-        res = self.post(A1111Webservice.Endpoints.TXT2IMG, request_body.to_dict())
+        res = self.post(A1111Webservice.Endpoints.TXT2IMG, request_body.to_dict(), timeout=self._generation_timeout)
         return self._handle_image_response(res)
 
     def controlnet_preprocessor_preview(self, image: Image.Image, mask: Optional[Image.Image],
@@ -285,7 +298,7 @@ class A1111Webservice(WebService):
             for param_key, detect_key in detect_param_keys.items():
                 if param_key in preprocessor.parameter_values:
                     body[detect_key] = preprocessor.parameter_values[param_key]
-        res = self.post(A1111Webservice.Endpoints.CONTROLNET_PREVIEW, body)
+        res = self.post(A1111Webservice.Endpoints.CONTROLNET_PREVIEW, body, timeout=self._generation_timeout)
         return self._handle_image_response(res)['images'][0]
 
     def _validate_tile_controlnet(self, tile_control_unit: Optional[ControlNetUnit]) -> Optional[ControlNetUnit]:
@@ -383,7 +396,7 @@ class A1111Webservice(WebService):
             'upscaler_1': upscaler,
             'image': image_to_base64(image, include_prefix=True)
         }
-        res = self.post(A1111Webservice.Endpoints.UPSCALE, body)
+        res = self.post(A1111Webservice.Endpoints.UPSCALE, body, timeout=self._generation_timeout)
         return self._handle_image_response(res)
 
     def interrogate(self, image: Image.Image, interrogate_model: Optional[str] = None) -> str:
@@ -453,7 +466,7 @@ class A1111Webservice(WebService):
     # Load misc. service info:
     def get_config(self) -> dict[str, Any]:
         """Returns a dict containing the current Stable Diffusion WebUI configuration."""
-        return self.get('/sdapi/v1/options', timeout=DEFAULT_TIMEOUT).json()
+        return self.get('/sdapi/v1/options').json()
 
     def get_styles(self) -> list[PromptStyleData]:
         """Returns a list of image generation style objects saved by the Stable Diffusion WebUI."""
@@ -482,18 +495,18 @@ class A1111Webservice(WebService):
         return [ScriptInfo.model_validate(item) for item in self.get(A1111Webservice.Endpoints.SCRIPT_INFO).json()]
 
     def _get_name_list(self, endpoint: str) -> list[str]:
-        res_body = self.get(endpoint, timeout=30).json()
+        res_body = self.get(endpoint).json()
         return [obj['name'] for obj in res_body]
 
     def get_samplers(self) -> list[SamplerInfo]:
         """Returns the list of image sampler algorithms available for image generation."""
         return [SamplerInfo.model_validate(item)
-                for item in self.get(A1111Webservice.Endpoints.SAMPLERS, timeout=DEFAULT_TIMEOUT).json()]
+                for item in self.get(A1111Webservice.Endpoints.SAMPLERS).json()]
 
     def get_upscalers(self) -> list[UpscalerInfo]:
         """Returns the list of image upscalers available."""
         return [UpscalerInfo.model_validate(item)
-                for item in self.get(A1111Webservice.Endpoints.UPSCALERS, timeout=DEFAULT_TIMEOUT).json()]
+                for item in self.get(A1111Webservice.Endpoints.UPSCALERS).json()]
 
     def get_latent_upscale_modes(self) -> list[str]:
         """Returns the list of Stable Diffusion enhanced upscaling modes."""
@@ -513,7 +526,7 @@ class A1111Webservice(WebService):
         If available models may have changed, instead consider using the slower refresh_checkpoints method.
         """
         return [ModelInfo.model_validate(item)
-                for item in self.get(A1111Webservice.Endpoints.SD_MODELS, timeout=DEFAULT_TIMEOUT).json()]
+                for item in self.get(A1111Webservice.Endpoints.SD_MODELS).json()]
 
     def get_vae(self) -> list[VaeInfo]:
         """Returns the list of available Stable Diffusion VAE models cached by the webui.
@@ -521,9 +534,9 @@ class A1111Webservice(WebService):
         If available models may have changed, instead consider using the slower refresh_vae method.
         """
         try:
-            vae_models = self.get(A1111Webservice.Endpoints.VAE_MODELS, timeout=DEFAULT_TIMEOUT).json()
+            vae_models = self.get(A1111Webservice.Endpoints.VAE_MODELS).json()
         except RuntimeError:
-            vae_models = self.get(A1111Webservice.ForgeEndpoints.SD_MODULES, timeout=DEFAULT_TIMEOUT).json()
+            vae_models = self.get(A1111Webservice.ForgeEndpoints.SD_MODULES).json()
         return [VaeInfo.model_validate(item) for item in vae_models]
 
     def get_controlnet_version(self) -> int:
@@ -531,26 +544,25 @@ class A1111Webservice(WebService):
         Returns the installed version of the Stable Diffusion ControlNet extension, or raises if the exception is not
         installed.
         """
-        return self.get(A1111Webservice.Endpoints.CONTROLNET_VERSION, timeout=DEFAULT_TIMEOUT).json()['version']
+        return self.get(A1111Webservice.Endpoints.CONTROLNET_VERSION).json()['version']
 
     def get_controlnet_models(self) -> ControlNetModelResponse:
         """Returns a dict defining the models available to the Stable Diffusion ControlNet extension."""
         return ControlNetModelResponse.model_validate(
-                    self.get(A1111Webservice.Endpoints.CONTROLNET_MODELS, timeout=DEFAULT_TIMEOUT).json())
+                    self.get(A1111Webservice.Endpoints.CONTROLNET_MODELS).json())
 
     def get_controlnet_modules(self) -> ControlNetModuleResponse:
         """Returns a dict defining the modules available to the Stable Diffusion ControlNet extension."""
         return ControlNetModuleResponse.model_validate(
-                    self.get(A1111Webservice.Endpoints.CONTROLNET_MODULES, timeout=DEFAULT_TIMEOUT).json())
+                    self.get(A1111Webservice.Endpoints.CONTROLNET_MODULES).json())
 
     def get_controlnet_control_types(self) -> ControlTypeResponse:
         """Returns a dict defining the control types available to the Stable Diffusion ControlNet extension."""
-        return cast(ControlTypeResponse, self.get(A1111Webservice.Endpoints.CONTROLNET_CONTROL_TYPES,
-                                                  timeout=DEFAULT_TIMEOUT).json())
+        return cast(ControlTypeResponse, self.get(A1111Webservice.Endpoints.CONTROLNET_CONTROL_TYPES).json())
 
     def get_controlnet_settings(self) -> dict[str, Any]:
         """Returns the current settings applied to the Stable Diffusion ControlNet extension."""
-        return self.get(A1111Webservice.Endpoints.CONTROLNET_SETTINGS, timeout=DEFAULT_TIMEOUT).json()
+        return self.get(A1111Webservice.Endpoints.CONTROLNET_SETTINGS).json()
 
     def get_controlnet_preprocessors(self, update_cache=False) -> list[ControlNetPreprocessor]:
         """Queries the API for ControlNet preprocessor modules, and parameterizes and returns all options."""
@@ -582,12 +594,12 @@ class A1111Webservice(WebService):
         If available models may have changed, instead consider using the slower refresh_loras method.
         """
         return [LoraInfo.model_validate(item)
-                for item in self.get(A1111Webservice.Endpoints.LORA_MODELS, timeout=DEFAULT_TIMEOUT).json()]
+                for item in self.get(A1111Webservice.Endpoints.LORA_MODELS).json()]
 
     def get_thumbnail(self, file_path: str) -> Optional[Image.Image]:
         """Attempts to load one of the extra model thumbnails given a path parameter."""
         try:
-            res = self.get(A1111Webservice.Endpoints.EXTRA_NW_THUMB, timeout=DEFAULT_TIMEOUT,
+            res = self.get(A1111Webservice.Endpoints.EXTRA_NW_THUMB,
                            url_params={'filename': file_path})
             if not res.ok:
                 return None
@@ -600,7 +612,6 @@ class A1111Webservice(WebService):
         """Attempt to log in with a username and password."""
         body = {'username': username, 'password': password}
         return self.post(A1111Webservice.Endpoints.LOGIN, body, 'x-www-form-urlencoded',
-                         timeout=DEFAULT_TIMEOUT,
                          throw_on_failure=False)
 
     def _handle_auth_error(self):
@@ -619,7 +630,7 @@ class A1111Webservice(WebService):
             previous_auth = self._session.auth
             self.set_auth(credentials)
             try:
-                response = self.get(A1111Webservice.Endpoints.PROGRESS, timeout=DEFAULT_TIMEOUT,
+                response = self.get(A1111Webservice.Endpoints.PROGRESS,
                                     url_params={'skip_current_image': 'true'},
                                     fail_on_auth_error=True, throw_on_failure=False)
             except BaseException:

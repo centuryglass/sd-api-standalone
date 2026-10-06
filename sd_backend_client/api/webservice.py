@@ -5,11 +5,13 @@ Provides basic session management, auth access, and functions for making GET and
 """
 from typing import Optional, Any
 import secrets
+from urllib.parse import urlsplit, urlunsplit
 import requests
 
 
 JSON_DATA_TYPE = 'application/json'
 MULTIPART_FORM_DATA_TYPE = 'multipart/form-data'
+DEFAULT_REQUEST_TIMEOUT = 30.0
 
 
 class AuthError(Exception):
@@ -22,23 +24,38 @@ class WebService:
     POST requests.
     """
 
-    def __init__(self, url: str):
+    def __init__(self, url: str, request_timeout: Optional[float] = DEFAULT_REQUEST_TIMEOUT):
         """__init__.
 
         Parameters
         ----------
         url : str
-            Base URL of the webservice.
+            Base URL of the webservice. Trailing slashes are stripped, since endpoints start with '/'.
+        request_timeout : float, optional, default=DEFAULT_REQUEST_TIMEOUT
+            Timeout in seconds for requests that don't pass their own. None waits indefinitely.
         """
-        self._server_url = url
+        self._server_url = url.rstrip('/')
+        self._request_timeout = request_timeout
         self._session = requests.Session()
         self._auth = None
         self._session_hash = secrets.token_hex(5)
 
     @property
     def server_url(self) -> str:
-        """Returns the server URL."""
+        """Returns the server URL, without a trailing slash."""
         return self._server_url
+
+    @property
+    def request_timeout(self) -> Optional[float]:
+        """Timeout in seconds for requests that don't pass their own, or None to wait indefinitely."""
+        return self._request_timeout
+
+    @property
+    def websocket_url(self) -> str:
+        """The server URL with its scheme mapped to a websocket scheme: https to wss, anything else to ws."""
+        url = urlsplit(self._server_url)
+        scheme = 'wss' if url.scheme == 'https' else 'ws'
+        return urlunsplit((scheme, url.netloc, url.path, '', ''))
 
     def set_auth(self, auth):
         """Set session authentication.
@@ -53,7 +70,7 @@ class WebService:
 
     def get(self,
             endpoint: str,
-            timeout: Optional[int] = None,
+            timeout: Optional[float] = None,
             url_params: Optional[dict[str, str]] = None,
             headers: Optional[dict[str, str]] = None,
             fail_on_auth_error: bool = False,
@@ -64,8 +81,8 @@ class WebService:
         ----------
         endpoint : str
             String appended to the end of the service's base URL.
-        timeout : int, optional
-            Request timeout period in seconds.
+        timeout : float, optional
+            Request timeout period in seconds. None uses the service's request_timeout.
         url_params : dict, optional
             Any URL parameters to send with the request.
         headers : dict, optional
@@ -87,7 +104,7 @@ class WebService:
              endpoint: str,
              body: Any,
              body_format: Optional[str] = 'application/json',
-             timeout: Optional[int] = None,
+             timeout: Optional[float] = None,
              url_params: Optional[dict[str, str]] = None,
              headers: Optional[dict[str, str]] = None,
              files: Optional[dict[str, tuple[str, bytes, str]]] = None,
@@ -104,8 +121,8 @@ class WebService:
             be one that's valid for the body_format parameter used.
         body_format: Optional[str], default='application/json'
             Request content format to use.
-        timeout : int, optional
-            Request timeout period in seconds.
+        timeout : float, optional
+            Request timeout period in seconds. None uses the service's request_timeout.
         url_params : dict[str, str], optional
             Any URL parameters to send with the request.
         headers : dict[str, str], optional
@@ -133,29 +150,33 @@ class WebService:
               method: str,
               body,
               body_format: Optional[str] = JSON_DATA_TYPE,
-              timeout: Optional[int] = None,
+              timeout: Optional[float] = None,
               url_params: Optional[dict[str, str]] = None,
               headers: Optional[dict[str, str]] = None,
               files: Optional[dict[str, tuple[str, bytes, str]]] = None,
               fail_on_auth_error: bool = False,
               throw_on_failure: bool = True,
               _auth_retried: bool = False) -> requests.Response:
-        address = self._build_address(endpoint, url_params)
+        address = self._build_address(endpoint)
         if headers is None:
             headers = {}
+        request_timeout = self._request_timeout if timeout is None else timeout
         try:
             if method == 'GET':
-                res = self._session.get(address, timeout=timeout, headers=headers)
+                res = self._session.get(address, params=url_params, timeout=request_timeout, headers=headers)
             elif method == 'POST':
                 if body_format == JSON_DATA_TYPE:
-                    res = self._session.post(address, timeout=timeout, headers=headers, json=body)
+                    res = self._session.post(address, params=url_params, timeout=request_timeout, headers=headers,
+                                             json=body)
                 elif body_format == MULTIPART_FORM_DATA_TYPE and files is not None:
-                    res = self._session.post(address, timeout=timeout, headers=headers, files=files, data=body)
+                    res = self._session.post(address, params=url_params, timeout=request_timeout, headers=headers,
+                                             files=files, data=body)
                 else:
-                    res = self._session.post(address, timeout=timeout, headers=headers, data=body)
+                    res = self._session.post(address, params=url_params, timeout=request_timeout, headers=headers,
+                                             data=body)
             else:
                 raise ValueError(f'HTTP method {method} not supported')
-        except (requests.exceptions.RequestException, requests.exceptions.ConnectionError) as err:
+        except requests.exceptions.RequestException as err:
             raise RuntimeError(f'Error connecting to {endpoint}: {err}') from err
         if res.status_code == 401:
             if fail_on_auth_error and throw_on_failure:
@@ -188,9 +209,7 @@ class WebService:
     def _handle_auth_error(self):
         raise NotImplementedError('Authentication is not implemented')
 
-    def _build_address(self, endpoint: str, url_params: Optional[dict[str, str]] = None) -> str:
-        address = f'{self._server_url}{endpoint}'
-        if url_params is not None:
-            for key, value in url_params.items():
-                address = address + ('?' if ('?' not in address) else '&') + key + '=' + value
-        return address
+    def _build_address(self, endpoint: str) -> str:
+        """Joins the server URL and an endpoint path. Query parameters are passed to `requests` separately, which
+        encodes them."""
+        return f'{self._server_url}{endpoint}'

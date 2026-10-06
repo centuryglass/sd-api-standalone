@@ -9,6 +9,7 @@ from contextlib import contextmanager
 from copy import deepcopy
 from enum import StrEnum, Enum
 from typing import cast, Optional, Any, Generator, TYPE_CHECKING
+from urllib.parse import quote, urlencode
 
 import binascii
 import websocket
@@ -32,7 +33,7 @@ from sd_backend_client.api.shared_data.controlnet.controlnet_constants import Co
 from sd_backend_client.api.shared_data.controlnet.controlnet_preprocessor import ControlNetPreprocessor
 from sd_backend_client.api.shared_data.controlnet.controlnet_unit import ControlNetUnit
 from sd_backend_client.api.shared_data.diffusion_params import DiffusionParams
-from sd_backend_client.api.webservice import WebService, MULTIPART_FORM_DATA_TYPE
+from sd_backend_client.api.webservice import WebService, MULTIPART_FORM_DATA_TYPE, DEFAULT_REQUEST_TIMEOUT
 from sd_backend_client.util.geometry import Size
 from sd_backend_client.util.visual.image_utils import image_to_png_bytes, image_from_bytes, image_from_base64, \
     ImageKey, get_image_key, mask_to_grayscale
@@ -43,7 +44,6 @@ if TYPE_CHECKING:
 logger = logging.getLogger(__name__)
 
 
-DEFAULT_TIMEOUT = 30
 EXTENDED_TIMEOUT = 90
 TYPE_PNG_IMAGE = 'image/png'
 INTRAPAINT_UPLOAD_SUBFOLDER = 'IntraPaint'
@@ -124,8 +124,18 @@ class ComfyUiWebservice(WebService):
     ComfyUiWebservice provides access to Stable Diffusion through the ComfyUI REST API.
     """
 
-    def __init__(self, url: str) -> None:
-        super().__init__(url)
+    def __init__(self, url: str, request_timeout: Optional[float] = DEFAULT_REQUEST_TIMEOUT) -> None:
+        """Create the webservice client.
+
+        Parameters
+        ----------
+        url: str
+            Base URL of the ComfyUI server. An https URL opens its websocket over wss.
+        request_timeout: float, optional, default=DEFAULT_REQUEST_TIMEOUT
+            Timeout in seconds for requests that don't set their own. Generation is queued, so no request waits for
+            it to finish. None waits indefinitely.
+        """
+        super().__init__(url, request_timeout)
         self._preprocessor_cache: Optional[list[ControlNetPreprocessor]] = None
         self._ksampler_info: Optional[NodeInfoResponse] = None
         self._client_id = str(uuid.uuid4())
@@ -158,32 +168,33 @@ class ComfyUiWebservice(WebService):
 
     def is_node_available(self, node_name: str) -> bool:
         """Checks if a node with the given name is available."""
-        info_endpoint = f'{ComfyEndpoints.OBJECT_INFO}/{node_name}'
+        node_segment = quote(node_name, safe='')
+        info_endpoint = f'{ComfyEndpoints.OBJECT_INFO}/{node_segment}'
         # Only the presence of the node key matters here, so keep the raw response as a plain dict.
         node_info: dict[str, Any] = self.get(info_endpoint).json()
         return node_name in node_info
 
     def get_embeddings(self) -> list[str]:
         """Returns the list of available embedding files."""
-        return self.get(ComfyEndpoints.EMBEDDINGS, timeout=DEFAULT_TIMEOUT).json()
+        return self.get(ComfyEndpoints.EMBEDDINGS).json()
 
     def get_model_types(self) -> list[str]:
         """Returns the list of available model types."""
-        return cast(list[str], self.get(ComfyEndpoints.MODELS, timeout=DEFAULT_TIMEOUT).json())
+        return cast(list[str], self.get(ComfyEndpoints.MODELS).json())
 
     def get_extensions(self) -> list[str]:
         """Returns the list of installed extension files."""
-        return cast(list[str], self.get(ComfyEndpoints.EXTENSIONS, timeout=DEFAULT_TIMEOUT).json())
+        return cast(list[str], self.get(ComfyEndpoints.EXTENSIONS).json())
 
     def get_system_stats(self) -> SystemStatResponse:
         """Returns information about the system and device running Stable Diffusion."""
         return SystemStatResponse.model_validate(
-                    self.get(ComfyEndpoints.SYSTEM_STATS, timeout=DEFAULT_TIMEOUT).json())
+                    self.get(ComfyEndpoints.SYSTEM_STATS).json())
 
     def get_models(self, model_type: ComfyModelType) -> list[str]:
         """Returns the list of available models, given a particular model type."""
         endpoint = f'{ComfyEndpoints.MODELS}/{model_type.value}'
-        return cast(list[str], self.get(endpoint, timeout=DEFAULT_TIMEOUT).json())
+        return cast(list[str], self.get(endpoint).json())
 
     def get_sd_checkpoints(self) -> list[str]:
         """Returns the list of available Stable Diffusion models."""
@@ -208,7 +219,7 @@ class ComfyUiWebservice(WebService):
     def get_controlnet_preprocessors(self, update_cache=False) -> list[ControlNetPreprocessor]:
         """Scans all nodes for valid preprocessor nodes, and returns the list of parameterized options."""
         if update_cache or self._preprocessor_cache is None:
-            raw_node_data = self.get(ComfyEndpoints.OBJECT_INFO, timeout=DEFAULT_TIMEOUT).json()
+            raw_node_data = self.get(ComfyEndpoints.OBJECT_INFO).json()
             node_data = {}
             for name, info in raw_node_data.items():
                 try:
@@ -416,8 +427,8 @@ class ComfyUiWebservice(WebService):
             self._prepare_controlnet_data(workflow_builder, diffusion_params.controlnet_units)
         prompt = workflow_builder.build_workflow().get_workflow_dict()
         body = QueueAdditionRequest(prompt=prompt, client_id=self._client_id)
-        res = QueueAdditionResponse.model_validate(self.post(ComfyEndpoints.PROMPT, body=body.model_dump(exclude_none=True),
-                                                    timeout=DEFAULT_TIMEOUT).json())
+        res = QueueAdditionResponse.model_validate(
+            self.post(ComfyEndpoints.PROMPT, body=body.model_dump(exclude_none=True)).json())
         res.seed = workflow_builder.seed
         return res
 
@@ -434,8 +445,8 @@ class ComfyUiWebservice(WebService):
             self._prepare_controlnet_data(workflow_builder, diffusion_params.controlnet_units)
         prompt = workflow_builder.build_workflow().get_workflow_dict()
         body = QueueAdditionRequest(prompt=prompt, client_id=self._client_id)
-        res = QueueAdditionResponse.model_validate(self.post(ComfyEndpoints.PROMPT, body=body.model_dump(exclude_none=True),
-                                                   timeout=DEFAULT_TIMEOUT).json())
+        res = QueueAdditionResponse.model_validate(
+            self.post(ComfyEndpoints.PROMPT, body=body.model_dump(exclude_none=True)).json())
         res.seed = workflow_builder.seed
         return res
 
@@ -487,8 +498,8 @@ class ComfyUiWebservice(WebService):
         workflow = workflow_builder.build_workflow(image_reference, mask_reference)
         prompt = workflow.get_workflow_dict()
         body = QueueAdditionRequest(prompt=prompt, client_id=self._client_id)
-        return QueueAdditionResponse.model_validate(self.post(ComfyEndpoints.PROMPT, body=body.model_dump(exclude_none=True),
-                                                    timeout=DEFAULT_TIMEOUT).json())
+        return QueueAdditionResponse.model_validate(
+            self.post(ComfyEndpoints.PROMPT, body=body.model_dump(exclude_none=True)).json())
 
     def _validate_tile_controlnet(self, tile_control_unit: Optional[ControlNetUnit]) -> Optional[ControlNetUnit]:
         """Return the tile ControlNet unit only if it's fully specified and installed on the server, else None."""
@@ -563,15 +574,15 @@ class ComfyUiWebservice(WebService):
 
         prompt = workflow_node_graph.get_workflow_dict()
         body = QueueAdditionRequest(prompt=prompt, client_id=self._client_id)
-        res = QueueAdditionResponse.model_validate(self.post(ComfyEndpoints.PROMPT, body=body.model_dump(exclude_none=True),
-                                                    timeout=DEFAULT_TIMEOUT).json())
+        res = QueueAdditionResponse.model_validate(
+            self.post(ComfyEndpoints.PROMPT, body=body.model_dump(exclude_none=True)).json())
         return res
 
     # Queued/in-progress workflow status and control:
 
     def get_queue_info(self) -> QueueInfoResponse:
         """Get info on the set of queued jobs."""
-        res_body = self.get(ComfyEndpoints.QUEUE, timeout=DEFAULT_TIMEOUT).json()
+        res_body = self.get(ComfyEndpoints.QUEUE).json()
         for queue_key in [ACTIVE_QUEUE_KEY, PENDING_QUEUE_KEY]:
             assert queue_key in res_body
             queue_list = res_body[queue_key]
@@ -582,7 +593,7 @@ class ComfyUiWebservice(WebService):
     def check_queue_entry(self, entry_uuid: str, task_number: int) -> AsyncTaskProgress:
         """Returns the status of a queued task, along with associated data when relevant."""
         endpoint = f'{ComfyEndpoints.HISTORY}/{entry_uuid}'
-        history_response = self.get(endpoint, timeout=DEFAULT_TIMEOUT).json()
+        history_response = self.get(endpoint).json()
         if entry_uuid in history_response:
             entry_history = PromptHistory.model_validate(history_response[entry_uuid])
             if entry_history.status.status_str == 'error':
@@ -615,7 +626,7 @@ class ComfyUiWebservice(WebService):
         if task_id is not None:
             queue_removal_body = QueueDeletionRequest(delete=[task_id])
             self.post(ComfyEndpoints.QUEUE, body=queue_removal_body.model_dump())
-        self.post(ComfyEndpoints.INTERRUPT, body=None, timeout=DEFAULT_TIMEOUT)
+        self.post(ComfyEndpoints.INTERRUPT, body=None)
 
     def remove_from_queue(self, task_id: str) -> None:
         """Drop a still-queued (pending) task *without* interrupting the running job.
@@ -645,10 +656,8 @@ class ComfyUiWebservice(WebService):
     def open_websocket(self) -> Generator[websocket.WebSocket, None, None]:
         """Yields an open ComfyUI websocket that automatically closes when the context exits."""
         ws = websocket.WebSocket()
-        base_url = self.server_url  # http://localhost:8188
-        assert '://' in base_url
-        ws_url = f'ws://{base_url[base_url.index("://") + 3:]}/ws?clientId={self._client_id}'  # _client_id is uuid
-        ws.connect(ws_url)
+        query = urlencode({'clientId': self._client_id})
+        ws.connect(f'{self.websocket_url}/ws?{query}')
         try:
             yield ws
         finally:
@@ -674,4 +683,4 @@ class ComfyUiWebservice(WebService):
     def free_memory(self) -> None:
         """Clear cached data to free GPU memory."""
         body = FreeMemoryRequest(unload_models=True, free_memory=True)
-        self.post(ComfyEndpoints.FREE, body.model_dump(), timeout=DEFAULT_TIMEOUT)
+        self.post(ComfyEndpoints.FREE, body.model_dump())
