@@ -111,10 +111,20 @@ class DiffusionRequestBody(DiffusionParams):
     """Generation metadata string. If provided, it overrides other parameters."""
 
     override_settings: Optional[dict[str, Any]] = None
-    """Server settings to temporarily override for this request."""
+    """Server settings to temporarily override for this request.
+
+    `to_dict` adds `sd_model_checkpoint` from `sd_model_name` unless this dict already sets it. The server matches the
+    name against each checkpoint's file name (relative to its models directory, e.g. `model.safetensors`), its title
+    (`model.safetensors [abc1234567]`), its stem or its hash. A name that matches nothing is dropped without an error,
+    and the request uses the server's configured checkpoint.
+    """
 
     override_settings_restore_afterwards: Optional[bool] = None
-    """Whether overridden settings are restored to their previous values after this request."""
+    """Whether overridden settings are restored to their previous values after this request.
+
+    The server treats `None` (omitted) as `True`. Restoring resets the server's checkpoint setting but leaves the
+    requested checkpoint loaded, so later requests for the same checkpoint don't reload it.
+    """
 
     do_not_save_samples: Optional[bool] = None
     """Whether the server should skip saving individual generated images to disk."""
@@ -217,6 +227,10 @@ class DiffusionRequestBody(DiffusionParams):
     def to_dict(self) -> dict[str, Any]:
         """Convert the request body to a dict, removing unused optional parameters."""
         data = super().to_dict()
+        # The WebUI request schema has no sd_model_name field; the checkpoint is selected through override_settings.
+        sd_model_name = data.pop('sd_model_name', '')
+        if sd_model_name:
+            data.setdefault('override_settings', {}).setdefault('sd_model_checkpoint', sd_model_name)
         # Build ControlNet request parameters into the output only, so self is left unchanged.
         scripts = data.setdefault('alwayson_scripts', {})
         if CONTROLNET_SCRIPT_KEY in scripts:
