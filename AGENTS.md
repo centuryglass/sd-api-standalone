@@ -75,8 +75,9 @@ RUN_SD_GENERATION=1 pytest tests/ # equivalent env-var form
   (`http://127.0.0.1:7860`), `COMFYUI_API_URL` (`http://127.0.0.1:8188`), `SD_UNAME`/`SD_PASS` for A1111
   `--api-auth`. `tests/local.env` (gitignored) is a convenience `source`-able file for credentials. `tests/README.md`
   has the full matrix.
-- Runtime dependencies are listed unpinned in both `pyproject.toml` and `requirements.txt`; keep the two lists in
-  sync. Dev tools are pinned exactly in `requirements-dev.txt`, and Dependabot proposes their bumps
+- Runtime dependencies are listed with lower bounds only, in both `pyproject.toml` and `requirements.txt`; keep the
+  two lists in sync. CI's `test-minimum-deps` job runs the tests with every floor installed, so raise a floor when new
+  code needs a newer release. Dev tools are pinned exactly in `requirements-dev.txt`, and Dependabot proposes their bumps
   (`.github/dependabot.yml`).
 
 ## Architecture
@@ -205,7 +206,8 @@ don't need rewriting to conform, and nothing enforces these rules mechanically.
   - No retry markers. Beyond the conftest skips above, the only allowed markers are `skip`, with a reason and an
     issue link, and `xfail(strict=True)`.
 - CI (`.github/workflows/ci.yml`) runs on every pull request into `main` and every push to it: `pytest tests/` on
-  Python 3.11-3.14, plus the lint and type checks below. Its `ci` job is the single check to require for merging.
+  Python 3.11-3.14 and once more on 3.11 with the oldest allowed runtime dependencies, plus the lint and type checks
+  below. Its `ci` job is the single check to require for merging.
 
 ## Type checking
 

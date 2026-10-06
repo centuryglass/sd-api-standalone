@@ -1,5 +1,14 @@
 # Changelog
 
+## [0.2.1](https://github.com/centuryglass/sd-backend-client/compare/v0.2.0...v0.2.1) (2026-10-06)
+
+
+### Bug Fixes
+
+* bound HTTP timeouts, encode query params, strip trailing slashes and use wss for https ([#59](https://github.com/centuryglass/sd-backend-client/issues/59)) ([0137119](https://github.com/centuryglass/sd-backend-client/commit/0137119a2f8764c1c5e1e9ba58d3ca05e0b4de0a))
+* **comfyui:** keep combo option lists on ComfyUI preprocessor parameters ([#58](https://github.com/centuryglass/sd-backend-client/issues/58)) ([dfaf613](https://github.com/centuryglass/sd-backend-client/commit/dfaf613dfa0523070c217f0fc55e02be3898f780)), closes [#34](https://github.com/centuryglass/sd-backend-client/issues/34)
+* **webui:** select the checkpoint from sd_model_name ([#61](https://github.com/centuryglass/sd-backend-client/issues/61)) ([9f2585a](https://github.com/centuryglass/sd-backend-client/commit/9f2585abc88176f9b0ba32bb93dc8e7e749f3f89)), closes [#38](https://github.com/centuryglass/sd-backend-client/issues/38)
+
 ## [0.2.0](https://github.com/centuryglass/sd-backend-client/compare/v0.1.0...v0.2.0) (2026-10-06)
 
 

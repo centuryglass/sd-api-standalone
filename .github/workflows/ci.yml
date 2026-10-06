@@ -48,6 +48,29 @@ jobs:
         # No backend runs here, so the integration tests skip themselves and only tests/unit/ executes.
         run: python -m pytest tests/
 
+  test-minimum-deps:
+    name: test (minimum dependencies)
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-python@v7
+        with:
+          python-version: '3.11'
+
+      - name: Install the oldest allowed runtime dependencies
+        # --resolution lowest-direct installs each runtime dependency at its pyproject.toml floor; transitive
+        # dependencies resolve normally. --only-binary keeps a floor honest about having a wheel for Python 3.11.
+        run: |
+          python -m pip install --upgrade pip
+          pip install uv
+          uv pip install --system --resolution lowest-direct --only-binary :all: -e . "$(grep '^pytest==' requirements-dev.txt)"
+          uv pip list --system
+
+      - name: Run tests
+        run: python -m pytest tests/
+
   lint:
     name: lint
     runs-on: ubuntu-latest
@@ -137,14 +160,15 @@ jobs:
   ci:
     name: ci
     if: always()
-    needs: [test, lint, typecheck, package]
+    needs: [test, test-minimum-deps, lint, typecheck, package]
     runs-on: ubuntu-latest
     steps:
       - name: All checks passed
-        if: needs.test.result != 'success' || needs.lint.result != 'success' || needs.typecheck.result != 'success' ||
-          needs.package.result != 'success'
+        if: needs.test.result != 'success' || needs.test-minimum-deps.result != 'success' ||
+          needs.lint.result != 'success' || needs.typecheck.result != 'success' || needs.package.result != 'success'
         run: |
           echo "test result: ${{ needs.test.result }}"
+          echo "test-minimum-deps result: ${{ needs.test-minimum-deps.result }}"
           echo "lint result: ${{ needs.lint.result }}"
           echo "typecheck result: ${{ needs.typecheck.result }}"
           echo "package result: ${{ needs.package.result }}"
