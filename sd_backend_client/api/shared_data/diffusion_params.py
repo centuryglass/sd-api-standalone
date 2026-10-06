@@ -1,13 +1,23 @@
-"""Shared image diffusion operation parameter set."""
+"""Shared image diffusion operation parameter set.
+
+Each field here has one meaning on both backends. Fields only one backend supports live on its subclass
+(`DiffusionRequestBody` for WebUI, `ComfyUIDiffusionParams` for ComfyUI).
+"""
 import logging
 from typing import Any, Optional
 
 from PIL import Image
-from pydantic import BaseModel, ConfigDict
+from pydantic import AliasChoices, BaseModel, ConfigDict, Field
 
 from sd_backend_client.api.shared_data.controlnet.controlnet_unit import ControlNetUnit
 
 logger = logging.getLogger(__name__)
+
+DEFAULT_DENOISING_STRENGTH = 0.75
+"""Denoising strength both backends use for img2img and inpainting when `DiffusionParams.denoising_strength` is None.
+
+It matches WebUI's own img2img default.
+"""
 
 
 class DiffusionParams(BaseModel):
@@ -21,11 +31,28 @@ class DiffusionParams(BaseModel):
     sd_model_name: str = ''
     """Stable Diffusion model name."""
 
-    sampler_name: str = 'Euler a'
-    """The algorithm used to iteratively denoise the image during generation. Valid options vary by API."""
+    sampler: str = Field(default='euler_ancestral', validation_alias=AliasChoices('sampler', 'sampler_name'))
+    """Sampling algorithm that iteratively denoises the image, as a shared name from `sampler_names`.
+
+    Shared names are ComfyUI's KSampler names (`'euler_ancestral'`, `'dpmpp_2m'`); each backend translates them (see
+    `sampler_names.SAMPLER_WEBUI_NAMES`). WebUI names (`'Euler a'`) are accepted on both backends. Other names are
+    sent unchanged, so they work only on a backend that defines them. The constructor also accepts the field as
+    `sampler_name`, the WebUI request key.
+    """
+
+    scheduler: str = 'normal'
+    """Noise schedule that sets the size of each denoising step, as a shared name from `sampler_names`.
+
+    Shared names are ComfyUI's KSampler names (`'normal'`, `'karras'`); see `sampler_names.SCHEDULER_WEBUI_NAMES` for
+    the WebUI versions that accept them.
+    """
 
     batch_size: int = 1
-    """Number of images to generate per batch."""
+    """Number of images generated in parallel by one request.
+
+    ComfyUI accepts 1 to `diffusion_workflow_builder.MAX_BATCH_SIZE`. WebUI can also repeat the batch with
+    `DiffusionRequestBody.n_iter`.
+    """
 
     steps: int = 30
     """Number of denoising steps per image generation."""
@@ -37,10 +64,14 @@ class DiffusionParams(BaseModel):
     """
 
     width: int = 512
-    """Generated image width in pixels."""
+    """Generated image width in pixels.
+
+    For img2img and inpainting, the source image and mask are resized to `width` x `height` before generation. On WebUI
+    `DiffusionRequestBody.resize_mode` chooses how; ComfyUI always stretches, like WebUI's default `JUST_RESIZE`.
+    """
 
     height: int = 512
-    """Generated image height in pixels."""
+    """Generated image height in pixels. See `width` for how img2img sources are resized."""
 
 
     ### Prompt:
@@ -61,9 +92,10 @@ class DiffusionParams(BaseModel):
     """
 
     denoising_strength: Optional[float] = None
-    """
-    Amount that the source image should change in image to image and inpainting generations, ranging from 0.0 (no
-    change) to 1.0 (complete replacement).
+    """Amount the source image changes in img2img and inpainting, from 0.0 (no change) to 1.0 (complete replacement).
+
+    None selects `DEFAULT_DENOISING_STRENGTH`. Text-to-image generation ignores it on ComfyUI and uses it only for
+    the high-res fix pass on WebUI.
     """
 
 

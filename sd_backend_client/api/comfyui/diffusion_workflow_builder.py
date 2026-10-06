@@ -14,6 +14,7 @@ from sd_backend_client.api.comfyui.nodes.comfy_node_graph import ComfyNodeGraph
 from sd_backend_client.api.comfyui.nodes.controlnet.apply_controlnet_node import ApplyControlNetNode
 from sd_backend_client.api.comfyui.nodes.controlnet.dynamic_preprocessor_node import DynamicPreprocessorNode
 from sd_backend_client.api.comfyui.nodes.controlnet.load_controlnet_node import LoadControlNetNode
+from sd_backend_client.api.comfyui.nodes.image_scale_node import ImageScaleNode
 from sd_backend_client.api.comfyui.nodes.inpaint_model_conditioning_node import InpaintModelConditioningNode
 from sd_backend_client.api.comfyui.nodes.input.checkpoint_loader_node import CheckpointLoaderNode
 from sd_backend_client.api.comfyui.nodes.input.clip_text_encode_node import ClipTextEncodeNode
@@ -33,7 +34,8 @@ from sd_backend_client.api.comfyui.nodes.vae.vae_encode_node import VAEEncodeNod
 from sd_backend_client.api.comfyui.nodes.vae.vae_encode_tiled_node import VAEEncodeTiledNode
 from sd_backend_client.api.comfyui.workflow_builder_utils import random_seed, image_ref_to_str
 from sd_backend_client.api.shared_data.controlnet.controlnet_preprocessor import PreprocessorParams
-from sd_backend_client.api.shared_data.diffusion_params import DiffusionParams
+from sd_backend_client.api.shared_data.diffusion_params import DEFAULT_DENOISING_STRENGTH, DiffusionParams
+from sd_backend_client.api.shared_data.sampler_names import comfyui_sampler_name, comfyui_scheduler_name
 from sd_backend_client.util.geometry import Size
 
 logger = logging.getLogger(__name__)
@@ -250,7 +252,7 @@ class DiffusionWorkflowBuilder:
 
     @property
     def image_size(self) -> Size:
-        """Accesses the generated image size.  If a source image is provided, this is ignored."""
+        """Accesses the generated image size. A source image is stretched to this size before encoding."""
         return self._size
 
     @image_size.setter
@@ -401,6 +403,9 @@ class DiffusionWorkflowBuilder:
             latent_out_idx = EmptyLatentNode.IDX_LATENT
         else:
             image_loading_node = LoadImageNode(source_image)
+            # Stretch the source to the requested size, matching WebUI's default resize mode:
+            scale_node = ImageScaleNode(self.image_size.width(), self.image_size.height())
+            workflow.connect_nodes(scale_node, ImageScaleNode.IMAGE, image_loading_node, LoadImageNode.IDX_IMAGE)
 
             if mask_load_node is not None and self.load_as_inpainting_model:
                 inpaint_conditioning_node = InpaintModelConditioningNode()
@@ -411,7 +416,7 @@ class DiffusionWorkflowBuilder:
                 workflow.connect_nodes(inpaint_conditioning_node, InpaintModelConditioningNode.VAE,
                                        vae_model_node, vae_out_index)
                 workflow.connect_nodes(inpaint_conditioning_node, InpaintModelConditioningNode.PIXELS,
-                                       image_loading_node, LoadImageNode.IDX_IMAGE)
+                                       scale_node, ImageScaleNode.IDX_IMAGE)
                 workflow.connect_nodes(inpaint_conditioning_node, InpaintModelConditioningNode.MASK,
                                        mask_load_node, LoadImageMaskNode.IDX_MASK)
                 positive_node = inpaint_conditioning_node
@@ -424,14 +429,14 @@ class DiffusionWorkflowBuilder:
                 if self.vae_tiling_enabled:
                     latent_image_node: ComfyNode = VAEEncodeTiledNode(self._vae_tile_size)
                     workflow.connect_nodes(latent_image_node, VAEEncodeTiledNode.PIXELS,
-                                           image_loading_node, LoadImageNode.IDX_IMAGE)
+                                           scale_node, ImageScaleNode.IDX_IMAGE)
                     workflow.connect_nodes(latent_image_node, VAEEncodeTiledNode.VAE,
                                            vae_model_node, vae_out_index)
                     latent_out_idx = VAEEncodeTiledNode.IDX_LATENT
                 else:
                     latent_image_node = VAEEncodeNode()
                     workflow.connect_nodes(latent_image_node, VAEEncodeNode.PIXELS,
-                                           image_loading_node, LoadImageNode.IDX_IMAGE)
+                                           scale_node, ImageScaleNode.IDX_IMAGE)
                     workflow.connect_nodes(latent_image_node, VAEEncodeNode.VAE,
                                            vae_model_node, vae_out_index)
                     latent_out_idx = VAEEncodeNode.IDX_LATENT
@@ -555,12 +560,8 @@ class DiffusionWorkflowBuilder:
         self.steps = diffusion_params.steps
         self.cfg_scale = diffusion_params.cfg_scale
         self.image_size = Size(diffusion_params.width, diffusion_params.height)
-        # Use the ComfyUI-specific sampler/scheduler names, not the WebUI-style `sampler_name` (e.g. 'Euler a'),
-        # which ComfyUI's KSampler rejects.
-        if diffusion_params.sampler != '':
-            self.sampler = diffusion_params.sampler
-        if diffusion_params.scheduler != '':
-            self.scheduler = diffusion_params.scheduler
+        self.sampler = comfyui_sampler_name(diffusion_params.sampler)
+        self.scheduler = comfyui_scheduler_name(diffusion_params.scheduler)
         seed = diffusion_params.seed
         if seed < 0:
             seed = random_seed()
@@ -614,7 +615,7 @@ class DiffusionWorkflowBuilder:
             else:
                 self.negative_prompt = re.sub(extension_model_pattern, '', prompt)
 
-            if diffusion_params.init_images is not None and len(diffusion_params.init_images) > 0 \
-                    and diffusion_params.denoising_strength is not None:
-                self.denoising_strength = diffusion_params.denoising_strength
-            self.model_config_path = diffusion_params.sd_model_config
+        if diffusion_params.init_images:
+            self.denoising_strength = DEFAULT_DENOISING_STRENGTH if diffusion_params.denoising_strength is None \
+                else diffusion_params.denoising_strength
+        self.model_config_path = diffusion_params.sd_model_config
