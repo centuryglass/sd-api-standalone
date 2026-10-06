@@ -11,6 +11,7 @@ import io
 from PIL import Image
 
 from sd_backend_client.api.shared_data.controlnet.controlnet_unit import ControlNetUnit
+from sd_backend_client.api.shared_data.diffusion_params import DEFAULT_DENOISING_STRENGTH
 from sd_backend_client.api.webui.diffusion_request_body import DiffusionRequestBody
 from sd_backend_client.util.visual.image_utils import BASE_64_PREFIX, image_from_base64, image_to_base64
 
@@ -35,6 +36,13 @@ def test_to_dict_keeps_explicitly_set_optionals():
     data = body.to_dict()
     assert data['denoising_strength'] == 0.55
     assert data['mask'].startswith(BASE_64_PREFIX)
+
+
+def test_to_dict_fills_default_denoising_strength_only_for_img2img():
+    """An img2img body without denoising_strength sends DEFAULT_DENOISING_STRENGTH."""
+    body = DiffusionRequestBody(init_images=[Image.new('RGB', (2, 2))])
+    assert body.to_dict()['denoising_strength'] == DEFAULT_DENOISING_STRENGTH
+    assert body.denoising_strength is None  # to_dict leaves the body unchanged
 
 
 def _emitted_mask_pixels(mask: Image.Image) -> list[int]:
@@ -98,13 +106,16 @@ def test_to_dict_passes_through_core_generation_params():
     body.negative_prompt = 'blurry'
     body.seed = 99
     body.steps = 7
-    body.sampler_name = 'Euler a'
+    body.sampler = 'euler_ancestral'
+    body.scheduler = 'ddim_uniform'
     data = body.to_dict()
     assert data['prompt'] == 'a red apple'
     assert data['negative_prompt'] == 'blurry'
     assert data['seed'] == 99
     assert data['steps'] == 7
-    assert data['sampler_name'] == 'Euler a'
+    assert data['sampler_name'] == 'Euler a'  # shared names are translated to WebUI's
+    assert data['scheduler'] == 'ddim'
+    assert 'sampler' not in data
 
 
 def test_to_dict_does_not_modify_the_body():

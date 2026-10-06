@@ -58,6 +58,8 @@ attributes directly.
 - **`test_controlnet_serialization.py`** — `ControlNetUnit` / preprocessor serialize↔deserialize
   round-trips (both WebUI and ComfyUI key formats).
 - **`test_image_and_geometry.py`** — base64/PNG round-trips, RGBA normalization, `Size`.
+- **`test_param_parity.py`** - the same `DiffusionParams` serialized for both backends asks for the same
+  generation: sampler and scheduler names, size, batch size, denoising strength and checkpoint.
 
 These pin behavior ahead of the planned config-decoupling refactor: they cover exactly the
 logic that survives it, so a regression that silently changes an emitted request will fail
@@ -96,6 +98,12 @@ workflow builders read from.
   img2img, inpaint-with-mask, upscale, interrupt.
 - **`test_comfyui_controlnet_generation.py`** *(opt-in)* — Canny preprocessor preview
   plus the same **silent-failure detector** A/B (with vs. without a control unit).
+
+### Both backends
+
+- **`test_shared_params.py`** - each server lists the names in `sampler_names`' tables (unlisted ones are
+  warnings); *(opt-in)* img2img resizes a source to `width` x `height` on both backends, and WebUI applies the
+  requested scheduler.
 
 ### Saved outputs
 

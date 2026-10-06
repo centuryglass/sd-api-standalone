@@ -98,9 +98,14 @@ def test_img2img_uses_vae_encode_instead_of_empty_latent():
     workflow = builder.build_workflow().get_workflow_dict()
 
     assert nodes_of_type(workflow, 'EmptyLatentImage') == []
-    single_node(workflow, 'VAEEncode')
+    encode = single_node(workflow, 'VAEEncode')
     load_image = single_node(workflow, 'LoadImage')
     assert load_image['inputs']['image'] == 'IntraPaint/src_image.png [input]'
+    # The source is stretched to image_size before encoding, as WebUI does:
+    scale = single_node(workflow, 'ImageScale')
+    assert (scale['inputs']['width'], scale['inputs']['height'], scale['inputs']['crop']) == (384, 256, 'disabled')
+    assert workflow[str(scale['inputs']['image'][0])] is load_image
+    assert workflow[str(encode['inputs']['pixels'][0])] is scale
     # Denoising strength should flow through to the sampler for img2img.
     assert single_node(workflow, 'KSampler')['inputs']['denoise'] == 0.6
 
