@@ -441,7 +441,7 @@ def test_open_websocket_maps_scheme_and_keeps_base_path(monkeypatch, server_url:
 @pytest.mark.parametrize('failure, expected', [
     (websocket.WebSocketTimeoutException('timed out'), BackendTimeoutError),
     (ConnectionRefusedError('refused'), BackendConnectionError),
-    (websocket.WebSocketBadStatusException('Handshake status 404', 404), BackendConnectionError),
+    (websocket.WebSocketException('Handshake status 404 Not Found'), BackendConnectionError),
 ])
 def test_open_websocket_wraps_connection_failures(monkeypatch, failure: Exception, expected: type):
     """A websocket that fails to open raises the package's connection or timeout error."""
