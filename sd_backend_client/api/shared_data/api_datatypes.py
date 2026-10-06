@@ -26,7 +26,7 @@ class DiffusionUpscalingParams(BaseModel):
     the same name) plus the optional ControlNet tile pass. The diffusion pass itself (prompt, seed, cfg, sampler, model,
     ...) is carried by `diffusion_params`; the fields here are the upscale-specific tunables layered on top of it.
     """
-    model_config = ConfigDict(arbitrary_types_allowed=True)
+    model_config = ConfigDict(arbitrary_types_allowed=True, validate_assignment=True)
 
     upscaling_mode: str = ""
     """Optional basic upscaler to use for basic upscaling or preprocessing before enhancing details via diffusion."""
@@ -47,25 +47,25 @@ class DiffusionUpscalingParams(BaseModel):
     here, since upscaling typically uses a much lower denoising strength than a from-scratch generation.
     """
 
-    denoising_strength: float = UPSCALING_DENOISING_STRENGTH_DEFAULT
+    denoising_strength: float = Field(default=UPSCALING_DENOISING_STRENGTH_DEFAULT, ge=0.0, le=1.0)
     """
     Denoising strength (range: 0.0, 1.0) to use when enhancing details via diffusion when
     use_stable_diffusion_upscaling=True
     """
 
-    step_count: int = UPSCALING_STEP_COUNT_DEFAULT
+    step_count: int = Field(default=UPSCALING_STEP_COUNT_DEFAULT, ge=1)
     """Number of detail-enhancing diffusion steps to apply per image tile when use_stable_diffusion_upscaling=True"""
 
-    tile_width: int = GENERATION_SIZE_DEFAULT
+    tile_width: int = Field(default=GENERATION_SIZE_DEFAULT, gt=0)
     """Width (pixels) for each tiled diffusion step when use_stable_diffusion_upscaling=True"""
 
-    tile_height: int = GENERATION_SIZE_DEFAULT
+    tile_height: int = Field(default=GENERATION_SIZE_DEFAULT, gt=0)
     """Height (pixels) for each tiled diffusion step when use_stable_diffusion_upscaling=True"""
 
-    mask_blur: int = 8
+    mask_blur: int = Field(default=8, ge=0)
     """Blur radius (pixels) applied to tile edges before compositing."""
 
-    tile_padding: int = 32
+    tile_padding: int = Field(default=32, ge=0)
     """Padding (pixels) added around each tile before diffusion."""
 
     redraw_mode: RedrawMode = 'Linear'
@@ -81,16 +81,16 @@ class DiffusionUpscalingParams(BaseModel):
     seam_fix_mode: SeamFixMode = 'None'
     """Seam-fix strategy, or 'None' to skip the seam-fix pass."""
 
-    seam_fix_denoise: float = 0.35
-    """Denoising strength for the seam-fix pass."""
+    seam_fix_denoise: float = Field(default=0.35, ge=0.0, le=1.0)
+    """Denoising strength for the seam-fix pass, from 0.0 to 1.0."""
 
-    seam_fix_width: int = 64
+    seam_fix_width: int = Field(default=64, ge=0)
     """Width (pixels) of the band redrawn along seams during the seam-fix pass."""
 
-    seam_fix_mask_blur: int = 8
+    seam_fix_mask_blur: int = Field(default=8, ge=0)
     """Blur radius (pixels) applied to seam-fix masks."""
 
-    seam_fix_padding: int = 16
+    seam_fix_padding: int = Field(default=16, ge=0)
     """Padding (pixels) added around seam-fix regions."""
 
     ### WebUI-only output options:

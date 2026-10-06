@@ -2,6 +2,9 @@
 import re
 from typing import Any
 
+from pydantic import GetCoreSchemaHandler
+from pydantic_core import core_schema
+
 # Misc. regular expressions to use for attempting to extract relevant segments from a full ControlNet model name
 # and construct a display name. We can't assume that any of these are present, but when they are they should be safe
 # to use.  Patterns are based off of links on https://github.com/Mikubill/sd-webui-controlnet/wiki/Model-download,
@@ -25,7 +28,11 @@ MODEL_VERSION_PATTERN = r'[_-]?(v\d+[A-Za-z0-9]*)(?:[_-]|$)'
 
 
 class ControlNetModel:
-    """Provides a common data representation for ControlNet models."""
+    """Provides a common data representation for ControlNet models.
+
+    Equality and hashing use `full_model_name`. Pydantic fields of this type accept an instance or a full model name,
+    and serialize to the full model name in JSON.
+    """
 
     def __init__(self, full_model_name: str) -> None:
         self._full_model_name = full_model_name
@@ -62,6 +69,23 @@ class ControlNetModel:
         if not isinstance(other, ControlNetModel):
             return False
         return self.full_model_name == other.full_model_name
+
+    def __hash__(self) -> int:
+        return hash(self._full_model_name)
+
+    def __repr__(self) -> str:
+        return f'ControlNetModel({self._full_model_name!r})'
+
+    @classmethod
+    def __get_pydantic_core_schema__(cls, _source_type: Any,
+                                     _handler: GetCoreSchemaHandler) -> core_schema.CoreSchema:
+        from_name = core_schema.chain_schema([core_schema.str_schema(),
+                                              core_schema.no_info_plain_validator_function(cls)])
+        return core_schema.json_or_python_schema(
+            json_schema=from_name,
+            python_schema=core_schema.union_schema([core_schema.is_instance_schema(cls), from_name]),
+            serialization=core_schema.plain_serializer_function_ser_schema(lambda model: model.full_model_name,
+                                                                           when_used='json'))
 
     @property
     def full_model_name(self) -> str:

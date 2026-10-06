@@ -50,9 +50,6 @@
     "missing-function-docstring": 1,
     "trailing-newlines": 1
   },
-  "sd_backend_client/api/shared_data/controlnet/controlnet_unit.py": {
-    "missing-final-newline": 1
-  },
   "sd_backend_client/api/webui/controlnet_webui_constants.py": {
     "line-too-long": 2,
     "unsupported-membership-test": 1
