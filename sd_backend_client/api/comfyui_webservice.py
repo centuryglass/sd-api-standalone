@@ -168,7 +168,8 @@ class ComfyUiWebservice(WebService):
 
     def is_node_available(self, node_name: str) -> bool:
         """Checks if a node with the given name is available."""
-        info_endpoint = f'{ComfyEndpoints.OBJECT_INFO}/{quote(node_name, safe='')}'
+        node_segment = quote(node_name, safe='')
+        info_endpoint = f'{ComfyEndpoints.OBJECT_INFO}/{node_segment}'
         # Only the presence of the node key matters here, so keep the raw response as a plain dict.
         node_info: dict[str, Any] = self.get(info_endpoint).json()
         return node_name in node_info
