@@ -2,7 +2,7 @@
 from typing import Any, TypeAlias, Optional
 from typing_extensions import TypedDict
 
-from pydantic import BaseModel
+from pydantic import BaseModel, ConfigDict
 
 
 class ProgressStateDict(BaseModel):
@@ -39,6 +39,8 @@ class LoraInfo(BaseModel):
 
 class ModelInfo(BaseModel):
     """Data used to define Stable Diffusion models in WebUI API responses from the /sdapi/v1/sd-models endpoint."""
+    model_config = ConfigDict(protected_namespaces=('model_validate', 'model_dump'))
+
     title: str
     model_name: str
     hash: Optional[str] = None  # null for models the server hasn't hashed
@@ -49,6 +51,8 @@ class ModelInfo(BaseModel):
 
 class VaeInfo(BaseModel):
     """Data used to define Stable Diffusion VAE models in WebUI API responses from the /sdapi/v1/sd-vae endpoint."""
+    model_config = ConfigDict(protected_namespaces=('model_validate', 'model_dump'))
+
     model_name: str
     filename: str
 
@@ -62,6 +66,8 @@ class SamplerInfo(BaseModel):
 
 class UpscalerInfo(BaseModel):
     """Data used to define upscalers in WebUI API responses from the /sdapi/v1/upscalers endpoint."""
+    model_config = ConfigDict(protected_namespaces=('model_validate', 'model_dump'))
+
     name: str
     model_name: Optional[str]
     model_path: Optional[str]
