@@ -25,7 +25,6 @@
     "fixme": 1
   },
   "sd_backend_client/api/comfyui_webservice.py": {
-    "consider-using-dict-items": 1,
     "consider-using-enumerate": 1,
     "import-outside-toplevel": 3,
     "inconsistent-quotes": 3,
