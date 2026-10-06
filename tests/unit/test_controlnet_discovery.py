@@ -1,7 +1,13 @@
 """Offline tests for ControlNet option discovery: preprocessor parsing on both backends, and control type categories.
 
 The inputs are hand-written in the shapes ComfyUI's /object_info and the WebUI's /controlnet/module_list return.
+`fixtures/a1111_controlnet_module_list.json` is a subset of the A1111 sd-webui-controlnet extension's
+/controlnet/module_list response, written from the extension's source (`get_modules_detail` and
+`PreprocessorParameter.api_json`). To refresh it from a live server, run
+`curl "$SD_API_URL/controlnet/module_list?alias_names=false"` and keep the entries the tests use.
 """
+import json
+from pathlib import Path
 from typing import Any
 
 import pytest
@@ -10,10 +16,11 @@ from sd_backend_client.api.comfyui.comfyui_types import NodeInfoResponse
 from sd_backend_client.api.comfyui.controlnet_comfyui_utils import get_all_preprocessors as comfy_preprocessors
 from sd_backend_client.api.shared_data.controlnet.controlnet_category_builder import ControlNetCategoryBuilder
 from sd_backend_client.api.shared_data.controlnet.controlnet_preprocessor import ControlNetPreprocessor
-from sd_backend_client.api.webui.controlnet_webui_constants import ModuleDetail
+from sd_backend_client.api.webui.controlnet_webui_constants import ControlNetModuleResponse, ModuleDetail
 from sd_backend_client.api.webui.controlnet_webui_utils import get_all_preprocessors as webui_preprocessors
 
 PREPROCESSOR_CATEGORY = 'ControlNet Preprocessors/Line Extractors'
+A1111_MODULE_LIST = Path(__file__).parent / 'fixtures' / 'a1111_controlnet_module_list.json'
 
 
 def _node(name: str, required: dict[str, Any], optional: dict[str, Any] | None = None,
@@ -112,9 +119,9 @@ def test_webui_preset_parameters_without_module_details():
 def test_webui_module_details_map_resolution_and_thresholds():
     """API sliders map to processor_res by name and to threshold_a/threshold_b by order."""
     details = {'canny': ModuleDetail.model_validate({'model_free': False, 'sliders': [
-        {'name': 'Resolution', 'min': 64, 'max': 2048, 'default': 512, 'step': 8},
-        {'name': 'Low Threshold', 'min': 1, 'max': 255, 'default': 100, 'step': 1},
-        {'name': 'High Threshold', 'min': 1, 'max': 255, 'default': 200, 'step': 1},
+        {'name': 'Resolution', 'value': 512, 'min': 64, 'max': 2048, 'step': 8},
+        {'name': 'Low Threshold', 'value': 100, 'min': 1, 'max': 255, 'step': 1},
+        {'name': 'High Threshold', 'value': 200, 'min': 1, 'max': 255, 'step': 1},
     ]})}
     canny = webui_preprocessors(['canny'], details)[0]
 
@@ -127,10 +134,44 @@ def test_webui_module_details_map_resolution_and_thresholds():
 
 def test_webui_module_details_reject_a_third_threshold():
     """More than two non-resolution sliders is an error."""
-    slider = {'name': 'Value', 'min': 0, 'max': 1, 'default': 0, 'step': 1}
+    slider = {'name': 'Value', 'value': 0, 'min': 0, 'max': 1, 'step': 1}
     details = {'odd': ModuleDetail.model_validate({'model_free': True, 'sliders': [slider] * 3})}
     with pytest.raises(RuntimeError, match='odd'):
         webui_preprocessors(['odd'], details)
+
+
+def test_webui_reads_a1111_module_list_response():
+    """The A1111 extension's module_list response yields API-defined parameters, not the presets."""
+    response = ControlNetModuleResponse.model_validate(json.loads(A1111_MODULE_LIST.read_text(encoding='utf-8')))
+    assert response.module_details is not None
+    preprocessors = _by_name(webui_preprocessors(response.module_list, response.module_details))
+    assert list(preprocessors) == response.module_list
+
+    mlsd = {param.key: param for param in preprocessors['mlsd'].parameters}
+    assert list(mlsd) == ['control_mode', 'resize_mode', 'processor_res', 'threshold_a', 'threshold_b']
+    assert (mlsd['processor_res'].default_value, mlsd['processor_res'].step_val) == (512, 8)
+    assert mlsd['threshold_a'].description == 'MLSD Value Threshold'
+    assert (mlsd['threshold_b'].default_value, mlsd['threshold_b'].max_val) == (0.1, 20.0)
+
+    # The preset table names this slider 'Style Fidelity', so the label shows the API definition was used.
+    reference = preprocessors['reference_only']
+    assert reference.parameters[-1].description == 'Style Fidelity (only for Balanced mode)'
+    assert reference.model_free is True
+    assert [param.key for param in preprocessors['inpaint_only'].parameters] == ['control_mode']
+
+
+def test_webui_module_slider_step_is_optional():
+    """A slider without a step parses, leaving the parameter's step unset."""
+    details = {'blur': ModuleDetail.model_validate({'model_free': True, 'sliders': [
+        {'name': 'Sigma', 'value': 9.0, 'min': 0.01, 'max': 64.0}]})}
+    sigma = webui_preprocessors(['blur'], details)[0].parameters[-1]
+    assert (sigma.key, sigma.default_value, sigma.step_val) == ('threshold_a', 9.0, None)
+
+
+def test_webui_forge_module_list_has_no_details():
+    """Forge's response has only module_list, so the presets are used."""
+    response = ControlNetModuleResponse.model_validate({'module_list': ['canny']})
+    assert response.module_details is None
 
 
 # Control type categories
