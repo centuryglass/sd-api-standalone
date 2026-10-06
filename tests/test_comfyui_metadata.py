@@ -7,6 +7,7 @@ authentication, so there is no login/credentials story to test here.
 import pytest
 
 from sd_backend_client.api.comfyui_webservice import ComfyModelType
+from sd_backend_client.api.shared_data.controlnet.controlnet_preprocessor import PreprocessorParams
 
 pytestmark = pytest.mark.integration
 
@@ -85,3 +86,18 @@ def test_get_queue_info(comfy_service):
     assert queue.queue_pending is not None
     assert isinstance(queue.queue_running, list)
     assert isinstance(queue.queue_pending, list)
+
+
+def test_preprocessor_combo_options_validate(comfy_service):
+    """Every discovered preprocessor validates with its defaults, and each combo default is one of its options."""
+    preprocessors = comfy_service.get_controlnet_preprocessors()
+    if not preprocessors:
+        pytest.skip('No ControlNet preprocessor nodes installed (e.g. comfyui_controlnet_aux).')
+    combo_count = 0
+    for preprocessor in preprocessors:
+        PreprocessorParams(typedef=preprocessor, parameter_values={})
+        for param in preprocessor.parameters:
+            if param.option_list is not None:
+                combo_count += 1
+                assert param.default_value in param.option_list, f'{preprocessor.name}.{param.key}'
+    assert combo_count > 0, 'No preprocessor parameter carries an option list.'

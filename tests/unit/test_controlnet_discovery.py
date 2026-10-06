@@ -11,11 +11,13 @@ from pathlib import Path
 from typing import Any
 
 import pytest
+from pydantic import ValidationError
 
 from sd_backend_client.api.comfyui.comfyui_types import NodeInfoResponse
 from sd_backend_client.api.comfyui.controlnet_comfyui_utils import get_all_preprocessors as comfy_preprocessors
 from sd_backend_client.api.shared_data.controlnet.controlnet_category_builder import ControlNetCategoryBuilder
-from sd_backend_client.api.shared_data.controlnet.controlnet_preprocessor import ControlNetPreprocessor
+from sd_backend_client.api.shared_data.controlnet.controlnet_preprocessor import (ControlNetPreprocessor,
+                                                                                PreprocessorParams)
 from sd_backend_client.api.webui.controlnet_webui_constants import ControlNetModuleResponse, ModuleDetail
 from sd_backend_client.api.webui.controlnet_webui_utils import get_all_preprocessors as webui_preprocessors
 
@@ -71,11 +73,49 @@ def test_comfyui_parses_each_parameter_type():
     assert preprocessor.category_name == PREPROCESSOR_CATEGORY
 
 
-@pytest.mark.xfail(strict=True, reason='https://github.com/centuryglass/sd-backend-client/issues/34')
 def test_comfyui_combo_inputs_keep_their_options():
     """A combo input's choices become the parameter's option_list."""
     node = _node('ModePreprocessor', {'image': ['IMAGE'], 'mode': [['a', 'b'], {}]})
     assert comfy_preprocessors({'ModePreprocessor': node})[0].parameters[0].option_list == ['a', 'b']
+
+
+def test_comfyui_reads_combo_type_inputs():
+    """The newer `["COMBO", {"options": [...]}]` form parses like a list combo, keeping a listed default."""
+    node = _node('ModePreprocessor', {
+        'image': ['IMAGE'],
+        'mode': ['COMBO', {'options': ['a', 'b', 'c'], 'default': 'b', 'multiselect': False, 'tooltip': 'Mode'}],
+    })
+    param = comfy_preprocessors({'ModePreprocessor': node})[0].parameters[0]
+    assert (param.option_list, param.default_value, param.description) == (['a', 'b', 'c'], 'b', 'Mode')
+
+
+def test_comfyui_combo_default_falls_back_to_first_option():
+    """A combo default that isn't one of the options is replaced by the first option."""
+    node = _node('ModePreprocessor', {'image': ['IMAGE'], 'mode': [['a', 'b'], {'default': 'z'}]})
+    assert comfy_preprocessors({'ModePreprocessor': node})[0].parameters[0].default_value == 'a'
+
+
+@pytest.mark.parametrize('combo', [
+    [[], {}],
+    ['COMBO', {'options': []}],
+    ['COMBO', {'options': ['a', 'b'], 'multiselect': True}],
+], ids=['empty-list', 'empty-combo', 'multiselect'])
+def test_comfyui_unusable_combos_are_treated_as_unknown_inputs(combo: list[Any]):
+    """An empty or multiselect combo skips the node when required, and is dropped when optional."""
+    required = _node('RequiredPreprocessor', {'image': ['IMAGE'], 'mode': combo})
+    optional = _node('OptionalPreprocessor', {'image': ['IMAGE']}, optional={'mode': combo})
+    preprocessors = _by_name(comfy_preprocessors({'Required': required, 'Optional': optional}))
+    assert list(preprocessors) == ['OptionalPreprocessor']
+    assert not preprocessors['OptionalPreprocessor'].parameters
+
+
+def test_comfyui_combo_options_validate_preprocessor_params():
+    """PreprocessorParams accepts a listed combo value and rejects an unlisted one, as the server does."""
+    node = _node('ModePreprocessor', {'image': ['IMAGE'], 'mode': ['COMBO', {'options': ['a', 'b']}]})
+    preprocessor = comfy_preprocessors({'ModePreprocessor': node})[0]
+    assert PreprocessorParams(typedef=preprocessor, parameter_values={'mode': 'b'}).parameter_values == {'mode': 'b'}
+    with pytest.raises(ValidationError, match='invalid option'):
+        PreprocessorParams(typedef=preprocessor, parameter_values={'mode': 'z'})
 
 
 def test_comfyui_filters_non_preprocessor_and_unusable_nodes():

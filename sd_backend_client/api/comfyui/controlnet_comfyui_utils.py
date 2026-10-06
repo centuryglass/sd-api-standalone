@@ -1,12 +1,17 @@
 """Helper functions for processing ControlNet configuration data for use with the ComfyUI API."""
 import logging
-from typing import Optional
+from typing import Any, Optional, TypeAlias
 
 from sd_backend_client.api.comfyui.comfyui_types import (NodeInfoResponse, CONTROLNET_PREPROCESSOR_CATEGORY,
                                                          IntParamDef, BoolParamDef, FloatParamDef, StrParamDef,
                                                          ParamDef)
 from sd_backend_client.api.comfyui.nodes.controlnet.dynamic_preprocessor_node import DynamicPreprocessorNode
 from sd_backend_client.api.shared_data.controlnet.controlnet_preprocessor import ControlNetPreprocessor, ParameterDef
+
+# Type name newer ComfyUI versions use for combo inputs, with the choices in the param-def dict's "options".
+COMBO_INPUT_TYPE = 'COMBO'
+
+ComboOption: TypeAlias = str | int | float | bool
 
 # If a preprocessor name ends in "Preprocessor", we can leave that part out of the display name.
 PREPROCESSOR_SUFFIX = 'Preprocessor'
@@ -25,6 +30,33 @@ INVALID_PREPROCESSOR_NODES = {
     # image output is OPTICAL_FLOW type, which we aren't able to handle:
     'Unimatch_OptFlowPreprocessor'
 }
+
+
+def _parse_combo(input_type_or_list: Any,
+                 param_def_dict: Optional[dict[str, Any]]) -> Optional[tuple[list[ComboOption], ComboOption]]:
+    """Returns a combo input's option list and default, or None if the input isn't a combo this module can use.
+
+    ComfyUI declares combos in two forms: `[[option, ...], {...}]`, and `["COMBO", {"options": [option, ...], ...}]`.
+    The server rejects any value not in the list, so the list becomes the parameter's `option_list`. Combos with no
+    options and multiselect combos (whose values are lists) aren't usable and return None.
+    """
+    raw_options: Any
+    if isinstance(input_type_or_list, list):
+        raw_options = input_type_or_list
+    elif input_type_or_list == COMBO_INPUT_TYPE and param_def_dict is not None:
+        if param_def_dict.get('multiselect', False):
+            return None
+        raw_options = param_def_dict.get('options') or []
+    else:
+        return None
+    if not isinstance(raw_options, list) or len(raw_options) == 0 \
+            or not all(isinstance(option, (str, int, float, bool)) for option in raw_options):
+        return None
+    options: list[ComboOption] = list(raw_options)
+    default = None if param_def_dict is None else param_def_dict.get('default')
+    if default is None or default not in options:
+        return options, options[0]
+    return options, default
 
 
 def get_all_preprocessors(node_data: dict[str, NodeInfoResponse]) -> list[ControlNetPreprocessor]:
@@ -79,7 +111,8 @@ def get_all_preprocessors(node_data: dict[str, NodeInfoResponse]) -> list[Contro
                 min_val: Optional[int | float] = None
                 max_val: Optional[int | float] = None
                 step_val: Optional[int | float] = None
-                options: Optional[list[str | int | float | bool]] = None
+                options: Optional[list[ComboOption]] = None
+                combo = _parse_combo(input_type_or_list, param_def_dict)
 
                 # Re-validate the raw param dict as the specific subclass; casting the base ParamDef wouldn't
                 # populate default/min/max/step.
@@ -108,9 +141,8 @@ def get_all_preprocessors(node_data: dict[str, NodeInfoResponse]) -> list[Contro
                     string_param_def = None if input_param_def is None else StrParamDef.model_validate(input_tuple[1])
                     default_value = '' if string_param_def is None or string_param_def.default is None \
                         else string_param_def.default
-                elif isinstance(input_type_or_list, list):
-                    assert len(input_type_or_list) > 0
-                    default_value = input_type_or_list[0]
+                elif combo is not None:
+                    options, default_value = combo
                 elif input_category == 'optional':
                     logger.warning(f'"{node_name}" preprocessor: not sure how to handle optional input'
                                    f' {input_name}={input_tuple}, ignoring it.')
