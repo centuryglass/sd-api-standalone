@@ -33,6 +33,7 @@ from typing import Optional, TYPE_CHECKING
 from sd_backend_client.api.comfyui_webservice import AsyncTaskStatus
 from sd_backend_client.api.shared_data.generation_handle import (GenerationHandle, GenerationProgress,
                                                               GenerationResult, GenerationStatus)
+from sd_backend_client.errors import WorkflowValidationError
 
 if TYPE_CHECKING:
     from sd_backend_client.api.comfyui.comfyui_types import PromptExecOutputs, QueueAdditionResponse
@@ -70,12 +71,11 @@ class ComfyGenerationHandle(GenerationHandle):
                             response: 'QueueAdditionResponse') -> 'ComfyGenerationHandle':
         """Build a handle from a ``txt2img`` / ``img2img`` / ``inpaint`` queue response.
 
-        Raises ``RuntimeError`` if the server rejected the workflow (no ``prompt_id`` or queue ``number``,
-        e.g. a node validation error), surfacing the error/node_errors the way the polling helpers do.
+        Raises ``WorkflowValidationError`` if the response has no ``prompt_id`` or queue ``number``, which means the
+        server rejected the workflow.
         """
         if response.prompt_id is None or response.number is None:
-            raise RuntimeError(f'ComfyUI rejected the workflow: '
-                               f'{response.node_errors or response.error or response}')
+            raise WorkflowValidationError(response.error, response.node_errors)
         return cls(service, response.prompt_id, response.number, seed=response.seed)
 
     # --- GenerationHandle surface -----------------------------------------------------------------

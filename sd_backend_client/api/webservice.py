@@ -8,14 +8,11 @@ import secrets
 from urllib.parse import urlsplit, urlunsplit
 import requests
 
+from sd_backend_client.errors import AuthError, BackendConnectionError, BackendTimeoutError, ServerError
 
 JSON_DATA_TYPE = 'application/json'
 MULTIPART_FORM_DATA_TYPE = 'multipart/form-data'
 DEFAULT_REQUEST_TIMEOUT = 30.0
-
-
-class AuthError(Exception):
-    """Raised when the server rejects authentication and it could not be fixed by retrying."""
 
 
 class WebService:
@@ -88,14 +85,25 @@ class WebService:
         headers : dict, optional
             Any headers that should be explicitly set on the request.
         fail_on_auth_error : bool, default=false
-            Whether 401: unauthorized responses should raise a RuntimeError
+            Whether a 401: unauthorized response should raise AuthError instead of starting the auth flow.
         throw_on_failure : bool, default=true
-            Whether other responses with failure statuses should raise a RuntimeError
+            Whether other responses with failure statuses should raise ServerError.
 
         Returns
         -------
         Response
             The response returned by the webservice.
+
+        Raises
+        ------
+        BackendConnectionError
+            If the server could not be reached.
+        BackendTimeoutError
+            If the server did not respond within the timeout.
+        AuthError
+            If the server rejected authentication.
+        ServerError
+            If the server returned another failure status and throw_on_failure is set.
         """
         return self._send(endpoint, 'GET', None, None, timeout, url_params, headers, None,
                           fail_on_auth_error, throw_on_failure)
@@ -131,14 +139,25 @@ class WebService:
             Files that should be sent with form data, to be used with body type 'multipart/form-data'. Tuple format is
             (filename, file_bytes, file_type_str).
         fail_on_auth_error : bool, default=false
-            Whether 401: unauthorized responses should raise a RuntimeError
+            Whether a 401: unauthorized response should raise AuthError instead of starting the auth flow.
         throw_on_failure : bool, default=true
-            Whether other responses with failure statuses should raise a RuntimeError
+            Whether other responses with failure statuses should raise ServerError.
 
         Returns
         -------
         Response
             The response returned by the webservice.
+
+        Raises
+        ------
+        BackendConnectionError
+            If the server could not be reached.
+        BackendTimeoutError
+            If the server did not respond within the timeout.
+        AuthError
+            If the server rejected authentication.
+        ServerError
+            If the server returned another failure status and throw_on_failure is set.
         """
         if body is None:
             body_format = None
@@ -176,11 +195,13 @@ class WebService:
                                              data=body)
             else:
                 raise ValueError(f'HTTP method {method} not supported')
+        except requests.exceptions.Timeout as err:
+            raise BackendTimeoutError(f'{method} {endpoint} timed out after {request_timeout}s: {err}') from err
         except requests.exceptions.RequestException as err:
-            raise RuntimeError(f'Error connecting to {endpoint}: {err}') from err
+            raise BackendConnectionError(f'Error connecting to {address}: {err}') from err
         if res.status_code == 401:
             if fail_on_auth_error and throw_on_failure:
-                raise RuntimeError(f'HTTP method {method} failed with status 401: unauthorized')
+                raise AuthError(f'{method} {endpoint} failed with status 401: unauthorized')
             if not fail_on_auth_error:
                 if _auth_retried:
                     raise AuthError(f'HTTP method {method} to {endpoint} still failed with status 401 after '
@@ -198,7 +219,7 @@ class WebService:
                                   throw_on_failure,
                                   _auth_retried=True)
         elif res.status_code != 200 and throw_on_failure:
-            raise RuntimeError(f'{res.status_code}: {res.text}')
+            raise ServerError(res.status_code, res.text, endpoint, method)
         return res
 
     def disconnect(self) -> None:

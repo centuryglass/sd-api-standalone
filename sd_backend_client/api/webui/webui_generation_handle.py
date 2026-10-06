@@ -38,6 +38,7 @@ from PIL import Image  # type: ignore
 from sd_backend_client.api.shared_data.generation_handle import (GenerationError, GenerationHandle,
                                                               GenerationProgress, GenerationResult,
                                                               GenerationStatus, ProgressCallback)
+from sd_backend_client.errors import BackendTimeoutError
 from sd_backend_client.util.visual.image_utils import image_from_base64
 
 if TYPE_CHECKING:
@@ -150,7 +151,7 @@ class WebUIGenerationHandle(GenerationHandle):
 
         Semantically identical to the base ``GenerationHandle.wait``: ``on_progress`` still fires with a
         fresh snapshot roughly every ``poll_interval`` seconds (for progress bars / live previews),
-        ``TimeoutError`` is raised if ``timeout`` elapses, and a non-FINISHED terminal state raises
+        ``BackendTimeoutError`` is raised if ``timeout`` elapses, and a non-FINISHED terminal state raises
         ``GenerationError``. The difference is that when nothing is happening we wait on the event, so an
         idle wait costs no polling.
         """
@@ -163,7 +164,7 @@ class WebUIGenerationHandle(GenerationHandle):
             else:
                 slice_s = min(poll_interval, max(0.0, deadline - time.monotonic()))
                 if slice_s <= 0.0:
-                    raise TimeoutError(f'Generation {self._task_id!r} did not finish within {timeout}s')
+                    raise BackendTimeoutError(f'Generation {self._task_id!r} did not finish within {timeout}s')
             self._done_event.wait(slice_s)
 
         final = self.poll()
@@ -171,7 +172,9 @@ class WebUIGenerationHandle(GenerationHandle):
             on_progress(final)
         if final.status is GenerationStatus.FINISHED:
             return self._build_result()
-        raise GenerationError(final.status, final.text_info)
+        with self._lock:
+            error = self._error
+        raise GenerationError(final.status, final.text_info) from error
 
     # --- Internal transitions (called by the dispatcher worker) -----------------------------------
 

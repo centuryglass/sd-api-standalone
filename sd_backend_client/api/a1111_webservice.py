@@ -17,7 +17,7 @@ from sd_backend_client.api.shared_data.controlnet.controlnet_preprocessor import
     PreprocessorParams
 from sd_backend_client.api.shared_data.api_datatypes import DiffusionUpscalingParams, REDRAW_MODES, SEAM_FIX_MODES
 from sd_backend_client.api.shared_data.controlnet.controlnet_unit import ControlNetUnit
-from sd_backend_client.api.webservice import WebService, AuthError, DEFAULT_REQUEST_TIMEOUT
+from sd_backend_client.api.webservice import WebService, DEFAULT_REQUEST_TIMEOUT
 from sd_backend_client.api.webui.controlnet_webui_constants import (ControlNetModelResponse, ControlNetModuleResponse,
                                                       ControlTypeDef, ControlTypeResponse,
                                                       FIRST_GENERIC_PARAMETER_KEY, SECOND_GENERIC_PARAMETER_KEY,
@@ -28,6 +28,7 @@ from sd_backend_client.api.webui.request_formats import UpscalingRequestBody
 from sd_backend_client.api.webui.response_formats import GenerationInfoData, ProgressResponseBody, \
     InterrogateResponse, PromptStyleData, SamplerInfo, UpscalerInfo, ModelInfo, VaeInfo, LoraInfo
 from sd_backend_client.api.webui.script_info_types import ScriptResponseData, ScriptInfo
+from sd_backend_client.errors import AuthError, SDBackendError, ServerError, UnexpectedResponseError
 from sd_backend_client.util.visual.image_utils import (image_to_base64, image_from_base64, image_from_bytes,
                                                     mask_to_grayscale)
 
@@ -299,7 +300,10 @@ class A1111Webservice(WebService):
                 if param_key in preprocessor.parameter_values:
                     body[detect_key] = preprocessor.parameter_values[param_key]
         res = self.post(A1111Webservice.Endpoints.CONTROLNET_PREVIEW, body, timeout=self._generation_timeout)
-        return self._handle_image_response(res)['images'][0]
+        images = self._handle_image_response(res)['images']
+        if not images:
+            raise UnexpectedResponseError(f'{A1111Webservice.Endpoints.CONTROLNET_PREVIEW} returned no preview image')
+        return images[0]
 
     def _validate_tile_controlnet(self, tile_control_unit: Optional[ControlNetUnit]) -> Optional[ControlNetUnit]:
         """Return the tile ControlNet unit only if it's fully specified and installed on the server, else None."""
@@ -420,11 +424,12 @@ class A1111Webservice(WebService):
             'model': interrogate_model,
             'image': image_to_base64(image, include_prefix=True)
         }
-        res = self.post(A1111Webservice.Endpoints.INTERROGATE, body, timeout=60).json()
+        res = self._response_json(self.post(A1111Webservice.Endpoints.INTERROGATE, body, timeout=60))
         if isinstance(res, dict):
-            res = InterrogateResponse.model_validate(res)
-            return res.caption
-        assert isinstance(res, str)
+            return InterrogateResponse.model_validate(res).caption
+        if not isinstance(res, str):
+            raise UnexpectedResponseError(f'{A1111Webservice.Endpoints.INTERROGATE} returned {res!r}, expected a '
+                                          'caption')
         return res
 
     def interrupt(self) -> dict:
@@ -436,10 +441,28 @@ class A1111Webservice(WebService):
         return res.json()
 
     @staticmethod
+    def _response_json(res: Response) -> Any:
+        """Parses a successful response's JSON body, raising UnexpectedResponseError if it is not JSON."""
+        try:
+            return res.json()
+        except ValueError as err:
+            raise UnexpectedResponseError(f'Expected a JSON response from {res.url}, got: {res.text[:200]!r}') from err
+
+    @staticmethod
     def _handle_image_response(res: Response) -> ImageResponse:
-        if res.status_code != 200:
-            raise RuntimeError(res.json())
-        res_body = res.json()
+        """Decodes the images in a successful generation response.
+
+        Raises UnexpectedResponseError if the body is not JSON or an image cannot be decoded."""
+        res_body = A1111Webservice._response_json(res)
+        if not isinstance(res_body, dict):
+            raise UnexpectedResponseError(f'Expected a JSON object from {res.url}, got {type(res_body).__name__}')
+        try:
+            return A1111Webservice._decode_image_response(res_body)
+        except (OSError, ValueError) as err:
+            raise UnexpectedResponseError(f'Images returned by {res.url} could not be decoded: {err}') from err
+
+    @staticmethod
+    def _decode_image_response(res_body: dict[str, Any]) -> ImageResponse:
         images = []
         info_data: Optional[GenerationInfoData] = None
         if 'images' in res_body:
@@ -535,7 +558,7 @@ class A1111Webservice(WebService):
         """
         try:
             vae_models = self.get(A1111Webservice.Endpoints.VAE_MODELS).json()
-        except RuntimeError:
+        except ServerError:
             vae_models = self.get(A1111Webservice.ForgeEndpoints.SD_MODULES).json()
         return [VaeInfo.model_validate(item) for item in vae_models]
 
@@ -581,7 +604,7 @@ class A1111Webservice(WebService):
         models = self.get_controlnet_models()
         try:
             control_type_defs = self.get_controlnet_control_types()
-        except (KeyError, RuntimeError):
+        except (KeyError, ServerError):
             control_type_defs = None
         preprocessor_names = modules.module_list
         model_names = models.model_list
@@ -604,7 +627,7 @@ class A1111Webservice(WebService):
             if not res.ok:
                 return None
             return image_from_bytes(res.content)
-        except (RuntimeError, IOError) as err:
+        except (SDBackendError, OSError, ValueError) as err:
             logger.error(f'Failed to load thumbnail "{file_path}": {err}')
             return None
 

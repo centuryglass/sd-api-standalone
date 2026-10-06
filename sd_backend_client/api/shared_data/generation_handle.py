@@ -26,6 +26,11 @@ from typing import Callable, Optional
 
 from PIL import Image  # type: ignore
 
+from sd_backend_client.errors import BackendTimeoutError, GenerationError
+
+__all__ = ['GenerationStatus', 'GenerationProgress', 'GenerationResult', 'ProgressCallback', 'GenerationError',
+           'GenerationHandle']
+
 
 class GenerationStatus(Enum):
     """Unified lifecycle status for a generation job across both backends.
@@ -85,14 +90,6 @@ class GenerationResult:
 ProgressCallback = Callable[[GenerationProgress], None]
 
 
-class GenerationError(RuntimeError):
-    """Raised by ``wait()`` when a job ends in a non-FINISHED terminal state."""
-
-    def __init__(self, status: GenerationStatus, message: Optional[str] = None) -> None:
-        self.status = status
-        super().__init__(message or f'Generation ended with status {status.value}')
-
-
 class GenerationHandle(ABC):
     """Backend-agnostic handle to one submitted generation job.
 
@@ -149,7 +146,7 @@ class GenerationHandle(ABC):
         Parameters
         ----------
         timeout: Optional[float]
-            Max seconds to wait before raising ``TimeoutError``. ``None`` waits indefinitely.
+            Max seconds to wait before raising ``BackendTimeoutError``. ``None`` waits indefinitely.
         poll_interval: float
             Seconds between ``poll()`` calls.
         on_progress: Optional[ProgressCallback]
@@ -157,7 +154,7 @@ class GenerationHandle(ABC):
 
         Raises
         ------
-        TimeoutError
+        BackendTimeoutError
             If ``timeout`` elapses before the job reaches a terminal state.
         GenerationError
             If the job ends FAILED / CANCELLED / NOT_FOUND.
@@ -172,5 +169,5 @@ class GenerationHandle(ABC):
             if progress.status.is_terminal:
                 raise GenerationError(progress.status, progress.text_info)
             if deadline is not None and time.monotonic() >= deadline:
-                raise TimeoutError(f'Generation {self._task_id!r} did not finish within {timeout}s')
+                raise BackendTimeoutError(f'Generation {self._task_id!r} did not finish within {timeout}s')
             time.sleep(poll_interval)

@@ -12,6 +12,8 @@ in *which* routes they expose — e.g. ReForge keeps ``/controlnet/model_list``,
 """
 import pytest
 
+from sd_backend_client.errors import SDBackendError
+
 pytestmark = pytest.mark.integration
 
 # The `controlnet_available` fixture lives in conftest.py (shared with the generation tests).
@@ -21,7 +23,7 @@ def test_controlnet_version(controlnet_available):
     # Optional endpoint: present on upstream sd-webui-controlnet, dropped by some forks.
     try:
         version = controlnet_available.get_controlnet_version()
-    except RuntimeError as err:
+    except SDBackendError as err:
         pytest.skip(f'/controlnet/version not exposed by this build: {err}')
     assert isinstance(version, int)
     assert version > 0
@@ -51,7 +53,7 @@ def test_controlnet_settings(controlnet_available):
     # Optional endpoint: dropped by some forks (ReForge returns 404).
     try:
         settings = controlnet_available.get_controlnet_settings()
-    except RuntimeError as err:
+    except SDBackendError as err:
         pytest.skip(f'/controlnet/settings not exposed by this build: {err}')
     assert isinstance(settings, dict)
 

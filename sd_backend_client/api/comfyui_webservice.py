@@ -34,6 +34,8 @@ from sd_backend_client.api.shared_data.controlnet.controlnet_preprocessor import
 from sd_backend_client.api.shared_data.controlnet.controlnet_unit import ControlNetUnit
 from sd_backend_client.api.shared_data.diffusion_params import DiffusionParams
 from sd_backend_client.api.webservice import WebService, MULTIPART_FORM_DATA_TYPE, DEFAULT_REQUEST_TIMEOUT
+from sd_backend_client.errors import BackendConnectionError, BackendTimeoutError, ServerError, \
+    UnexpectedResponseError, WorkflowValidationError
 from sd_backend_client.util.geometry import Size
 from sd_backend_client.util.visual.image_utils import image_to_png_bytes, image_from_bytes, image_from_base64, \
     ImageKey, get_image_key, mask_to_grayscale
@@ -151,20 +153,25 @@ class ComfyUiWebservice(WebService):
             self._ksampler_info = ksampler_info
         return ksampler_info
 
+    def _get_ksampler_options(self, option_key: str) -> list[str]:
+        """Reads one combo input's option names from KSampler node info.
+
+        Raises UnexpectedResponseError if the node info has no option list under that key."""
+        required_inputs = self._get_ksampler_info_caching().input.required
+        # After validation the option param is a tuple whose first element is the list of option names.
+        option_param = required_inputs.get(option_key)
+        if not isinstance(option_param, tuple) or not isinstance(option_param[0], list):
+            raise UnexpectedResponseError(f'{KSAMPLER_NAME} node info has no option list for {option_key!r}, '
+                                          f'got {option_param!r}')
+        return cast(list[str], option_param[0])
+
     def get_sampler_names(self) -> list[str]:
         """Gets the list of sampling method names from KSampler node info."""
-        ksampler_info = self._get_ksampler_info_caching()
-        required_inputs = ksampler_info.input.required
-        # After validation the option param is a tuple whose first element is the list of option names.
-        assert SAMPLER_OPTION_KEY in required_inputs and isinstance(required_inputs[SAMPLER_OPTION_KEY], tuple)
-        return cast(list[str], required_inputs[SAMPLER_OPTION_KEY][0])
+        return self._get_ksampler_options(SAMPLER_OPTION_KEY)
 
     def get_scheduler_names(self) -> list[str]:
         """Gets the list of sampling scheduler names from KSampler node info."""
-        ksampler_info = self._get_ksampler_info_caching()
-        required_inputs = ksampler_info.input.required
-        assert SCHEDULER_OPTION_KEY in required_inputs and isinstance(required_inputs[SCHEDULER_OPTION_KEY], tuple)
-        return cast(list[str], required_inputs[SCHEDULER_OPTION_KEY][0])
+        return self._get_ksampler_options(SCHEDULER_OPTION_KEY)
 
     def is_node_available(self, node_name: str) -> bool:
         """Checks if a node with the given name is available."""
@@ -261,8 +268,8 @@ class ComfyUiWebservice(WebService):
             else:
                 try:
                     image = image_from_base64(image)
-                except binascii.Error:
-                    raise ValueError(f"invalid image string {image}: expected base64")
+                except binascii.Error as err:
+                    raise ValueError(f"invalid image string {image}: expected base64") from err
         assert isinstance(image, Image.Image)
         image_key = get_image_key(image)
         if image_key in self._uploaded_images:
@@ -338,18 +345,47 @@ class ComfyUiWebservice(WebService):
 
 
     def download_images(self, image_refs: list[ImageFileReference]) -> list[Image.Image]:
-        """Download a list of images from ComfyUI as RGBA PIL images."""
+        """Download a list of images from ComfyUI as RGBA PIL images.
+
+        Returns one image per reference, in order. Raises if any image fails to download, with ServerError or
+        BackendConnectionError from the request, or UnexpectedResponseError if the server's data is not an image.
+        """
         images: list[Image.Image] = []
         for image_ref in image_refs:
+            image_res = self.get(ComfyEndpoints.VIEW_IMAGE, url_params=image_ref.model_dump(exclude_none=True),
+                                 timeout=EXTENDED_TIMEOUT)
             try:
-                image_res = self.get(ComfyEndpoints.VIEW_IMAGE, url_params=image_ref.model_dump(exclude_none=True),
-                                     timeout=EXTENDED_TIMEOUT)
                 images.append(image_from_bytes(image_res.content))
-            except (IOError, ValueError, RuntimeError) as err:
-                logger.error(f'Skipping image {image_ref}: {err}')
+            except (OSError, ValueError) as err:
+                raise UnexpectedResponseError(f'Image {image_ref.filename!r} downloaded from ComfyUI could not be '
+                                              f'decoded: {err}') from err
         return images
 
     # Running ComfyUI workflows:
+
+    def _queue_prompt(self, prompt: dict[str, Any]) -> QueueAdditionResponse:
+        """Posts a workflow to /prompt and returns the queue response.
+
+        Raises WorkflowValidationError if ComfyUI rejects the workflow. ComfyUI reports that with status 400 and a
+        QueueAdditionResponse body holding `error` and `node_errors`; a 400 without that body stays a ServerError.
+        """
+        body = QueueAdditionRequest(prompt=prompt, client_id=self._client_id)
+        try:
+            res = self.post(ComfyEndpoints.PROMPT, body=body.model_dump(exclude_none=True))
+        except ServerError as err:
+            if err.status_code != 400:
+                raise
+            try:
+                rejection = QueueAdditionResponse.model_validate_json(err.body)
+            except ValidationError:
+                raise err from None
+            if rejection.error is None and not rejection.node_errors:
+                raise
+            raise WorkflowValidationError(rejection.error, rejection.node_errors) from err
+        response = QueueAdditionResponse.model_validate(res.json())
+        if response.prompt_id is None or response.number is None:
+            raise WorkflowValidationError(response.error, response.node_errors)
+        return response
 
     def _build_diffusion_body(self,
                               diffusion_params: DiffusionParams,
@@ -425,10 +461,7 @@ class ComfyUiWebservice(WebService):
             workflow_builder.denoising_strength = 1.0
         if diffusion_params.controlnet_units is not None:
             self._prepare_controlnet_data(workflow_builder, diffusion_params.controlnet_units)
-        prompt = workflow_builder.build_workflow().get_workflow_dict()
-        body = QueueAdditionRequest(prompt=prompt, client_id=self._client_id)
-        res = QueueAdditionResponse.model_validate(
-            self.post(ComfyEndpoints.PROMPT, body=body.model_dump(exclude_none=True)).json())
+        res = self._queue_prompt(workflow_builder.build_workflow().get_workflow_dict())
         res.seed = workflow_builder.seed
         return res
 
@@ -443,10 +476,7 @@ class ComfyUiWebservice(WebService):
                 workflow_builder.set_mask_from_reference(mask_reference)
         if diffusion_params.controlnet_units is not None:
             self._prepare_controlnet_data(workflow_builder, diffusion_params.controlnet_units)
-        prompt = workflow_builder.build_workflow().get_workflow_dict()
-        body = QueueAdditionRequest(prompt=prompt, client_id=self._client_id)
-        res = QueueAdditionResponse.model_validate(
-            self.post(ComfyEndpoints.PROMPT, body=body.model_dump(exclude_none=True)).json())
+        res = self._queue_prompt(workflow_builder.build_workflow().get_workflow_dict())
         res.seed = workflow_builder.seed
         return res
 
@@ -496,10 +526,7 @@ class ComfyUiWebservice(WebService):
             mask_reference = None
         workflow_builder = PreprocessorPreviewWorkflowBuilder(preprocessor)
         workflow = workflow_builder.build_workflow(image_reference, mask_reference)
-        prompt = workflow.get_workflow_dict()
-        body = QueueAdditionRequest(prompt=prompt, client_id=self._client_id)
-        return QueueAdditionResponse.model_validate(
-            self.post(ComfyEndpoints.PROMPT, body=body.model_dump(exclude_none=True)).json())
+        return self._queue_prompt(workflow.get_workflow_dict())
 
     def _validate_tile_controlnet(self, tile_control_unit: Optional[ControlNetUnit]) -> Optional[ControlNetUnit]:
         """Return the tile ControlNet unit only if it's fully specified and installed on the server, else None."""
@@ -568,15 +595,12 @@ class ComfyUiWebservice(WebService):
 
         else:  # Basic upscaling workflow:
             if upscale_model is None:
-                raise RuntimeError(f'No valid upscaling model, provided value was "{upscale_params.upscaling_mode}"')
+                raise ValueError(f'Upscaling model "{upscale_params.upscaling_mode}" is not installed on the server.'
+                                 ' Basic upscaling needs one of get_models(ComfyModelType.UPSCALING).')
             workflow_node_graph = build_basic_upscaling_workflow(image_reference, upscale_params.upscaling_mode,
                                                                 Size(width, height))
 
-        prompt = workflow_node_graph.get_workflow_dict()
-        body = QueueAdditionRequest(prompt=prompt, client_id=self._client_id)
-        res = QueueAdditionResponse.model_validate(
-            self.post(ComfyEndpoints.PROMPT, body=body.model_dump(exclude_none=True)).json())
-        return res
+        return self._queue_prompt(workflow_node_graph.get_workflow_dict())
 
     # Queued/in-progress workflow status and control:
 
@@ -584,9 +608,10 @@ class ComfyUiWebservice(WebService):
         """Get info on the set of queued jobs."""
         res_body = self.get(ComfyEndpoints.QUEUE).json()
         for queue_key in [ACTIVE_QUEUE_KEY, PENDING_QUEUE_KEY]:
-            assert queue_key in res_body
-            queue_list = res_body[queue_key]
-            assert isinstance(queue_list, list)
+            queue_list = res_body.get(queue_key) if isinstance(res_body, dict) else None
+            if not isinstance(queue_list, list):
+                raise UnexpectedResponseError(f'{ComfyEndpoints.QUEUE} response has no {queue_key!r} list: '
+                                              f'{res_body!r}')
             res_body[queue_key] = [tuple(queue_entry) for queue_entry in queue_list]
         return QueueInfoResponse.model_validate(res_body)
 
@@ -654,10 +679,18 @@ class ComfyUiWebservice(WebService):
 
     @contextmanager
     def open_websocket(self) -> Generator[websocket.WebSocket, None, None]:
-        """Yields an open ComfyUI websocket that automatically closes when the context exits."""
+        """Yields an open ComfyUI websocket that automatically closes when the context exits.
+
+        Raises BackendTimeoutError or BackendConnectionError if the websocket cannot be opened."""
         ws = websocket.WebSocket()
         query = urlencode({'clientId': self._client_id})
-        ws.connect(f'{self.websocket_url}/ws?{query}')
+        address = f'{self.websocket_url}/ws?{query}'
+        try:
+            ws.connect(address)
+        except (websocket.WebSocketTimeoutException, TimeoutError) as err:
+            raise BackendTimeoutError(f'Opening the websocket at {address} timed out: {err}') from err
+        except (websocket.WebSocketException, OSError) as err:
+            raise BackendConnectionError(f'Error opening the websocket at {address}: {err}') from err
         try:
             yield ws
         finally:

@@ -26,8 +26,9 @@ import os
 import pytest
 from pydantic import ValidationError
 
-from sd_backend_client.api.a1111_webservice import A1111Webservice, AuthError
+from sd_backend_client.api.a1111_webservice import A1111Webservice
 from sd_backend_client.api.comfyui_webservice import ComfyUiWebservice
+from sd_backend_client.errors import AuthError, SDBackendError
 
 DEFAULT_PORT = 7860
 COMFY_DEFAULT_PORT = 8188
@@ -99,7 +100,7 @@ def comfy_service(comfy_url) -> ComfyUiWebservice:
     client = ComfyUiWebservice(comfy_url)
     try:
         client.get_system_stats()
-    except RuntimeError as err:
+    except SDBackendError as err:
         pytest.skip(f'No ComfyUI server reachable at {comfy_url}: {err}')
     yield client
     client.disconnect()
@@ -132,7 +133,7 @@ def controlnet_available(service):
     """
     try:
         models = service.get_controlnet_models()
-    except (RuntimeError, ValidationError) as err:
+    except (SDBackendError, ValidationError) as err:
         pytest.skip(f'ControlNet extension not installed or returned an unexpected response: {err}')
     if not models.model_list:
         pytest.skip(f'Unexpected /controlnet/model_list response: {models!r}')
@@ -186,9 +187,9 @@ def auth_enforced(api_url) -> bool:
     try:
         probe.get('/sdapi/v1/samplers', fail_on_auth_error=True)
         return False
-    except RuntimeError as err:
-        if '401' in str(err):
-            return True
+    except AuthError:
+        return True
+    except SDBackendError as err:
         pytest.skip(f'No WebUI server reachable at {api_url}: {err}')
     finally:
         probe.disconnect()
@@ -209,7 +210,7 @@ def service(api_url, credentials) -> A1111Webservice:
         pytest.fail(
             f'Server at {api_url} requires authentication but SD_UNAME / SD_PASS were not usable: {err}'
         )
-    except RuntimeError as err:
+    except SDBackendError as err:
         pytest.skip(f'No WebUI server reachable at {api_url}: {err}')
     yield client
     client.disconnect()
