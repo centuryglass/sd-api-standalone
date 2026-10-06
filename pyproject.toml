@@ -19,6 +19,10 @@ dependencies = [
 [tool.setuptools.packages.find]
 include = ["sd_backend_client*"]
 
+# PEP 561 marker: type checkers read the installed package's annotations only when it is in the wheel.
+[tool.setuptools.package-data]
+sd_backend_client = ["py.typed"]
+
 # CI's typecheck job runs `mypy` with these settings (AGENTS.md, "Type checking").
 [tool.mypy]
 files = ["sd_backend_client"]
