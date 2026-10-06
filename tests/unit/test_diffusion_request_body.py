@@ -128,5 +128,32 @@ def test_to_dict_leaves_alwayson_scripts_unset():
     assert body.alwayson_scripts is None
 
 
+
+def test_to_dict_selects_checkpoint_through_override_settings():
+    """sd_model_name becomes override_settings['sd_model_checkpoint'], the only checkpoint field the WebUI API reads."""
+    data = DiffusionRequestBody(sd_model_name='model.safetensors').to_dict()
+    assert data['override_settings'] == {'sd_model_checkpoint': 'model.safetensors'}
+    assert 'sd_model_name' not in data
+    assert 'override_settings_restore_afterwards' not in data
+
+
+def test_to_dict_omits_checkpoint_override_when_sd_model_name_is_empty():
+    """An empty sd_model_name leaves the server's configured checkpoint in place."""
+    data = DiffusionRequestBody().to_dict()
+    assert 'sd_model_name' not in data
+    assert 'override_settings' not in data
+
+
+def test_to_dict_keeps_caller_checkpoint_override_and_other_settings():
+    """A caller-supplied sd_model_checkpoint wins over sd_model_name, and other overrides pass through."""
+    overrides = {'sd_model_checkpoint': 'b.safetensors', 'CLIP_stop_at_last_layers': 2}
+    body = DiffusionRequestBody(sd_model_name='a.safetensors', override_settings=overrides)
+    assert body.to_dict()['override_settings'] == {'sd_model_checkpoint': 'b.safetensors',
+                                                   'CLIP_stop_at_last_layers': 2}
+    body = DiffusionRequestBody(sd_model_name='a.safetensors', override_settings={'CLIP_stop_at_last_layers': 2})
+    assert body.to_dict()['override_settings'] == {'CLIP_stop_at_last_layers': 2,
+                                                   'sd_model_checkpoint': 'a.safetensors'}
+    assert body.override_settings == {'CLIP_stop_at_last_layers': 2}
+
 # def test_add_init_image_appends_base64_data_uri():
 # TODO: test to_dict serializes correctly with base64 images
