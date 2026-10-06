@@ -1,0 +1,4843 @@
+{
+ "errors": {},
+ "meta": {
+  "backend": "comfyui",
+  "captured": "2026-10-06",
+  "number": 0,
+  "prompt_id": "ef4ce2d7-82a3-492e-bf3c-f0fd0ac19121",
+  "version": "0.3.64"
+ },
+ "responses": {
+  "/history/ef4ce2d7-82a3-492e-bf3c-f0fd0ac19121": {
+   "ef4ce2d7-82a3-492e-bf3c-f0fd0ac19121": {
+    "meta": {
+     "9": {
+      "display_node": "9",
+      "node_id": "9",
+      "parent_node": null,
+      "real_node_id": "9"
+     }
+    },
+    "outputs": {
+     "9": {
+      "images": [
+       {
+        "filename": "._00001_.png",
+        "subfolder": "",
+        "type": "output"
+       }
+      ]
+     }
+    },
+    "prompt": [
+     0,
+     "ef4ce2d7-82a3-492e-bf3c-f0fd0ac19121",
+     {
+      "3": {
+       "class_type": "CLIPTextEncode",
+       "inputs": {
+        "clip": [
+         "4",
+         1
+        ],
+        "text": "a red apple on a wooden table"
+       }
+      },
+      "4": {
+       "class_type": "CheckpointLoaderSimple",
+       "inputs": {
+        "ckpt_name": "FlatIllustration_v10.safetensors"
+       }
+      },
+      "5": {
+       "class_type": "CLIPTextEncode",
+       "inputs": {
+        "clip": [
+         "4",
+         1
+        ],
+        "text": ""
+       }
+      },
+      "6": {
+       "class_type": "KSampler",
+       "inputs": {
+        "cfg": 7.0,
+        "denoise": 1.0,
+        "latent_image": [
+         "7",
+         0
+        ],
+        "model": [
+         "4",
+         0
+        ],
+        "negative": [
+         "5",
+         0
+        ],
+        "positive": [
+         "3",
+         0
+        ],
+        "sampler_name": "euler",
+        "scheduler": "karras",
+        "seed": 1,
+        "steps": 4
+       }
+      },
+      "7": {
+       "class_type": "EmptyLatentImage",
+       "inputs": {
+        "batch_size": 1,
+        "height": 256,
+        "width": 256
+       }
+      },
+      "8": {
+       "class_type": "VAEDecode",
+       "inputs": {
+        "samples": [
+         "6",
+         0
+        ],
+        "vae": [
+         "4",
+         2
+        ]
+       }
+      },
+      "9": {
+       "class_type": "SaveImage",
+       "inputs": {
+        "filename_prefix": "",
+        "images": [
+         "8",
+         0
+        ]
+       }
+      }
+     },
+     {
+      "client_id": "ee634471-84aa-4f8d-9de0-c5ed74102358"
+     },
+     [
+      "9"
+     ]
+    ],
+    "status": {
+     "completed": true,
+     "messages": [
+      [
+       "execution_start",
+       {
+        "prompt_id": "ef4ce2d7-82a3-492e-bf3c-f0fd0ac19121",
+        "timestamp": 1791312349049
+       }
+      ],
+      [
+       "execution_cached",
+       {
+        "nodes": [],
+        "prompt_id": "ef4ce2d7-82a3-492e-bf3c-f0fd0ac19121",
+        "timestamp": 1791312349050
+       }
+      ],
+      [
+       "execution_success",
+       {
+        "prompt_id": "ef4ce2d7-82a3-492e-bf3c-f0fd0ac19121",
+        "timestamp": 1791312365647
+       }
+      ]
+     ],
+     "status_str": "success"
+    }
+   }
+  },
+  "/models": [
+   "checkpoints",
+   "configs",
+   "loras",
+   "vae",
+   "text_encoders",
+   "diffusion_models",
+   "clip_vision",
+   "style_models",
+   "embeddings",
+   "diffusers",
+   "vae_approx",
+   "controlnet",
+   "gligen",
+   "upscale_models",
+   "custom_nodes",
+   "hypernetworks",
+   "photomaker",
+   "classifiers",
+   "model_patches",
+   "audio_encoders",
+   "inpaint",
+   "trellis",
+   "stablex",
+   "animatediff_models",
+   "animatediff_motion_lora",
+   "animatediff_video_formats",
+   "ipadapter",
+   "kjnodes_fonts",
+   "intrinsic_loras",
+   "lbw_models",
+   "inspire_prompts",
+   "VHS_video_formats",
+   "sams",
+   "onnx"
+  ],
+  "/models/checkpoints": [
+   "FlatIllustration_v10.safetensors",
+   "aZovyaRPGArtistTools_v4.safetensors",
+   "arthemyComics_v70.safetensors",
+   "commoncanvas_s_c.safetensors",
+   "commoncanvas_s_nc.safetensors",
+   "commoncanvas_xl_c.safetensors",
+   "commoncanvas_xl_nc.safetensors",
+   "cyberrealistic_v80.safetensors",
+   "deliberate_v3-inpainting.safetensors",
+   "deliberate_v3.safetensors",
+   "dreamlabsoil_v2.safetensors",
+   "dreamlikeDiffusion_v10.ckpt",
+   "dreamshaper_v8.safetensors",
+   "etherBluMix_v7.safetensors",
+   "etherRealMix_v4.safetensors",
+   "illustriousXL_v20.safetensors",
+   "juggernautXL_lightning.safetensors",
+   "juggernautXL_v7.safetensors",
+   "juggernaut_reborn.safetensors",
+   "landscapesupermix_v21.safetensors",
+   "lyriel_v16.safetensors",
+   "nextphoto_v30.safetensors",
+   "oilPainting_v10.safetensors",
+   "photon_v1.safetensors",
+   "pirsusArtstation_v10.safetensors",
+   "realisticVision_v60.safetensors",
+   "sd_xl_base_1.0.safetensors",
+   "sd_xl_base_1.0.vae.safetensors",
+   "sd_xl_refiner_1.0.safetensors",
+   "v1-5-pruned-emaonly.ckpt"
+  ],
+  "/models/configs": [
+   "anything_v3.yaml",
+   "v1-inference.yaml",
+   "v1-inference_clip_skip_2.yaml",
+   "v1-inference_clip_skip_2_fp16.yaml",
+   "v1-inference_fp16.yaml",
+   "v1-inpainting-inference.yaml",
+   "v2-inference-v.yaml",
+   "v2-inference-v_fp32.yaml",
+   "v2-inference.yaml",
+   "v2-inference_fp32.yaml",
+   "v2-inpainting-inference.yaml"
+  ],
+  "/models/controlnet": [
+   "EcomXL_controlnet_inpaint.safetensors",
+   "NoobAI_Inpainting_ControlNet.safetensors",
+   "control_canny-fp16.safetensors",
+   "control_depth-fp16.safetensors",
+   "control_hed-fp16.safetensors",
+   "control_lora_rank128_v11f1e_sd15_tile_fp16.safetensors",
+   "control_mlsd-fp16.safetensors",
+   "control_normal-fp16.safetensors",
+   "control_openpose-fp16.safetensors",
+   "control_scribble-fp16.safetensors",
+   "control_seg-fp16.safetensors",
+   "control_v11e_sd15_ip2p.pth",
+   "control_v11e_sd15_shuffle.pth",
+   "control_v11f1e_sd15_tile.pth",
+   "control_v11f1p_sd15_depth.pth",
+   "control_v11p_sd15_canny.pth",
+   "control_v11p_sd15_inpaint.pth",
+   "control_v11p_sd15_inpaint_fp16.safetensors",
+   "controlnetQRPatternQR_v2Sd15.safetensors",
+   "controlnetxlCNXL_destitechInpaint-inpainting.safetensors",
+   "ip-adapter-plus-face_sd15.bin",
+   "ip-adapter_sd15.pth",
+   "ip-adapter_sd15.safetensors",
+   "ip-adapter_sd15_plus.pth",
+   "ip-adapter_xl.pth",
+   "t2iadapter_canny-fp16.safetensors",
+   "t2iadapter_color-fp16.safetensors",
+   "t2iadapter_depth-fp16.safetensors",
+   "t2iadapter_keypose-fp16.safetensors",
+   "t2iadapter_openpose-fp16.safetensors",
+   "t2iadapter_seg-fp16.safetensors",
+   "t2iadapter_sketch-fp16.safetensors",
+   "t2iadapter_style-fp16.safetensors",
+   "xinsirControlnetCanny_v20.safetensors"
+  ],
+  "/object_info": {
+   "ADE_AnimateDiffSettings": {
+    "category": "Animate Diff \ud83c\udfad\ud83c\udd50\ud83c\udd53/ad settings",
+    "description": "",
+    "display_name": "AnimateDiff Settings \ud83c\udfad\ud83c\udd50\ud83c\udd53",
+    "input": {
+     "hidden": {
+      "autosize": [
+       "ADEAUTOSIZE",
+       {
+        "padding": 0
+       }
+      ]
+     },
+     "optional": {
+      "pe_adjust": [
+       "PE_ADJUST"
+      ],
+      "weight_adjust": [
+       "WEIGHT_ADJUST"
+      ]
+     }
+    },
+    "input_order": {
+     "hidden": [
+      "autosize"
+     ],
+     "optional": [
+      "pe_adjust",
+      "weight_adjust"
+     ]
+    },
+    "name": "ADE_AnimateDiffSettings",
+    "output": [
+     "AD_SETTINGS"
+    ],
+    "output_is_list": [
+     false
+    ],
+    "output_name": [
+     "AD_SETTINGS"
+    ],
+    "output_node": false,
+    "python_module": "custom_nodes.ComfyUI-AnimateDiff-Evolved"
+   },
+   "ADE_LoadCameraPosesFromPath": {
+    "category": "Animate Diff \ud83c\udfad\ud83c\udd50\ud83c\udd53/\u2461 Gen2 nodes \u2461/CameraCtrl/poses",
+    "description": "",
+    "display_name": "Load CameraCtrl Poses (Path) \ud83c\udfad\ud83c\udd50\ud83c\udd53\u2461",
+    "input": {
+     "optional": {
+      "file_path": [
+       "STRING",
+       {
+        "default": "X://path/to/pose_file.txt"
+       }
+      ]
+     }
+    },
+    "input_order": {
+     "optional": [
+      "file_path"
+     ]
+    },
+    "name": "ADE_LoadCameraPosesFromPath",
+    "output": [
+     "CAMERACTRL_POSES"
+    ],
+    "output_is_list": [
+     false
+    ],
+    "output_name": [
+     "CAMERACTRL_POSES"
+    ],
+    "output_node": false,
+    "python_module": "custom_nodes.ComfyUI-AnimateDiff-Evolved"
+   },
+   "AIO_Preprocessor": {
+    "category": "ControlNet Preprocessors",
+    "description": "",
+    "display_name": "AIO Aux Preprocessor",
+    "input": {
+     "optional": {
+      "preprocessor": [
+       [
+        "none",
+        "AnimeFace_SemSegPreprocessor",
+        "DSINE-NormalMapPreprocessor",
+        "PyraCannyPreprocessor",
+        "LineartStandardPreprocessor",
+        "Metric3D-DepthMapPreprocessor",
+        "Metric3D-NormalMapPreprocessor",
+        "DWPreprocessor",
+        "AnimalPosePreprocessor",
+        "LineArtPreprocessor",
+        "Zoe-DepthMapPreprocessor",
+        "BAE-NormalMapPreprocessor",
+        "AnyLineArtPreprocessor_aux",
+        "AnimeLineArtPreprocessor",
+        "OneFormer-COCO-SemSegPreprocessor",
+        "OneFormer-ADE20K-SemSegPreprocessor",
+        "DepthAnythingV2Preprocessor",
+        "DensePosePreprocessor",
+        "CannyEdgePreprocessor",
+        "TEEDPreprocessor",
+        "OpenposePreprocessor",
+        "LeReS-DepthMapPreprocessor",
+        "DepthAnythingPreprocessor",
+        "Zoe_DepthAnythingPreprocessor",
+        "PiDiNetPreprocessor",
+        "MeshGraphormer-DepthMapPreprocessor",
+        "ColorPreprocessor",
+        "SAMPreprocessor",
+        "ImageLuminanceDetector",
+        "ImageIntensityDetector",
+        "Manga2Anime_LineArt_Preprocessor",
+        "MiDaS-NormalMapPreprocessor",
+        "MiDaS-DepthMapPreprocessor",
+        "ShufflePreprocessor",
+        "MediaPipe-FaceMeshPreprocessor",
+        "HEDPreprocessor",
+        "FakeScribblePreprocessor",
+        "UniFormer-SemSegPreprocessor",
+        "SemSegPreprocessor",
+        "M-LSDPreprocessor",
+        "BinaryPreprocessor",
+        "TilePreprocessor",
+        "TTPlanet_TileGF_Preprocessor",
+        "TTPlanet_TileSimple_Preprocessor",
+        "ScribblePreprocessor",
+        "Scribble_XDoG_Preprocessor",
+        "Scribble_PiDiNet_Preprocessor"
+       ],
+       {
+        "default": "none"
+       }
+      ],
+      "resolution": [
+       "INT",
+       {
+        "default": 512,
+        "max": 16384,
+        "min": 64,
+        "step": 64
+       }
+      ]
+     },
+     "required": {
+      "image": [
+       "IMAGE"
+      ]
+     }
+    },
+    "input_order": {
+     "optional": [
+      "preprocessor",
+      "resolution"
+     ],
+     "required": [
+      "image"
+     ]
+    },
+    "name": "AIO_Preprocessor",
+    "output": [
+     "IMAGE"
+    ],
+    "output_is_list": [
+     false
+    ],
+    "output_name": [
+     "IMAGE"
+    ],
+    "output_node": false,
+    "python_module": "custom_nodes.comfyui_controlnet_aux"
+   },
+   "AnimalPosePreprocessor": {
+    "category": "ControlNet Preprocessors/Faces and Poses Estimators",
+    "description": "",
+    "display_name": "AnimalPose Estimator (AP10K)",
+    "input": {
+     "optional": {
+      "bbox_detector": [
+       [
+        "yolox_l.torchscript.pt",
+        "yolox_l.onnx",
+        "yolo_nas_l_fp16.onnx",
+        "yolo_nas_m_fp16.onnx",
+        "yolo_nas_s_fp16.onnx"
+       ],
+       {
+        "default": "yolox_l.torchscript.pt"
+       }
+      ],
+      "pose_estimator": [
+       [
+        "rtmpose-m_ap10k_256_bs5.torchscript.pt",
+        "rtmpose-m_ap10k_256.onnx"
+       ],
+       {
+        "default": "rtmpose-m_ap10k_256_bs5.torchscript.pt"
+       }
+      ],
+      "resolution": [
+       "INT",
+       {
+        "default": 512,
+        "max": 16384,
+        "min": 64,
+        "step": 64
+       }
+      ]
+     },
+     "required": {
+      "image": [
+       "IMAGE"
+      ]
+     }
+    },
+    "input_order": {
+     "optional": [
+      "bbox_detector",
+      "pose_estimator",
+      "resolution"
+     ],
+     "required": [
+      "image"
+     ]
+    },
+    "name": "AnimalPosePreprocessor",
+    "output": [
+     "IMAGE",
+     "POSE_KEYPOINT"
+    ],
+    "output_is_list": [
+     false,
+     false
+    ],
+    "output_name": [
+     "IMAGE",
+     "POSE_KEYPOINT"
+    ],
+    "output_node": false,
+    "python_module": "custom_nodes.comfyui_controlnet_aux"
+   },
+   "AnimeFace_SemSegPreprocessor": {
+    "category": "ControlNet Preprocessors/Semantic Segmentation",
+    "description": "",
+    "display_name": "Anime Face Segmentor",
+    "input": {
+     "optional": {
+      "remove_background_using_abg": [
+       "BOOLEAN",
+       {
+        "default": true
+       }
+      ],
+      "resolution": [
+       "INT",
+       {
+        "default": 512,
+        "max": 512,
+        "min": 512,
+        "step": 64
+       }
+      ]
+     },
+     "required": {
+      "image": [
+       "IMAGE"
+      ]
+     }
+    },
+    "input_order": {
+     "optional": [
+      "remove_background_using_abg",
+      "resolution"
+     ],
+     "required": [
+      "image"
+     ]
+    },
+    "name": "AnimeFace_SemSegPreprocessor",
+    "output": [
+     "IMAGE",
+     "MASK"
+    ],
+    "output_is_list": [
+     false,
+     false
+    ],
+    "output_name": [
+     "IMAGE",
+     "ABG_CHARACTER_MASK (MASK)"
+    ],
+    "output_node": false,
+    "python_module": "custom_nodes.comfyui_controlnet_aux"
+   },
+   "AnimeLineArtPreprocessor": {
+    "category": "ControlNet Preprocessors/Line Extractors",
+    "description": "",
+    "display_name": "Anime Lineart",
+    "input": {
+     "optional": {
+      "resolution": [
+       "INT",
+       {
+        "default": 512,
+        "max": 16384,
+        "min": 64,
+        "step": 64
+       }
+      ]
+     },
+     "required": {
+      "image": [
+       "IMAGE"
+      ]
+     }
+    },
+    "input_order": {
+     "optional": [
+      "resolution"
+     ],
+     "required": [
+      "image"
+     ]
+    },
+    "name": "AnimeLineArtPreprocessor",
+    "output": [
+     "IMAGE"
+    ],
+    "output_is_list": [
+     false
+    ],
+    "output_name": [
+     "IMAGE"
+    ],
+    "output_node": false,
+    "python_module": "custom_nodes.comfyui_controlnet_aux"
+   },
+   "AnyLineArtPreprocessor_aux": {
+    "category": "ControlNet Preprocessors/Line Extractors",
+    "description": "",
+    "display_name": "AnyLine Lineart",
+    "input": {
+     "optional": {
+      "lineart_lower_bound": [
+       "FLOAT",
+       {
+        "default": 0,
+        "max": 1,
+        "min": 0,
+        "step": 0.01
+       }
+      ],
+      "lineart_upper_bound": [
+       "FLOAT",
+       {
+        "default": 1,
+        "max": 1,
+        "min": 0,
+        "step": 0.01
+       }
+      ],
+      "merge_with_lineart": [
+       [
+        "lineart_standard",
+        "lineart_realisitic",
+        "lineart_anime",
+        "manga_line"
+       ],
+       {
+        "default": "lineart_standard"
+       }
+      ],
+      "object_connectivity": [
+       "INT",
+       {
+        "default": 1,
+        "max": 16384,
+        "min": 1,
+        "step": 1
+       }
+      ],
+      "object_min_size": [
+       "INT",
+       {
+        "default": 36,
+        "max": 16384,
+        "min": 1,
+        "step": 1
+       }
+      ],
+      "resolution": [
+       "INT",
+       {
+        "default": 1280,
+        "max": 16384,
+        "min": 64,
+        "step": 8
+       }
+      ]
+     },
+     "required": {
+      "image": [
+       "IMAGE"
+      ]
+     }
+    },
+    "input_order": {
+     "optional": [
+      "merge_with_lineart",
+      "resolution",
+      "lineart_lower_bound",
+      "lineart_upper_bound",
+      "object_min_size",
+      "object_connectivity"
+     ],
+     "required": [
+      "image"
+     ]
+    },
+    "name": "AnyLineArtPreprocessor_aux",
+    "output": [
+     "IMAGE"
+    ],
+    "output_is_list": [
+     false
+    ],
+    "output_name": [
+     "image"
+    ],
+    "output_node": false,
+    "python_module": "custom_nodes.comfyui_controlnet_aux"
+   },
+   "BAE-NormalMapPreprocessor": {
+    "category": "ControlNet Preprocessors/Normal and Depth Estimators",
+    "description": "",
+    "display_name": "BAE Normal Map",
+    "input": {
+     "optional": {
+      "resolution": [
+       "INT",
+       {
+        "default": 512,
+        "max": 16384,
+        "min": 64,
+        "step": 64
+       }
+      ]
+     },
+     "required": {
+      "image": [
+       "IMAGE"
+      ]
+     }
+    },
+    "input_order": {
+     "optional": [
+      "resolution"
+     ],
+     "required": [
+      "image"
+     ]
+    },
+    "name": "BAE-NormalMapPreprocessor",
+    "output": [
+     "IMAGE"
+    ],
+    "output_is_list": [
+     false
+    ],
+    "output_name": [
+     "IMAGE"
+    ],
+    "output_node": false,
+    "python_module": "custom_nodes.comfyui_controlnet_aux"
+   },
+   "BinaryPreprocessor": {
+    "category": "ControlNet Preprocessors/Line Extractors",
+    "description": "",
+    "display_name": "Binary Lines",
+    "input": {
+     "optional": {
+      "bin_threshold": [
+       "INT",
+       {
+        "default": 100,
+        "max": 255,
+        "min": 0,
+        "step": 1
+       }
+      ],
+      "resolution": [
+       "INT",
+       {
+        "default": 512,
+        "max": 16384,
+        "min": 64,
+        "step": 64
+       }
+      ]
+     },
+     "required": {
+      "image": [
+       "IMAGE"
+      ]
+     }
+    },
+    "input_order": {
+     "optional": [
+      "bin_threshold",
+      "resolution"
+     ],
+     "required": [
+      "image"
+     ]
+    },
+    "name": "BinaryPreprocessor",
+    "output": [
+     "IMAGE"
+    ],
+    "output_is_list": [
+     false
+    ],
+    "output_name": [
+     "IMAGE"
+    ],
+    "output_node": false,
+    "python_module": "custom_nodes.comfyui_controlnet_aux"
+   },
+   "CLIPTextEncode": {
+    "category": "conditioning",
+    "description": "Encodes a text prompt using a CLIP model into an embedding that can be used to guide the diffusion model towards generating specific images.",
+    "display_name": "CLIP Text Encode (Prompt)",
+    "input": {
+     "required": {
+      "clip": [
+       "CLIP",
+       {
+        "tooltip": "The CLIP model used for encoding the text."
+       }
+      ],
+      "text": [
+       "STRING",
+       {
+        "dynamicPrompts": true,
+        "multiline": true,
+        "tooltip": "The text to be encoded."
+       }
+      ]
+     }
+    },
+    "input_order": {
+     "required": [
+      "text",
+      "clip"
+     ]
+    },
+    "name": "CLIPTextEncode",
+    "output": [
+     "CONDITIONING"
+    ],
+    "output_is_list": [
+     false
+    ],
+    "output_name": [
+     "CONDITIONING"
+    ],
+    "output_node": false,
+    "output_tooltips": [
+     "A conditioning containing the embedded text used to guide the diffusion model."
+    ],
+    "python_module": "nodes"
+   },
+   "CannyEdgePreprocessor": {
+    "category": "ControlNet Preprocessors/Line Extractors",
+    "description": "",
+    "display_name": "Canny Edge",
+    "input": {
+     "optional": {
+      "high_threshold": [
+       "INT",
+       {
+        "default": 200,
+        "max": 255,
+        "min": 0,
+        "step": 1
+       }
+      ],
+      "low_threshold": [
+       "INT",
+       {
+        "default": 100,
+        "max": 255,
+        "min": 0,
+        "step": 1
+       }
+      ],
+      "resolution": [
+       "INT",
+       {
+        "default": 512,
+        "max": 16384,
+        "min": 64,
+        "step": 64
+       }
+      ]
+     },
+     "required": {
+      "image": [
+       "IMAGE"
+      ]
+     }
+    },
+    "input_order": {
+     "optional": [
+      "low_threshold",
+      "high_threshold",
+      "resolution"
+     ],
+     "required": [
+      "image"
+     ]
+    },
+    "name": "CannyEdgePreprocessor",
+    "output": [
+     "IMAGE"
+    ],
+    "output_is_list": [
+     false
+    ],
+    "output_name": [
+     "IMAGE"
+    ],
+    "output_node": false,
+    "python_module": "custom_nodes.comfyui_controlnet_aux"
+   },
+   "CheckpointLoaderSimple": {
+    "category": "loaders",
+    "description": "Loads a diffusion model checkpoint, diffusion models are used to denoise latents.",
+    "display_name": "Load Checkpoint",
+    "input": {
+     "required": {
+      "ckpt_name": [
+       [
+        "FlatIllustration_v10.safetensors",
+        "aZovyaRPGArtistTools_v4.safetensors",
+        "arthemyComics_v70.safetensors",
+        "commoncanvas_s_c.safetensors",
+        "commoncanvas_s_nc.safetensors",
+        "commoncanvas_xl_c.safetensors",
+        "commoncanvas_xl_nc.safetensors",
+        "cyberrealistic_v80.safetensors",
+        "deliberate_v3-inpainting.safetensors",
+        "deliberate_v3.safetensors",
+        "dreamlabsoil_v2.safetensors",
+        "dreamlikeDiffusion_v10.ckpt",
+        "dreamshaper_v8.safetensors",
+        "etherBluMix_v7.safetensors",
+        "etherRealMix_v4.safetensors",
+        "illustriousXL_v20.safetensors",
+        "juggernautXL_lightning.safetensors",
+        "juggernautXL_v7.safetensors",
+        "juggernaut_reborn.safetensors",
+        "landscapesupermix_v21.safetensors",
+        "lyriel_v16.safetensors",
+        "nextphoto_v30.safetensors",
+        "oilPainting_v10.safetensors",
+        "photon_v1.safetensors",
+        "pirsusArtstation_v10.safetensors",
+        "realisticVision_v60.safetensors",
+        "sd_xl_base_1.0.safetensors",
+        "sd_xl_base_1.0.vae.safetensors",
+        "sd_xl_refiner_1.0.safetensors",
+        "v1-5-pruned-emaonly.ckpt"
+       ],
+       {
+        "tooltip": "The name of the checkpoint (model) to load."
+       }
+      ]
+     }
+    },
+    "input_order": {
+     "required": [
+      "ckpt_name"
+     ]
+    },
+    "name": "CheckpointLoaderSimple",
+    "output": [
+     "MODEL",
+     "CLIP",
+     "VAE"
+    ],
+    "output_is_list": [
+     false,
+     false,
+     false
+    ],
+    "output_name": [
+     "MODEL",
+     "CLIP",
+     "VAE"
+    ],
+    "output_node": false,
+    "output_tooltips": [
+     "The model used for denoising latents.",
+     "The CLIP model used for encoding text prompts.",
+     "The VAE model used for encoding and decoding images to and from latent space."
+    ],
+    "python_module": "nodes"
+   },
+   "ColorPreprocessor": {
+    "category": "ControlNet Preprocessors/T2IAdapter-only",
+    "description": "",
+    "display_name": "Color Pallete",
+    "input": {
+     "optional": {
+      "resolution": [
+       "INT",
+       {
+        "default": 512,
+        "max": 16384,
+        "min": 64,
+        "step": 64
+       }
+      ]
+     },
+     "required": {
+      "image": [
+       "IMAGE"
+      ]
+     }
+    },
+    "input_order": {
+     "optional": [
+      "resolution"
+     ],
+     "required": [
+      "image"
+     ]
+    },
+    "name": "ColorPreprocessor",
+    "output": [
+     "IMAGE"
+    ],
+    "output_is_list": [
+     false
+    ],
+    "output_name": [
+     "IMAGE"
+    ],
+    "output_node": false,
+    "python_module": "custom_nodes.comfyui_controlnet_aux"
+   },
+   "ControlNetApplyAdvanced": {
+    "category": "conditioning/controlnet",
+    "description": "",
+    "display_name": "Apply ControlNet",
+    "input": {
+     "optional": {
+      "vae": [
+       "VAE"
+      ]
+     },
+     "required": {
+      "control_net": [
+       "CONTROL_NET"
+      ],
+      "end_percent": [
+       "FLOAT",
+       {
+        "default": 1.0,
+        "max": 1.0,
+        "min": 0.0,
+        "step": 0.001
+       }
+      ],
+      "image": [
+       "IMAGE"
+      ],
+      "negative": [
+       "CONDITIONING"
+      ],
+      "positive": [
+       "CONDITIONING"
+      ],
+      "start_percent": [
+       "FLOAT",
+       {
+        "default": 0.0,
+        "max": 1.0,
+        "min": 0.0,
+        "step": 0.001
+       }
+      ],
+      "strength": [
+       "FLOAT",
+       {
+        "default": 1.0,
+        "max": 10.0,
+        "min": 0.0,
+        "step": 0.01
+       }
+      ]
+     }
+    },
+    "input_order": {
+     "optional": [
+      "vae"
+     ],
+     "required": [
+      "positive",
+      "negative",
+      "control_net",
+      "image",
+      "strength",
+      "start_percent",
+      "end_percent"
+     ]
+    },
+    "name": "ControlNetApplyAdvanced",
+    "output": [
+     "CONDITIONING",
+     "CONDITIONING"
+    ],
+    "output_is_list": [
+     false,
+     false
+    ],
+    "output_name": [
+     "positive",
+     "negative"
+    ],
+    "output_node": false,
+    "python_module": "nodes"
+   },
+   "ControlNetAuxSimpleAddText": {
+    "category": "ControlNet Preprocessors",
+    "description": "",
+    "display_name": "ControlNetAuxSimpleAddText",
+    "input": {
+     "required": {
+      "image": [
+       "IMAGE"
+      ],
+      "text": [
+       "STRING",
+       {
+        "default": "",
+        "multiline": false
+       }
+      ]
+     }
+    },
+    "input_order": {
+     "required": [
+      "image",
+      "text"
+     ]
+    },
+    "name": "ControlNetAuxSimpleAddText",
+    "output": [
+     "IMAGE"
+    ],
+    "output_is_list": [
+     false
+    ],
+    "output_name": [
+     "IMAGE"
+    ],
+    "output_node": false,
+    "python_module": "custom_nodes.comfyui_controlnet_aux"
+   },
+   "ControlNetPreprocessorSelector": {
+    "category": "ControlNet Preprocessors",
+    "description": "",
+    "display_name": "Preprocessor Selector",
+    "input": {
+     "required": {
+      "preprocessor": [
+       [
+        "none",
+        "AnimeFace_SemSegPreprocessor",
+        "DSINE-NormalMapPreprocessor",
+        "PyraCannyPreprocessor",
+        "LineartStandardPreprocessor",
+        "Metric3D-DepthMapPreprocessor",
+        "Metric3D-NormalMapPreprocessor",
+        "DWPreprocessor",
+        "AnimalPosePreprocessor",
+        "LineArtPreprocessor",
+        "Zoe-DepthMapPreprocessor",
+        "BAE-NormalMapPreprocessor",
+        "AnyLineArtPreprocessor_aux",
+        "AnimeLineArtPreprocessor",
+        "OneFormer-COCO-SemSegPreprocessor",
+        "OneFormer-ADE20K-SemSegPreprocessor",
+        "DepthAnythingV2Preprocessor",
+        "DensePosePreprocessor",
+        "CannyEdgePreprocessor",
+        "TEEDPreprocessor",
+        "OpenposePreprocessor",
+        "LeReS-DepthMapPreprocessor",
+        "DepthAnythingPreprocessor",
+        "Zoe_DepthAnythingPreprocessor",
+        "PiDiNetPreprocessor",
+        "MeshGraphormer-DepthMapPreprocessor",
+        "ColorPreprocessor",
+        "SAMPreprocessor",
+        "ImageLuminanceDetector",
+        "ImageIntensityDetector",
+        "Manga2Anime_LineArt_Preprocessor",
+        "MiDaS-NormalMapPreprocessor",
+        "MiDaS-DepthMapPreprocessor",
+        "ShufflePreprocessor",
+        "MediaPipe-FaceMeshPreprocessor",
+        "HEDPreprocessor",
+        "FakeScribblePreprocessor",
+        "UniFormer-SemSegPreprocessor",
+        "SemSegPreprocessor",
+        "M-LSDPreprocessor",
+        "BinaryPreprocessor",
+        "TilePreprocessor",
+        "TTPlanet_TileGF_Preprocessor",
+        "TTPlanet_TileSimple_Preprocessor",
+        "ScribblePreprocessor",
+        "Scribble_XDoG_Preprocessor",
+        "Scribble_PiDiNet_Preprocessor"
+       ]
+      ]
+     }
+    },
+    "input_order": {
+     "required": [
+      "preprocessor"
+     ]
+    },
+    "name": "ControlNetPreprocessorSelector",
+    "output": [
+     [
+      "none",
+      "AnimeFace_SemSegPreprocessor",
+      "DSINE-NormalMapPreprocessor",
+      "PyraCannyPreprocessor",
+      "LineartStandardPreprocessor",
+      "Metric3D-DepthMapPreprocessor",
+      "Metric3D-NormalMapPreprocessor",
+      "DWPreprocessor",
+      "AnimalPosePreprocessor",
+      "LineArtPreprocessor",
+      "Zoe-DepthMapPreprocessor",
+      "BAE-NormalMapPreprocessor",
+      "AnyLineArtPreprocessor_aux",
+      "AnimeLineArtPreprocessor",
+      "OneFormer-COCO-SemSegPreprocessor",
+      "OneFormer-ADE20K-SemSegPreprocessor",
+      "DepthAnythingV2Preprocessor",
+      "DensePosePreprocessor",
+      "CannyEdgePreprocessor",
+      "TEEDPreprocessor",
+      "OpenposePreprocessor",
+      "LeReS-DepthMapPreprocessor",
+      "DepthAnythingPreprocessor",
+      "Zoe_DepthAnythingPreprocessor",
+      "PiDiNetPreprocessor",
+      "MeshGraphormer-DepthMapPreprocessor",
+      "ColorPreprocessor",
+      "SAMPreprocessor",
+      "ImageLuminanceDetector",
+      "ImageIntensityDetector",
+      "Manga2Anime_LineArt_Preprocessor",
+      "MiDaS-NormalMapPreprocessor",
+      "MiDaS-DepthMapPreprocessor",
+      "ShufflePreprocessor",
+      "MediaPipe-FaceMeshPreprocessor",
+      "HEDPreprocessor",
+      "FakeScribblePreprocessor",
+      "UniFormer-SemSegPreprocessor",
+      "SemSegPreprocessor",
+      "M-LSDPreprocessor",
+      "BinaryPreprocessor",
+      "TilePreprocessor",
+      "TTPlanet_TileGF_Preprocessor",
+      "TTPlanet_TileSimple_Preprocessor",
+      "ScribblePreprocessor",
+      "Scribble_XDoG_Preprocessor",
+      "Scribble_PiDiNet_Preprocessor"
+     ]
+    ],
+    "output_is_list": [
+     false
+    ],
+    "output_name": [
+     "preprocessor"
+    ],
+    "output_node": false,
+    "python_module": "custom_nodes.comfyui_controlnet_aux"
+   },
+   "DSINE-NormalMapPreprocessor": {
+    "category": "ControlNet Preprocessors/Normal and Depth Estimators",
+    "description": "",
+    "display_name": "DSINE Normal Map",
+    "input": {
+     "optional": {
+      "fov": [
+       "FLOAT",
+       {
+        "default": 60.0,
+        "max": 365.0,
+        "min": 0,
+        "step": 0.01
+       }
+      ],
+      "iterations": [
+       "INT",
+       {
+        "default": 5,
+        "max": 20,
+        "min": 1,
+        "step": 1
+       }
+      ],
+      "resolution": [
+       "INT",
+       {
+        "default": 512,
+        "max": 16384,
+        "min": 64,
+        "step": 64
+       }
+      ]
+     },
+     "required": {
+      "image": [
+       "IMAGE"
+      ]
+     }
+    },
+    "input_order": {
+     "optional": [
+      "fov",
+      "iterations",
+      "resolution"
+     ],
+     "required": [
+      "image"
+     ]
+    },
+    "name": "DSINE-NormalMapPreprocessor",
+    "output": [
+     "IMAGE"
+    ],
+    "output_is_list": [
+     false
+    ],
+    "output_name": [
+     "IMAGE"
+    ],
+    "output_node": false,
+    "python_module": "custom_nodes.comfyui_controlnet_aux"
+   },
+   "DWPreprocessor": {
+    "category": "ControlNet Preprocessors/Faces and Poses Estimators",
+    "description": "",
+    "display_name": "DWPose Estimator",
+    "input": {
+     "optional": {
+      "bbox_detector": [
+       [
+        "yolox_l.torchscript.pt",
+        "yolox_l.onnx",
+        "yolo_nas_l_fp16.onnx",
+        "yolo_nas_m_fp16.onnx",
+        "yolo_nas_s_fp16.onnx"
+       ],
+       {
+        "default": "yolox_l.onnx"
+       }
+      ],
+      "detect_body": [
+       [
+        "enable",
+        "disable"
+       ],
+       {
+        "default": "enable"
+       }
+      ],
+      "detect_face": [
+       [
+        "enable",
+        "disable"
+       ],
+       {
+        "default": "enable"
+       }
+      ],
+      "detect_hand": [
+       [
+        "enable",
+        "disable"
+       ],
+       {
+        "default": "enable"
+       }
+      ],
+      "pose_estimator": [
+       [
+        "dw-ll_ucoco_384_bs5.torchscript.pt",
+        "dw-ll_ucoco_384.onnx",
+        "dw-ll_ucoco.onnx"
+       ],
+       {
+        "default": "dw-ll_ucoco_384_bs5.torchscript.pt"
+       }
+      ],
+      "resolution": [
+       "INT",
+       {
+        "default": 512,
+        "max": 16384,
+        "min": 64,
+        "step": 64
+       }
+      ],
+      "scale_stick_for_xinsr_cn": [
+       [
+        "disable",
+        "enable"
+       ],
+       {
+        "default": "disable"
+       }
+      ]
+     },
+     "required": {
+      "image": [
+       "IMAGE"
+      ]
+     }
+    },
+    "input_order": {
+     "optional": [
+      "detect_hand",
+      "detect_body",
+      "detect_face",
+      "resolution",
+      "bbox_detector",
+      "pose_estimator",
+      "scale_stick_for_xinsr_cn"
+     ],
+     "required": [
+      "image"
+     ]
+    },
+    "name": "DWPreprocessor",
+    "output": [
+     "IMAGE",
+     "POSE_KEYPOINT"
+    ],
+    "output_is_list": [
+     false,
+     false
+    ],
+    "output_name": [
+     "IMAGE",
+     "POSE_KEYPOINT"
+    ],
+    "output_node": false,
+    "python_module": "custom_nodes.comfyui_controlnet_aux"
+   },
+   "DensePosePreprocessor": {
+    "category": "ControlNet Preprocessors/Faces and Poses Estimators",
+    "description": "",
+    "display_name": "DensePose Estimator",
+    "input": {
+     "optional": {
+      "cmap": [
+       [
+        "Viridis (MagicAnimate)",
+        "Parula (CivitAI)"
+       ],
+       {
+        "default": "Viridis (MagicAnimate)"
+       }
+      ],
+      "model": [
+       [
+        "densepose_r50_fpn_dl.torchscript",
+        "densepose_r101_fpn_dl.torchscript"
+       ],
+       {
+        "default": "densepose_r50_fpn_dl.torchscript"
+       }
+      ],
+      "resolution": [
+       "INT",
+       {
+        "default": 512,
+        "max": 16384,
+        "min": 64,
+        "step": 64
+       }
+      ]
+     },
+     "required": {
+      "image": [
+       "IMAGE"
+      ]
+     }
+    },
+    "input_order": {
+     "optional": [
+      "model",
+      "cmap",
+      "resolution"
+     ],
+     "required": [
+      "image"
+     ]
+    },
+    "name": "DensePosePreprocessor",
+    "output": [
+     "IMAGE"
+    ],
+    "output_is_list": [
+     false
+    ],
+    "output_name": [
+     "IMAGE"
+    ],
+    "output_node": false,
+    "python_module": "custom_nodes.comfyui_controlnet_aux"
+   },
+   "DepthAnythingPreprocessor": {
+    "category": "ControlNet Preprocessors/Normal and Depth Estimators",
+    "description": "",
+    "display_name": "Depth Anything",
+    "input": {
+     "optional": {
+      "ckpt_name": [
+       [
+        "depth_anything_vitl14.pth",
+        "depth_anything_vitb14.pth",
+        "depth_anything_vits14.pth"
+       ],
+       {
+        "default": "depth_anything_vitl14.pth"
+       }
+      ],
+      "resolution": [
+       "INT",
+       {
+        "default": 512,
+        "max": 16384,
+        "min": 64,
+        "step": 64
+       }
+      ]
+     },
+     "required": {
+      "image": [
+       "IMAGE"
+      ]
+     }
+    },
+    "input_order": {
+     "optional": [
+      "ckpt_name",
+      "resolution"
+     ],
+     "required": [
+      "image"
+     ]
+    },
+    "name": "DepthAnythingPreprocessor",
+    "output": [
+     "IMAGE"
+    ],
+    "output_is_list": [
+     false
+    ],
+    "output_name": [
+     "IMAGE"
+    ],
+    "output_node": false,
+    "python_module": "custom_nodes.comfyui_controlnet_aux"
+   },
+   "DepthAnythingV2Preprocessor": {
+    "category": "ControlNet Preprocessors/Normal and Depth Estimators",
+    "description": "",
+    "display_name": "Depth Anything V2 - Relative",
+    "input": {
+     "optional": {
+      "ckpt_name": [
+       [
+        "depth_anything_v2_vitg.pth",
+        "depth_anything_v2_vitl.pth",
+        "depth_anything_v2_vitb.pth",
+        "depth_anything_v2_vits.pth"
+       ],
+       {
+        "default": "depth_anything_v2_vitl.pth"
+       }
+      ],
+      "resolution": [
+       "INT",
+       {
+        "default": 512,
+        "max": 16384,
+        "min": 64,
+        "step": 64
+       }
+      ]
+     },
+     "required": {
+      "image": [
+       "IMAGE"
+      ]
+     }
+    },
+    "input_order": {
+     "optional": [
+      "ckpt_name",
+      "resolution"
+     ],
+     "required": [
+      "image"
+     ]
+    },
+    "name": "DepthAnythingV2Preprocessor",
+    "output": [
+     "IMAGE"
+    ],
+    "output_is_list": [
+     false
+    ],
+    "output_name": [
+     "IMAGE"
+    ],
+    "output_node": false,
+    "python_module": "custom_nodes.comfyui_controlnet_aux"
+   },
+   "DiffusionEdge_Preprocessor": {
+    "category": "ControlNet Preprocessors/Line Extractors",
+    "description": "",
+    "display_name": "Diffusion Edge (batch size \u2191 => speed \u2191, VRAM \u2191)",
+    "input": {
+     "optional": {
+      "environment": [
+       [
+        "indoor",
+        "urban",
+        "natrual"
+       ],
+       {
+        "default": "indoor"
+       }
+      ],
+      "patch_batch_size": [
+       "INT",
+       {
+        "default": 4,
+        "max": 16,
+        "min": 1,
+        "step": 1
+       }
+      ],
+      "resolution": [
+       "INT",
+       {
+        "default": 512,
+        "max": 16384,
+        "min": 64,
+        "step": 64
+       }
+      ]
+     },
+     "required": {
+      "image": [
+       "IMAGE"
+      ]
+     }
+    },
+    "input_order": {
+     "optional": [
+      "environment",
+      "patch_batch_size",
+      "resolution"
+     ],
+     "required": [
+      "image"
+     ]
+    },
+    "name": "DiffusionEdge_Preprocessor",
+    "output": [
+     "IMAGE"
+    ],
+    "output_is_list": [
+     false
+    ],
+    "output_name": [
+     "IMAGE"
+    ],
+    "output_node": false,
+    "python_module": "custom_nodes.comfyui_controlnet_aux"
+   },
+   "ETN_KritaCanvas": {
+    "category": "krita",
+    "description": "",
+    "display_name": "Krita Canvas",
+    "input": {},
+    "input_order": {},
+    "name": "ETN_KritaCanvas",
+    "output": [
+     "IMAGE",
+     "INT",
+     "INT",
+     "INT"
+    ],
+    "output_is_list": [
+     false,
+     false,
+     false,
+     false
+    ],
+    "output_name": [
+     "image",
+     "width",
+     "height",
+     "seed"
+    ],
+    "output_node": false,
+    "python_module": "custom_nodes.comfyui-tooling-nodes"
+   },
+   "ETN_KritaSelection": {
+    "category": "krita",
+    "description": "",
+    "display_name": "Krita Selection",
+    "input": {},
+    "input_order": {},
+    "name": "ETN_KritaSelection",
+    "output": [
+     "MASK"
+    ],
+    "output_is_list": [
+     false
+    ],
+    "output_name": [
+     "mask"
+    ],
+    "output_node": false,
+    "python_module": "custom_nodes.comfyui-tooling-nodes"
+   },
+   "ExecuteAllControlNetPreprocessors": {
+    "category": "ControlNet Preprocessors",
+    "description": "",
+    "display_name": "Execute All ControlNet Preprocessors",
+    "input": {
+     "optional": {
+      "resolution": [
+       "INT",
+       {
+        "default": 512,
+        "max": 16384,
+        "min": 64,
+        "step": 64
+       }
+      ]
+     },
+     "required": {
+      "image": [
+       "IMAGE"
+      ]
+     }
+    },
+    "input_order": {
+     "optional": [
+      "resolution"
+     ],
+     "required": [
+      "image"
+     ]
+    },
+    "name": "ExecuteAllControlNetPreprocessors",
+    "output": [
+     "IMAGE"
+    ],
+    "output_is_list": [
+     false
+    ],
+    "output_name": [
+     "IMAGE"
+    ],
+    "output_node": false,
+    "python_module": "custom_nodes.comfyui_controlnet_aux"
+   },
+   "FacialPartColoringFromPoseKps": {
+    "category": "ControlNet Preprocessors/Pose Keypoint Postprocess",
+    "description": "",
+    "display_name": "Colorize Facial Parts from PoseKPS",
+    "input": {
+     "required": {
+      "inner_mouth": [
+       "STRING",
+       {
+        "default": "rgb(255, 204, 255)",
+        "multiline": false
+       }
+      ],
+      "left_eye": [
+       "STRING",
+       {
+        "default": "rgb(0, 204, 153)",
+        "multiline": false
+       }
+      ],
+      "lower_lip": [
+       "STRING",
+       {
+        "default": "rgb(255, 0, 102)",
+        "multiline": false
+       }
+      ],
+      "mode": [
+       [
+        "point",
+        "polygon"
+       ],
+       {
+        "default": "polygon"
+       }
+      ],
+      "nose": [
+       "STRING",
+       {
+        "default": "rgb(255, 102, 255)",
+        "multiline": false
+       }
+      ],
+      "pose_kps": [
+       "POSE_KEYPOINT"
+      ],
+      "right_eye": [
+       "STRING",
+       {
+        "default": "rgb(255, 153, 0)",
+        "multiline": false
+       }
+      ],
+      "skin": [
+       "STRING",
+       {
+        "default": "rgb(0, 153, 255)",
+        "multiline": false
+       }
+      ],
+      "upper_lip": [
+       "STRING",
+       {
+        "default": "rgb(102, 0, 51)",
+        "multiline": false
+       }
+      ]
+     }
+    },
+    "input_order": {
+     "required": [
+      "pose_kps",
+      "mode",
+      "skin",
+      "left_eye",
+      "right_eye",
+      "nose",
+      "upper_lip",
+      "inner_mouth",
+      "lower_lip"
+     ]
+    },
+    "name": "FacialPartColoringFromPoseKps",
+    "output": [
+     "IMAGE"
+    ],
+    "output_is_list": [
+     false
+    ],
+    "output_name": [
+     "IMAGE"
+    ],
+    "output_node": false,
+    "python_module": "custom_nodes.comfyui_controlnet_aux"
+   },
+   "FakeScribblePreprocessor": {
+    "category": "ControlNet Preprocessors/Line Extractors",
+    "description": "",
+    "display_name": "Fake Scribble Lines (aka scribble_hed)",
+    "input": {
+     "optional": {
+      "resolution": [
+       "INT",
+       {
+        "default": 512,
+        "max": 16384,
+        "min": 64,
+        "step": 64
+       }
+      ],
+      "safe": [
+       [
+        "enable",
+        "disable"
+       ],
+       {
+        "default": "enable"
+       }
+      ]
+     },
+     "required": {
+      "image": [
+       "IMAGE"
+      ]
+     }
+    },
+    "input_order": {
+     "optional": [
+      "safe",
+      "resolution"
+     ],
+     "required": [
+      "image"
+     ]
+    },
+    "name": "FakeScribblePreprocessor",
+    "output": [
+     "IMAGE"
+    ],
+    "output_is_list": [
+     false
+    ],
+    "output_name": [
+     "IMAGE"
+    ],
+    "output_node": false,
+    "python_module": "custom_nodes.comfyui_controlnet_aux"
+   },
+   "HEDPreprocessor": {
+    "category": "ControlNet Preprocessors/Line Extractors",
+    "description": "",
+    "display_name": "HED Soft-Edge Lines",
+    "input": {
+     "optional": {
+      "resolution": [
+       "INT",
+       {
+        "default": 512,
+        "max": 16384,
+        "min": 64,
+        "step": 64
+       }
+      ],
+      "safe": [
+       [
+        "enable",
+        "disable"
+       ],
+       {
+        "default": "enable"
+       }
+      ]
+     },
+     "required": {
+      "image": [
+       "IMAGE"
+      ]
+     }
+    },
+    "input_order": {
+     "optional": [
+      "safe",
+      "resolution"
+     ],
+     "required": [
+      "image"
+     ]
+    },
+    "name": "HEDPreprocessor",
+    "output": [
+     "IMAGE"
+    ],
+    "output_is_list": [
+     false
+    ],
+    "output_name": [
+     "IMAGE"
+    ],
+    "output_node": false,
+    "python_module": "custom_nodes.comfyui_controlnet_aux"
+   },
+   "HintImageEnchance": {
+    "category": "ControlNet Preprocessors",
+    "description": "",
+    "display_name": "Enchance And Resize Hint Images",
+    "input": {
+     "required": {
+      "hint_image": [
+       "IMAGE"
+      ],
+      "image_gen_height": [
+       "INT",
+       {
+        "default": 512,
+        "max": 8192,
+        "min": 64,
+        "step": 8
+       }
+      ],
+      "image_gen_width": [
+       "INT",
+       {
+        "default": 512,
+        "max": 8192,
+        "min": 64,
+        "step": 8
+       }
+      ],
+      "resize_mode": [
+       [
+        "Just Resize",
+        "Crop and Resize",
+        "Resize and Fill"
+       ],
+       {
+        "default": "Just Resize"
+       }
+      ]
+     }
+    },
+    "input_order": {
+     "required": [
+      "hint_image",
+      "image_gen_width",
+      "image_gen_height",
+      "resize_mode"
+     ]
+    },
+    "name": "HintImageEnchance",
+    "output": [
+     "IMAGE"
+    ],
+    "output_is_list": [
+     false
+    ],
+    "output_name": [
+     "IMAGE"
+    ],
+    "output_node": false,
+    "python_module": "custom_nodes.comfyui_controlnet_aux"
+   },
+   "ImageGenResolutionFromImage": {
+    "category": "ControlNet Preprocessors",
+    "description": "",
+    "display_name": "Generation Resolution From Image",
+    "input": {
+     "required": {
+      "image": [
+       "IMAGE"
+      ]
+     }
+    },
+    "input_order": {
+     "required": [
+      "image"
+     ]
+    },
+    "name": "ImageGenResolutionFromImage",
+    "output": [
+     "INT",
+     "INT"
+    ],
+    "output_is_list": [
+     false,
+     false
+    ],
+    "output_name": [
+     "IMAGE_GEN_WIDTH (INT)",
+     "IMAGE_GEN_HEIGHT (INT)"
+    ],
+    "output_node": false,
+    "python_module": "custom_nodes.comfyui_controlnet_aux"
+   },
+   "ImageGenResolutionFromLatent": {
+    "category": "ControlNet Preprocessors",
+    "description": "",
+    "display_name": "Generation Resolution From Latent",
+    "input": {
+     "required": {
+      "latent": [
+       "LATENT"
+      ]
+     }
+    },
+    "input_order": {
+     "required": [
+      "latent"
+     ]
+    },
+    "name": "ImageGenResolutionFromLatent",
+    "output": [
+     "INT",
+     "INT"
+    ],
+    "output_is_list": [
+     false,
+     false
+    ],
+    "output_name": [
+     "IMAGE_GEN_WIDTH (INT)",
+     "IMAGE_GEN_HEIGHT (INT)"
+    ],
+    "output_node": false,
+    "python_module": "custom_nodes.comfyui_controlnet_aux"
+   },
+   "ImageIntensityDetector": {
+    "category": "ControlNet Preprocessors/Recolor",
+    "description": "",
+    "display_name": "Image Intensity",
+    "input": {
+     "optional": {
+      "gamma_correction": [
+       "FLOAT",
+       {
+        "default": 1.0,
+        "max": 2.0,
+        "min": 0.1,
+        "step": 0.01
+       }
+      ],
+      "resolution": [
+       "INT",
+       {
+        "default": 512,
+        "max": 16384,
+        "min": 64,
+        "step": 64
+       }
+      ]
+     },
+     "required": {
+      "image": [
+       "IMAGE"
+      ]
+     }
+    },
+    "input_order": {
+     "optional": [
+      "gamma_correction",
+      "resolution"
+     ],
+     "required": [
+      "image"
+     ]
+    },
+    "name": "ImageIntensityDetector",
+    "output": [
+     "IMAGE"
+    ],
+    "output_is_list": [
+     false
+    ],
+    "output_name": [
+     "IMAGE"
+    ],
+    "output_node": false,
+    "python_module": "custom_nodes.comfyui_controlnet_aux"
+   },
+   "ImageLuminanceDetector": {
+    "category": "ControlNet Preprocessors/Recolor",
+    "description": "",
+    "display_name": "Image Luminance",
+    "input": {
+     "optional": {
+      "gamma_correction": [
+       "FLOAT",
+       {
+        "default": 1.0,
+        "max": 2.0,
+        "min": 0.1,
+        "step": 0.01
+       }
+      ],
+      "resolution": [
+       "INT",
+       {
+        "default": 512,
+        "max": 16384,
+        "min": 64,
+        "step": 64
+       }
+      ]
+     },
+     "required": {
+      "image": [
+       "IMAGE"
+      ]
+     }
+    },
+    "input_order": {
+     "optional": [
+      "gamma_correction",
+      "resolution"
+     ],
+     "required": [
+      "image"
+     ]
+    },
+    "name": "ImageLuminanceDetector",
+    "output": [
+     "IMAGE"
+    ],
+    "output_is_list": [
+     false
+    ],
+    "output_name": [
+     "IMAGE"
+    ],
+    "output_node": false,
+    "python_module": "custom_nodes.comfyui_controlnet_aux"
+   },
+   "InpaintPreprocessor": {
+    "category": "ControlNet Preprocessors/others",
+    "description": "",
+    "display_name": "Inpaint Preprocessor",
+    "input": {
+     "optional": {
+      "black_pixel_for_xinsir_cn": [
+       "BOOLEAN",
+       {
+        "default": false
+       }
+      ]
+     },
+     "required": {
+      "image": [
+       "IMAGE"
+      ],
+      "mask": [
+       "MASK"
+      ]
+     }
+    },
+    "input_order": {
+     "optional": [
+      "black_pixel_for_xinsir_cn"
+     ],
+     "required": [
+      "image",
+      "mask"
+     ]
+    },
+    "name": "InpaintPreprocessor",
+    "output": [
+     "IMAGE"
+    ],
+    "output_is_list": [
+     false
+    ],
+    "output_name": [
+     "IMAGE"
+    ],
+    "output_node": false,
+    "python_module": "custom_nodes.comfyui_controlnet_aux"
+   },
+   "KSampler": {
+    "category": "sampling",
+    "description": "Uses the provided model, positive and negative conditioning to denoise the latent image.",
+    "display_name": "KSampler",
+    "input": {
+     "required": {
+      "cfg": [
+       "FLOAT",
+       {
+        "default": 8.0,
+        "max": 100.0,
+        "min": 0.0,
+        "round": 0.01,
+        "step": 0.1,
+        "tooltip": "The Classifier-Free Guidance scale balances creativity and adherence to the prompt. Higher values result in images more closely matching the prompt however too high values will negatively impact quality."
+       }
+      ],
+      "denoise": [
+       "FLOAT",
+       {
+        "default": 1.0,
+        "max": 1.0,
+        "min": 0.0,
+        "step": 0.01,
+        "tooltip": "The amount of denoising applied, lower values will maintain the structure of the initial image allowing for image to image sampling."
+       }
+      ],
+      "latent_image": [
+       "LATENT",
+       {
+        "tooltip": "The latent image to denoise."
+       }
+      ],
+      "model": [
+       "MODEL",
+       {
+        "tooltip": "The model used for denoising the input latent."
+       }
+      ],
+      "negative": [
+       "CONDITIONING",
+       {
+        "tooltip": "The conditioning describing the attributes you want to exclude from the image."
+       }
+      ],
+      "positive": [
+       "CONDITIONING",
+       {
+        "tooltip": "The conditioning describing the attributes you want to include in the image."
+       }
+      ],
+      "sampler_name": [
+       [
+        "euler",
+        "euler_cfg_pp",
+        "euler_ancestral",
+        "euler_ancestral_cfg_pp",
+        "heun",
+        "heunpp2",
+        "dpm_2",
+        "dpm_2_ancestral",
+        "lms",
+        "dpm_fast",
+        "dpm_adaptive",
+        "dpmpp_2s_ancestral",
+        "dpmpp_2s_ancestral_cfg_pp",
+        "dpmpp_sde",
+        "dpmpp_sde_gpu",
+        "dpmpp_2m",
+        "dpmpp_2m_cfg_pp",
+        "dpmpp_2m_sde",
+        "dpmpp_2m_sde_gpu",
+        "dpmpp_2m_sde_heun",
+        "dpmpp_2m_sde_heun_gpu",
+        "dpmpp_3m_sde",
+        "dpmpp_3m_sde_gpu",
+        "ddpm",
+        "lcm",
+        "ipndm",
+        "ipndm_v",
+        "deis",
+        "res_multistep",
+        "res_multistep_cfg_pp",
+        "res_multistep_ancestral",
+        "res_multistep_ancestral_cfg_pp",
+        "gradient_estimation",
+        "gradient_estimation_cfg_pp",
+        "er_sde",
+        "seeds_2",
+        "seeds_3",
+        "sa_solver",
+        "sa_solver_pece",
+        "ddim",
+        "uni_pc",
+        "uni_pc_bh2"
+       ],
+       {
+        "tooltip": "The algorithm used when sampling, this can affect the quality, speed, and style of the generated output."
+       }
+      ],
+      "scheduler": [
+       [
+        "simple",
+        "sgm_uniform",
+        "karras",
+        "exponential",
+        "ddim_uniform",
+        "beta",
+        "normal",
+        "linear_quadratic",
+        "kl_optimal"
+       ],
+       {
+        "tooltip": "The scheduler controls how noise is gradually removed to form the image."
+       }
+      ],
+      "seed": [
+       "INT",
+       {
+        "control_after_generate": true,
+        "default": 0,
+        "max": 18446744073709551615,
+        "min": 0,
+        "tooltip": "The random seed used for creating the noise."
+       }
+      ],
+      "steps": [
+       "INT",
+       {
+        "default": 20,
+        "max": 10000,
+        "min": 1,
+        "tooltip": "The number of steps used in the denoising process."
+       }
+      ]
+     }
+    },
+    "input_order": {
+     "required": [
+      "model",
+      "seed",
+      "steps",
+      "cfg",
+      "sampler_name",
+      "scheduler",
+      "positive",
+      "negative",
+      "latent_image",
+      "denoise"
+     ]
+    },
+    "name": "KSampler",
+    "output": [
+     "LATENT"
+    ],
+    "output_is_list": [
+     false
+    ],
+    "output_name": [
+     "LATENT"
+    ],
+    "output_node": false,
+    "output_tooltips": [
+     "The denoised latent."
+    ],
+    "python_module": "nodes"
+   },
+   "LeReS-DepthMapPreprocessor": {
+    "category": "ControlNet Preprocessors/Normal and Depth Estimators",
+    "description": "",
+    "display_name": "LeReS Depth Map (enable boost for leres++)",
+    "input": {
+     "optional": {
+      "boost": [
+       [
+        "disable",
+        "enable"
+       ],
+       {
+        "default": "disable"
+       }
+      ],
+      "resolution": [
+       "INT",
+       {
+        "default": 512,
+        "max": 16384,
+        "min": 64,
+        "step": 64
+       }
+      ],
+      "rm_background": [
+       "FLOAT",
+       {
+        "default": 0,
+        "max": 100.0,
+        "min": 0,
+        "step": 0.01
+       }
+      ],
+      "rm_nearest": [
+       "FLOAT",
+       {
+        "default": 0,
+        "max": 100.0,
+        "min": 0,
+        "step": 0.01
+       }
+      ]
+     },
+     "required": {
+      "image": [
+       "IMAGE"
+      ]
+     }
+    },
+    "input_order": {
+     "optional": [
+      "rm_nearest",
+      "rm_background",
+      "boost",
+      "resolution"
+     ],
+     "required": [
+      "image"
+     ]
+    },
+    "name": "LeReS-DepthMapPreprocessor",
+    "output": [
+     "IMAGE"
+    ],
+    "output_is_list": [
+     false
+    ],
+    "output_name": [
+     "IMAGE"
+    ],
+    "output_node": false,
+    "python_module": "custom_nodes.comfyui_controlnet_aux"
+   },
+   "LineArtPreprocessor": {
+    "category": "ControlNet Preprocessors/Line Extractors",
+    "description": "",
+    "display_name": "Realistic Lineart",
+    "input": {
+     "optional": {
+      "coarse": [
+       [
+        "disable",
+        "enable"
+       ],
+       {
+        "default": "disable"
+       }
+      ],
+      "resolution": [
+       "INT",
+       {
+        "default": 512,
+        "max": 16384,
+        "min": 64,
+        "step": 64
+       }
+      ]
+     },
+     "required": {
+      "image": [
+       "IMAGE"
+      ]
+     }
+    },
+    "input_order": {
+     "optional": [
+      "coarse",
+      "resolution"
+     ],
+     "required": [
+      "image"
+     ]
+    },
+    "name": "LineArtPreprocessor",
+    "output": [
+     "IMAGE"
+    ],
+    "output_is_list": [
+     false
+    ],
+    "output_name": [
+     "IMAGE"
+    ],
+    "output_node": false,
+    "python_module": "custom_nodes.comfyui_controlnet_aux"
+   },
+   "LineartStandardPreprocessor": {
+    "category": "ControlNet Preprocessors/Line Extractors",
+    "description": "",
+    "display_name": "Standard Lineart",
+    "input": {
+     "optional": {
+      "guassian_sigma": [
+       "FLOAT",
+       {
+        "default": 6.0,
+        "max": 100.0,
+        "min": 0,
+        "step": 0.01
+       }
+      ],
+      "intensity_threshold": [
+       "INT",
+       {
+        "default": 8,
+        "max": 16,
+        "min": 0,
+        "step": 1
+       }
+      ],
+      "resolution": [
+       "INT",
+       {
+        "default": 512,
+        "max": 16384,
+        "min": 64,
+        "step": 64
+       }
+      ]
+     },
+     "required": {
+      "image": [
+       "IMAGE"
+      ]
+     }
+    },
+    "input_order": {
+     "optional": [
+      "guassian_sigma",
+      "intensity_threshold",
+      "resolution"
+     ],
+     "required": [
+      "image"
+     ]
+    },
+    "name": "LineartStandardPreprocessor",
+    "output": [
+     "IMAGE"
+    ],
+    "output_is_list": [
+     false
+    ],
+    "output_name": [
+     "IMAGE"
+    ],
+    "output_node": false,
+    "python_module": "custom_nodes.comfyui_controlnet_aux"
+   },
+   "M-LSDPreprocessor": {
+    "category": "ControlNet Preprocessors/Line Extractors",
+    "description": "",
+    "display_name": "M-LSD Lines",
+    "input": {
+     "optional": {
+      "dist_threshold": [
+       "FLOAT",
+       {
+        "default": 0.1,
+        "max": 20.0,
+        "min": 0.01,
+        "step": 0.01
+       }
+      ],
+      "resolution": [
+       "INT",
+       {
+        "default": 512,
+        "max": 16384,
+        "min": 64,
+        "step": 64
+       }
+      ],
+      "score_threshold": [
+       "FLOAT",
+       {
+        "default": 0.1,
+        "max": 2.0,
+        "min": 0.01,
+        "step": 0.01
+       }
+      ]
+     },
+     "required": {
+      "image": [
+       "IMAGE"
+      ]
+     }
+    },
+    "input_order": {
+     "optional": [
+      "score_threshold",
+      "dist_threshold",
+      "resolution"
+     ],
+     "required": [
+      "image"
+     ]
+    },
+    "name": "M-LSDPreprocessor",
+    "output": [
+     "IMAGE"
+    ],
+    "output_is_list": [
+     false
+    ],
+    "output_name": [
+     "IMAGE"
+    ],
+    "output_node": false,
+    "python_module": "custom_nodes.comfyui_controlnet_aux"
+   },
+   "Manga2Anime_LineArt_Preprocessor": {
+    "category": "ControlNet Preprocessors/Line Extractors",
+    "description": "",
+    "display_name": "Manga Lineart (aka lineart_anime_denoise)",
+    "input": {
+     "optional": {
+      "resolution": [
+       "INT",
+       {
+        "default": 512,
+        "max": 16384,
+        "min": 64,
+        "step": 64
+       }
+      ]
+     },
+     "required": {
+      "image": [
+       "IMAGE"
+      ]
+     }
+    },
+    "input_order": {
+     "optional": [
+      "resolution"
+     ],
+     "required": [
+      "image"
+     ]
+    },
+    "name": "Manga2Anime_LineArt_Preprocessor",
+    "output": [
+     "IMAGE"
+    ],
+    "output_is_list": [
+     false
+    ],
+    "output_name": [
+     "IMAGE"
+    ],
+    "output_node": false,
+    "python_module": "custom_nodes.comfyui_controlnet_aux"
+   },
+   "Mask Batch": {
+    "category": "WAS Suite/Image/Masking",
+    "description": "",
+    "display_name": "Mask Batch",
+    "input": {
+     "optional": {
+      "masks_a": [
+       "MASK"
+      ],
+      "masks_b": [
+       "MASK"
+      ],
+      "masks_c": [
+       "MASK"
+      ],
+      "masks_d": [
+       "MASK"
+      ]
+     }
+    },
+    "input_order": {
+     "optional": [
+      "masks_a",
+      "masks_b",
+      "masks_c",
+      "masks_d"
+     ]
+    },
+    "name": "Mask Batch",
+    "output": [
+     "MASK"
+    ],
+    "output_is_list": [
+     false
+    ],
+    "output_name": [
+     "masks"
+    ],
+    "output_node": false,
+    "python_module": "custom_nodes.was-ns"
+   },
+   "MaskOptFlow": {
+    "category": "ControlNet Preprocessors/Optical Flow",
+    "description": "",
+    "display_name": "Mask Optical Flow (DragNUWA)",
+    "input": {
+     "required": {
+      "mask": [
+       "MASK"
+      ],
+      "optical_flow": [
+       "OPTICAL_FLOW"
+      ]
+     }
+    },
+    "input_order": {
+     "required": [
+      "optical_flow",
+      "mask"
+     ]
+    },
+    "name": "MaskOptFlow",
+    "output": [
+     "OPTICAL_FLOW",
+     "IMAGE"
+    ],
+    "output_is_list": [
+     false,
+     false
+    ],
+    "output_name": [
+     "OPTICAL_FLOW",
+     "PREVIEW_IMAGE"
+    ],
+    "output_node": false,
+    "python_module": "custom_nodes.comfyui_controlnet_aux"
+   },
+   "MediaPipe-FaceMeshPreprocessor": {
+    "category": "ControlNet Preprocessors/Faces and Poses Estimators",
+    "description": "",
+    "display_name": "MediaPipe Face Mesh",
+    "input": {
+     "optional": {
+      "max_faces": [
+       "INT",
+       {
+        "default": 10,
+        "max": 50,
+        "min": 1,
+        "step": 1
+       }
+      ],
+      "min_confidence": [
+       "FLOAT",
+       {
+        "default": 0.5,
+        "max": 1,
+        "min": 0.1,
+        "step": 0.01
+       }
+      ],
+      "resolution": [
+       "INT",
+       {
+        "default": 512,
+        "max": 16384,
+        "min": 64,
+        "step": 64
+       }
+      ]
+     },
+     "required": {
+      "image": [
+       "IMAGE"
+      ]
+     }
+    },
+    "input_order": {
+     "optional": [
+      "max_faces",
+      "min_confidence",
+      "resolution"
+     ],
+     "required": [
+      "image"
+     ]
+    },
+    "name": "MediaPipe-FaceMeshPreprocessor",
+    "output": [
+     "IMAGE"
+    ],
+    "output_is_list": [
+     false
+    ],
+    "output_name": [
+     "IMAGE"
+    ],
+    "output_node": false,
+    "python_module": "custom_nodes.comfyui_controlnet_aux"
+   },
+   "MeshGraphormer+ImpactDetector-DepthMapPreprocessor": {
+    "category": "ControlNet Preprocessors/Normal and Depth Estimators",
+    "description": "",
+    "display_name": "MeshGraphormer Hand Refiner With External Detector",
+    "input": {
+     "optional": {
+      "bbox_crop_factor": [
+       "FLOAT",
+       {
+        "default": 3.0,
+        "max": 10.0,
+        "min": 1.0,
+        "step": 0.01
+       }
+      ],
+      "bbox_dilation": [
+       "INT",
+       {
+        "default": 10,
+        "max": 512,
+        "min": -512,
+        "step": 1
+       }
+      ],
+      "bbox_threshold": [
+       "FLOAT",
+       {
+        "default": 0.5,
+        "max": 1,
+        "min": 0.1,
+        "step": 0.01
+       }
+      ],
+      "drop_size": [
+       "INT",
+       {
+        "default": 10,
+        "max": 16384,
+        "min": 1,
+        "step": 1
+       }
+      ],
+      "mask_bbox_padding": [
+       "INT",
+       {
+        "default": 30,
+        "max": 100,
+        "min": 0,
+        "step": 1
+       }
+      ],
+      "mask_expand": [
+       "INT",
+       {
+        "default": 5,
+        "max": 16384,
+        "min": -16384,
+        "step": 1
+       }
+      ],
+      "mask_type": [
+       [
+        "based_on_depth",
+        "tight_bboxes",
+        "original"
+       ],
+       {
+        "default": "based_on_depth"
+       }
+      ],
+      "rand_seed": [
+       "INT",
+       {
+        "default": 88,
+        "max": 18446744073709551615,
+        "min": 0,
+        "step": 1
+       }
+      ],
+      "resolution": [
+       "INT",
+       {
+        "default": 512,
+        "max": 16384,
+        "min": 64,
+        "step": 64
+       }
+      ]
+     },
+     "required": {
+      "bbox_detector": [
+       "BBOX_DETECTOR"
+      ],
+      "image": [
+       "IMAGE"
+      ]
+     }
+    },
+    "input_order": {
+     "optional": [
+      "bbox_threshold",
+      "bbox_dilation",
+      "bbox_crop_factor",
+      "drop_size",
+      "mask_bbox_padding",
+      "mask_type",
+      "mask_expand",
+      "rand_seed",
+      "resolution"
+     ],
+     "required": [
+      "image",
+      "bbox_detector"
+     ]
+    },
+    "name": "MeshGraphormer+ImpactDetector-DepthMapPreprocessor",
+    "output": [
+     "IMAGE",
+     "MASK"
+    ],
+    "output_is_list": [
+     false,
+     false
+    ],
+    "output_name": [
+     "IMAGE",
+     "INPAINTING_MASK"
+    ],
+    "output_node": false,
+    "python_module": "custom_nodes.comfyui_controlnet_aux"
+   },
+   "MeshGraphormer-DepthMapPreprocessor": {
+    "category": "ControlNet Preprocessors/Normal and Depth Estimators",
+    "description": "",
+    "display_name": "MeshGraphormer Hand Refiner",
+    "input": {
+     "optional": {
+      "detect_thr": [
+       "FLOAT",
+       {
+        "default": 0.6,
+        "max": 1,
+        "min": 0.1,
+        "step": 0.01
+       }
+      ],
+      "mask_bbox_padding": [
+       "INT",
+       {
+        "default": 30,
+        "max": 100,
+        "min": 0
+       }
+      ],
+      "mask_expand": [
+       "INT",
+       {
+        "default": 5,
+        "max": 16384,
+        "min": -16384,
+        "step": 1
+       }
+      ],
+      "mask_type": [
+       [
+        "based_on_depth",
+        "tight_bboxes",
+        "original"
+       ],
+       {
+        "default": "based_on_depth"
+       }
+      ],
+      "presence_thr": [
+       "FLOAT",
+       {
+        "default": 0.6,
+        "max": 1,
+        "min": 0.1,
+        "step": 0.01
+       }
+      ],
+      "rand_seed": [
+       "INT",
+       {
+        "default": 88,
+        "max": 18446744073709551615,
+        "min": 0,
+        "step": 1
+       }
+      ],
+      "resolution": [
+       "INT",
+       {
+        "default": 512,
+        "max": 16384,
+        "min": 64,
+        "step": 64
+       }
+      ]
+     },
+     "required": {
+      "image": [
+       "IMAGE"
+      ]
+     }
+    },
+    "input_order": {
+     "optional": [
+      "mask_bbox_padding",
+      "resolution",
+      "mask_type",
+      "mask_expand",
+      "rand_seed",
+      "detect_thr",
+      "presence_thr"
+     ],
+     "required": [
+      "image"
+     ]
+    },
+    "name": "MeshGraphormer-DepthMapPreprocessor",
+    "output": [
+     "IMAGE",
+     "MASK"
+    ],
+    "output_is_list": [
+     false,
+     false
+    ],
+    "output_name": [
+     "IMAGE",
+     "INPAINTING_MASK"
+    ],
+    "output_node": false,
+    "python_module": "custom_nodes.comfyui_controlnet_aux"
+   },
+   "Metric3D-DepthMapPreprocessor": {
+    "category": "ControlNet Preprocessors/Normal and Depth Estimators",
+    "description": "",
+    "display_name": "Metric3D Depth Map",
+    "input": {
+     "optional": {
+      "backbone": [
+       [
+        "vit-small",
+        "vit-large",
+        "vit-giant2"
+       ],
+       {
+        "default": "vit-small"
+       }
+      ],
+      "fx": [
+       "INT",
+       {
+        "default": 1000,
+        "max": 16384,
+        "min": 1,
+        "step": 1
+       }
+      ],
+      "fy": [
+       "INT",
+       {
+        "default": 1000,
+        "max": 16384,
+        "min": 1,
+        "step": 1
+       }
+      ],
+      "resolution": [
+       "INT",
+       {
+        "default": 512,
+        "max": 16384,
+        "min": 64,
+        "step": 64
+       }
+      ]
+     },
+     "required": {
+      "image": [
+       "IMAGE"
+      ]
+     }
+    },
+    "input_order": {
+     "optional": [
+      "backbone",
+      "fx",
+      "fy",
+      "resolution"
+     ],
+     "required": [
+      "image"
+     ]
+    },
+    "name": "Metric3D-DepthMapPreprocessor",
+    "output": [
+     "IMAGE"
+    ],
+    "output_is_list": [
+     false
+    ],
+    "output_name": [
+     "IMAGE"
+    ],
+    "output_node": false,
+    "python_module": "custom_nodes.comfyui_controlnet_aux"
+   },
+   "Metric3D-NormalMapPreprocessor": {
+    "category": "ControlNet Preprocessors/Normal and Depth Estimators",
+    "description": "",
+    "display_name": "Metric3D Normal Map",
+    "input": {
+     "optional": {
+      "backbone": [
+       [
+        "vit-small",
+        "vit-large",
+        "vit-giant2"
+       ],
+       {
+        "default": "vit-small"
+       }
+      ],
+      "fx": [
+       "INT",
+       {
+        "default": 1000,
+        "max": 16384,
+        "min": 1,
+        "step": 1
+       }
+      ],
+      "fy": [
+       "INT",
+       {
+        "default": 1000,
+        "max": 16384,
+        "min": 1,
+        "step": 1
+       }
+      ],
+      "resolution": [
+       "INT",
+       {
+        "default": 512,
+        "max": 16384,
+        "min": 64,
+        "step": 64
+       }
+      ]
+     },
+     "required": {
+      "image": [
+       "IMAGE"
+      ]
+     }
+    },
+    "input_order": {
+     "optional": [
+      "backbone",
+      "fx",
+      "fy",
+      "resolution"
+     ],
+     "required": [
+      "image"
+     ]
+    },
+    "name": "Metric3D-NormalMapPreprocessor",
+    "output": [
+     "IMAGE"
+    ],
+    "output_is_list": [
+     false
+    ],
+    "output_name": [
+     "IMAGE"
+    ],
+    "output_node": false,
+    "python_module": "custom_nodes.comfyui_controlnet_aux"
+   },
+   "MiDaS-DepthMapPreprocessor": {
+    "category": "ControlNet Preprocessors/Normal and Depth Estimators",
+    "description": "",
+    "display_name": "MiDaS Depth Map",
+    "input": {
+     "optional": {
+      "a": [
+       "FLOAT",
+       {
+        "default": 6.283185307179586,
+        "max": 15.707963267948966,
+        "min": 0.0,
+        "step": 0.01
+       }
+      ],
+      "bg_threshold": [
+       "FLOAT",
+       {
+        "default": 0.1,
+        "max": 1,
+        "min": 0,
+        "step": 0.01
+       }
+      ],
+      "resolution": [
+       "INT",
+       {
+        "default": 512,
+        "max": 16384,
+        "min": 64,
+        "step": 64
+       }
+      ]
+     },
+     "required": {
+      "image": [
+       "IMAGE"
+      ]
+     }
+    },
+    "input_order": {
+     "optional": [
+      "a",
+      "bg_threshold",
+      "resolution"
+     ],
+     "required": [
+      "image"
+     ]
+    },
+    "name": "MiDaS-DepthMapPreprocessor",
+    "output": [
+     "IMAGE"
+    ],
+    "output_is_list": [
+     false
+    ],
+    "output_name": [
+     "IMAGE"
+    ],
+    "output_node": false,
+    "python_module": "custom_nodes.comfyui_controlnet_aux"
+   },
+   "MiDaS-NormalMapPreprocessor": {
+    "category": "ControlNet Preprocessors/Normal and Depth Estimators",
+    "description": "",
+    "display_name": "MiDaS Normal Map",
+    "input": {
+     "optional": {
+      "a": [
+       "FLOAT",
+       {
+        "default": 6.283185307179586,
+        "max": 15.707963267948966,
+        "min": 0.0,
+        "step": 0.01
+       }
+      ],
+      "bg_threshold": [
+       "FLOAT",
+       {
+        "default": 0.1,
+        "max": 1,
+        "min": 0,
+        "step": 0.01
+       }
+      ],
+      "resolution": [
+       "INT",
+       {
+        "default": 512,
+        "max": 16384,
+        "min": 64,
+        "step": 64
+       }
+      ]
+     },
+     "required": {
+      "image": [
+       "IMAGE"
+      ]
+     }
+    },
+    "input_order": {
+     "optional": [
+      "a",
+      "bg_threshold",
+      "resolution"
+     ],
+     "required": [
+      "image"
+     ]
+    },
+    "name": "MiDaS-NormalMapPreprocessor",
+    "output": [
+     "IMAGE"
+    ],
+    "output_is_list": [
+     false
+    ],
+    "output_name": [
+     "IMAGE"
+    ],
+    "output_node": false,
+    "python_module": "custom_nodes.comfyui_controlnet_aux"
+   },
+   "OneFormer-ADE20K-SemSegPreprocessor": {
+    "category": "ControlNet Preprocessors/Semantic Segmentation",
+    "description": "",
+    "display_name": "OneFormer ADE20K Segmentor",
+    "input": {
+     "optional": {
+      "resolution": [
+       "INT",
+       {
+        "default": 512,
+        "max": 16384,
+        "min": 64,
+        "step": 64
+       }
+      ]
+     },
+     "required": {
+      "image": [
+       "IMAGE"
+      ]
+     }
+    },
+    "input_order": {
+     "optional": [
+      "resolution"
+     ],
+     "required": [
+      "image"
+     ]
+    },
+    "name": "OneFormer-ADE20K-SemSegPreprocessor",
+    "output": [
+     "IMAGE"
+    ],
+    "output_is_list": [
+     false
+    ],
+    "output_name": [
+     "IMAGE"
+    ],
+    "output_node": false,
+    "python_module": "custom_nodes.comfyui_controlnet_aux"
+   },
+   "OneFormer-COCO-SemSegPreprocessor": {
+    "category": "ControlNet Preprocessors/Semantic Segmentation",
+    "description": "",
+    "display_name": "OneFormer COCO Segmentor",
+    "input": {
+     "optional": {
+      "resolution": [
+       "INT",
+       {
+        "default": 512,
+        "max": 16384,
+        "min": 64,
+        "step": 64
+       }
+      ]
+     },
+     "required": {
+      "image": [
+       "IMAGE"
+      ]
+     }
+    },
+    "input_order": {
+     "optional": [
+      "resolution"
+     ],
+     "required": [
+      "image"
+     ]
+    },
+    "name": "OneFormer-COCO-SemSegPreprocessor",
+    "output": [
+     "IMAGE"
+    ],
+    "output_is_list": [
+     false
+    ],
+    "output_name": [
+     "IMAGE"
+    ],
+    "output_node": false,
+    "python_module": "custom_nodes.comfyui_controlnet_aux"
+   },
+   "OpenposePreprocessor": {
+    "category": "ControlNet Preprocessors/Faces and Poses Estimators",
+    "description": "",
+    "display_name": "OpenPose Pose",
+    "input": {
+     "optional": {
+      "detect_body": [
+       [
+        "enable",
+        "disable"
+       ],
+       {
+        "default": "enable"
+       }
+      ],
+      "detect_face": [
+       [
+        "enable",
+        "disable"
+       ],
+       {
+        "default": "enable"
+       }
+      ],
+      "detect_hand": [
+       [
+        "enable",
+        "disable"
+       ],
+       {
+        "default": "enable"
+       }
+      ],
+      "resolution": [
+       "INT",
+       {
+        "default": 512,
+        "max": 16384,
+        "min": 64,
+        "step": 64
+       }
+      ],
+      "scale_stick_for_xinsr_cn": [
+       [
+        "disable",
+        "enable"
+       ],
+       {
+        "default": "disable"
+       }
+      ]
+     },
+     "required": {
+      "image": [
+       "IMAGE"
+      ]
+     }
+    },
+    "input_order": {
+     "optional": [
+      "detect_hand",
+      "detect_body",
+      "detect_face",
+      "resolution",
+      "scale_stick_for_xinsr_cn"
+     ],
+     "required": [
+      "image"
+     ]
+    },
+    "name": "OpenposePreprocessor",
+    "output": [
+     "IMAGE",
+     "POSE_KEYPOINT"
+    ],
+    "output_is_list": [
+     false,
+     false
+    ],
+    "output_name": [
+     "IMAGE",
+     "POSE_KEYPOINT"
+    ],
+    "output_node": false,
+    "python_module": "custom_nodes.comfyui_controlnet_aux"
+   },
+   "PiDiNetPreprocessor": {
+    "category": "ControlNet Preprocessors/Line Extractors",
+    "description": "",
+    "display_name": "PiDiNet Soft-Edge Lines",
+    "input": {
+     "optional": {
+      "resolution": [
+       "INT",
+       {
+        "default": 512,
+        "max": 16384,
+        "min": 64,
+        "step": 64
+       }
+      ],
+      "safe": [
+       [
+        "enable",
+        "disable"
+       ],
+       {
+        "default": "enable"
+       }
+      ]
+     },
+     "required": {
+      "image": [
+       "IMAGE"
+      ]
+     }
+    },
+    "input_order": {
+     "optional": [
+      "safe",
+      "resolution"
+     ],
+     "required": [
+      "image"
+     ]
+    },
+    "name": "PiDiNetPreprocessor",
+    "output": [
+     "IMAGE"
+    ],
+    "output_is_list": [
+     false
+    ],
+    "output_name": [
+     "IMAGE"
+    ],
+    "output_node": false,
+    "python_module": "custom_nodes.comfyui_controlnet_aux"
+   },
+   "PixelPerfectResolution": {
+    "category": "ControlNet Preprocessors",
+    "description": "",
+    "display_name": "Pixel Perfect Resolution",
+    "input": {
+     "required": {
+      "image_gen_height": [
+       "INT",
+       {
+        "default": 512,
+        "max": 8192,
+        "min": 64,
+        "step": 8
+       }
+      ],
+      "image_gen_width": [
+       "INT",
+       {
+        "default": 512,
+        "max": 8192,
+        "min": 64,
+        "step": 8
+       }
+      ],
+      "original_image": [
+       "IMAGE"
+      ],
+      "resize_mode": [
+       [
+        "Just Resize",
+        "Crop and Resize",
+        "Resize and Fill"
+       ],
+       {
+        "default": "Just Resize"
+       }
+      ]
+     }
+    },
+    "input_order": {
+     "required": [
+      "original_image",
+      "image_gen_width",
+      "image_gen_height",
+      "resize_mode"
+     ]
+    },
+    "name": "PixelPerfectResolution",
+    "output": [
+     "INT"
+    ],
+    "output_is_list": [
+     false
+    ],
+    "output_name": [
+     "RESOLUTION (INT)"
+    ],
+    "output_node": false,
+    "python_module": "custom_nodes.comfyui_controlnet_aux"
+   },
+   "PyraCannyPreprocessor": {
+    "category": "ControlNet Preprocessors/Line Extractors",
+    "description": "",
+    "display_name": "PyraCanny",
+    "input": {
+     "optional": {
+      "high_threshold": [
+       "INT",
+       {
+        "default": 128,
+        "max": 255,
+        "min": 0,
+        "step": 1
+       }
+      ],
+      "low_threshold": [
+       "INT",
+       {
+        "default": 64,
+        "max": 255,
+        "min": 0,
+        "step": 1
+       }
+      ],
+      "resolution": [
+       "INT",
+       {
+        "default": 512,
+        "max": 16384,
+        "min": 64,
+        "step": 64
+       }
+      ]
+     },
+     "required": {
+      "image": [
+       "IMAGE"
+      ]
+     }
+    },
+    "input_order": {
+     "optional": [
+      "low_threshold",
+      "high_threshold",
+      "resolution"
+     ],
+     "required": [
+      "image"
+     ]
+    },
+    "name": "PyraCannyPreprocessor",
+    "output": [
+     "IMAGE"
+    ],
+    "output_is_list": [
+     false
+    ],
+    "output_name": [
+     "IMAGE"
+    ],
+    "output_node": false,
+    "python_module": "custom_nodes.comfyui_controlnet_aux"
+   },
+   "RenderAnimalKps": {
+    "category": "ControlNet Preprocessors/Pose Keypoint Postprocess",
+    "description": "",
+    "display_name": "Render Pose JSON (Animal)",
+    "input": {
+     "required": {
+      "kps": [
+       "POSE_KEYPOINT"
+      ]
+     }
+    },
+    "input_order": {
+     "required": [
+      "kps"
+     ]
+    },
+    "name": "RenderAnimalKps",
+    "output": [
+     "IMAGE"
+    ],
+    "output_is_list": [
+     false
+    ],
+    "output_name": [
+     "IMAGE"
+    ],
+    "output_node": false,
+    "python_module": "custom_nodes.comfyui_controlnet_aux"
+   },
+   "RenderPeopleKps": {
+    "category": "ControlNet Preprocessors/Pose Keypoint Postprocess",
+    "description": "",
+    "display_name": "Render Pose JSON (Human)",
+    "input": {
+     "required": {
+      "kps": [
+       "POSE_KEYPOINT"
+      ],
+      "render_body": [
+       "BOOLEAN",
+       {
+        "default": true
+       }
+      ],
+      "render_face": [
+       "BOOLEAN",
+       {
+        "default": true
+       }
+      ],
+      "render_hand": [
+       "BOOLEAN",
+       {
+        "default": true
+       }
+      ]
+     }
+    },
+    "input_order": {
+     "required": [
+      "kps",
+      "render_body",
+      "render_hand",
+      "render_face"
+     ]
+    },
+    "name": "RenderPeopleKps",
+    "output": [
+     "IMAGE"
+    ],
+    "output_is_list": [
+     false
+    ],
+    "output_name": [
+     "IMAGE"
+    ],
+    "output_node": false,
+    "python_module": "custom_nodes.comfyui_controlnet_aux"
+   },
+   "SAMPreprocessor": {
+    "category": "ControlNet Preprocessors/others",
+    "description": "",
+    "display_name": "SAM Segmentor",
+    "input": {
+     "optional": {
+      "resolution": [
+       "INT",
+       {
+        "default": 512,
+        "max": 16384,
+        "min": 64,
+        "step": 64
+       }
+      ]
+     },
+     "required": {
+      "image": [
+       "IMAGE"
+      ]
+     }
+    },
+    "input_order": {
+     "optional": [
+      "resolution"
+     ],
+     "required": [
+      "image"
+     ]
+    },
+    "name": "SAMPreprocessor",
+    "output": [
+     "IMAGE"
+    ],
+    "output_is_list": [
+     false
+    ],
+    "output_name": [
+     "IMAGE"
+    ],
+    "output_node": false,
+    "python_module": "custom_nodes.comfyui_controlnet_aux"
+   },
+   "SavePoseKpsAsJsonFile": {
+    "category": "ControlNet Preprocessors/Pose Keypoint Postprocess",
+    "description": "",
+    "display_name": "Save Pose Keypoints",
+    "input": {
+     "required": {
+      "filename_prefix": [
+       "STRING",
+       {
+        "default": "PoseKeypoint"
+       }
+      ],
+      "pose_kps": [
+       "POSE_KEYPOINT"
+      ]
+     }
+    },
+    "input_order": {
+     "required": [
+      "pose_kps",
+      "filename_prefix"
+     ]
+    },
+    "name": "SavePoseKpsAsJsonFile",
+    "output": [],
+    "output_is_list": [],
+    "output_name": [],
+    "output_node": true,
+    "python_module": "custom_nodes.comfyui_controlnet_aux"
+   },
+   "ScribblePreprocessor": {
+    "category": "ControlNet Preprocessors/Line Extractors",
+    "description": "",
+    "display_name": "Scribble Lines",
+    "input": {
+     "optional": {
+      "resolution": [
+       "INT",
+       {
+        "default": 512,
+        "max": 16384,
+        "min": 64,
+        "step": 64
+       }
+      ]
+     },
+     "required": {
+      "image": [
+       "IMAGE"
+      ]
+     }
+    },
+    "input_order": {
+     "optional": [
+      "resolution"
+     ],
+     "required": [
+      "image"
+     ]
+    },
+    "name": "ScribblePreprocessor",
+    "output": [
+     "IMAGE"
+    ],
+    "output_is_list": [
+     false
+    ],
+    "output_name": [
+     "IMAGE"
+    ],
+    "output_node": false,
+    "python_module": "custom_nodes.comfyui_controlnet_aux"
+   },
+   "Scribble_PiDiNet_Preprocessor": {
+    "category": "ControlNet Preprocessors/Line Extractors",
+    "description": "",
+    "display_name": "Scribble PiDiNet Lines",
+    "input": {
+     "optional": {
+      "resolution": [
+       "INT",
+       {
+        "default": 512,
+        "max": 16384,
+        "min": 64,
+        "step": 64
+       }
+      ],
+      "safe": [
+       "enable",
+       "disable"
+      ]
+     },
+     "required": {
+      "image": [
+       "IMAGE"
+      ]
+     }
+    },
+    "input_order": {
+     "optional": [
+      "safe",
+      "resolution"
+     ],
+     "required": [
+      "image"
+     ]
+    },
+    "name": "Scribble_PiDiNet_Preprocessor",
+    "output": [
+     "IMAGE"
+    ],
+    "output_is_list": [
+     false
+    ],
+    "output_name": [
+     "IMAGE"
+    ],
+    "output_node": false,
+    "python_module": "custom_nodes.comfyui_controlnet_aux"
+   },
+   "Scribble_XDoG_Preprocessor": {
+    "category": "ControlNet Preprocessors/Line Extractors",
+    "description": "",
+    "display_name": "Scribble XDoG Lines",
+    "input": {
+     "optional": {
+      "resolution": [
+       "INT",
+       {
+        "default": 512,
+        "max": 16384,
+        "min": 64,
+        "step": 64
+       }
+      ],
+      "threshold": [
+       "INT",
+       {
+        "default": 32,
+        "max": 64,
+        "min": 1,
+        "step": 1
+       }
+      ]
+     },
+     "required": {
+      "image": [
+       "IMAGE"
+      ]
+     }
+    },
+    "input_order": {
+     "optional": [
+      "threshold",
+      "resolution"
+     ],
+     "required": [
+      "image"
+     ]
+    },
+    "name": "Scribble_XDoG_Preprocessor",
+    "output": [
+     "IMAGE"
+    ],
+    "output_is_list": [
+     false
+    ],
+    "output_name": [
+     "IMAGE"
+    ],
+    "output_node": false,
+    "python_module": "custom_nodes.comfyui_controlnet_aux"
+   },
+   "SemSegPreprocessor": {
+    "category": "ControlNet Preprocessors/Semantic Segmentation",
+    "description": "",
+    "display_name": "Semantic Segmentor (legacy, alias for UniFormer)",
+    "input": {
+     "optional": {
+      "resolution": [
+       "INT",
+       {
+        "default": 512,
+        "max": 16384,
+        "min": 64,
+        "step": 64
+       }
+      ]
+     },
+     "required": {
+      "image": [
+       "IMAGE"
+      ]
+     }
+    },
+    "input_order": {
+     "optional": [
+      "resolution"
+     ],
+     "required": [
+      "image"
+     ]
+    },
+    "name": "SemSegPreprocessor",
+    "output": [
+     "IMAGE"
+    ],
+    "output_is_list": [
+     false
+    ],
+    "output_name": [
+     "IMAGE"
+    ],
+    "output_node": false,
+    "python_module": "custom_nodes.comfyui_controlnet_aux"
+   },
+   "ShufflePreprocessor": {
+    "category": "ControlNet Preprocessors/T2IAdapter-only",
+    "description": "",
+    "display_name": "Content Shuffle",
+    "input": {
+     "optional": {
+      "resolution": [
+       "INT",
+       {
+        "default": 512,
+        "max": 16384,
+        "min": 64,
+        "step": 64
+       }
+      ],
+      "seed": [
+       "INT",
+       {
+        "default": 0,
+        "max": 18446744073709551615,
+        "min": 0
+       }
+      ]
+     },
+     "required": {
+      "image": [
+       "IMAGE"
+      ]
+     }
+    },
+    "input_order": {
+     "optional": [
+      "resolution",
+      "seed"
+     ],
+     "required": [
+      "image"
+     ]
+    },
+    "name": "ShufflePreprocessor",
+    "output": [
+     "IMAGE"
+    ],
+    "output_is_list": [
+     false
+    ],
+    "output_name": [
+     "IMAGE"
+    ],
+    "output_node": false,
+    "python_module": "custom_nodes.comfyui_controlnet_aux"
+   },
+   "TEEDPreprocessor": {
+    "category": "ControlNet Preprocessors/Line Extractors",
+    "description": "",
+    "display_name": "TEEDPreprocessor",
+    "input": {
+     "optional": {
+      "resolution": [
+       "INT",
+       {
+        "default": 512,
+        "max": 16384,
+        "min": 64,
+        "step": 64
+       }
+      ],
+      "safe_steps": [
+       "INT",
+       {
+        "default": 2,
+        "max": 10,
+        "min": 0,
+        "step": 1
+       }
+      ]
+     },
+     "required": {
+      "image": [
+       "IMAGE"
+      ]
+     }
+    },
+    "input_order": {
+     "optional": [
+      "safe_steps",
+      "resolution"
+     ],
+     "required": [
+      "image"
+     ]
+    },
+    "name": "TEEDPreprocessor",
+    "output": [
+     "IMAGE"
+    ],
+    "output_is_list": [
+     false
+    ],
+    "output_name": [
+     "IMAGE"
+    ],
+    "output_node": false,
+    "python_module": "custom_nodes.comfyui_controlnet_aux"
+   },
+   "TTPlanet_TileGF_Preprocessor": {
+    "category": "ControlNet Preprocessors/tile",
+    "description": "",
+    "display_name": "TTPlanet Tile GuidedFilter",
+    "input": {
+     "optional": {
+      "blur_strength": [
+       "FLOAT",
+       {
+        "default": 2.0,
+        "max": 10.0,
+        "min": 1.0,
+        "step": 0.01
+       }
+      ],
+      "eps": [
+       "FLOAT",
+       {
+        "default": 0.01,
+        "max": 0.1,
+        "min": 0.001,
+        "step": 0.001
+       }
+      ],
+      "radius": [
+       "INT",
+       {
+        "default": 7,
+        "max": 20,
+        "min": 1,
+        "step": 1
+       }
+      ],
+      "resolution": [
+       "INT",
+       {
+        "default": 512,
+        "max": 16384,
+        "min": 64,
+        "step": 64
+       }
+      ],
+      "scale_factor": [
+       "FLOAT",
+       {
+        "default": 1.0,
+        "max": 8.0,
+        "min": 1.0,
+        "step": 0.01
+       }
+      ]
+     },
+     "required": {
+      "image": [
+       "IMAGE"
+      ]
+     }
+    },
+    "input_order": {
+     "optional": [
+      "scale_factor",
+      "blur_strength",
+      "radius",
+      "eps",
+      "resolution"
+     ],
+     "required": [
+      "image"
+     ]
+    },
+    "name": "TTPlanet_TileGF_Preprocessor",
+    "output": [
+     "IMAGE"
+    ],
+    "output_is_list": [
+     false
+    ],
+    "output_name": [
+     "IMAGE"
+    ],
+    "output_node": false,
+    "python_module": "custom_nodes.comfyui_controlnet_aux"
+   },
+   "TTPlanet_TileSimple_Preprocessor": {
+    "category": "ControlNet Preprocessors/tile",
+    "description": "",
+    "display_name": "TTPlanet Tile Simple",
+    "input": {
+     "optional": {
+      "blur_strength": [
+       "FLOAT",
+       {
+        "default": 2.0,
+        "max": 10.0,
+        "min": 1.0,
+        "step": 0.01
+       }
+      ],
+      "scale_factor": [
+       "FLOAT",
+       {
+        "default": 1.0,
+        "max": 8.0,
+        "min": 1.0,
+        "step": 0.01
+       }
+      ]
+     },
+     "required": {
+      "image": [
+       "IMAGE"
+      ]
+     }
+    },
+    "input_order": {
+     "optional": [
+      "scale_factor",
+      "blur_strength"
+     ],
+     "required": [
+      "image"
+     ]
+    },
+    "name": "TTPlanet_TileSimple_Preprocessor",
+    "output": [
+     "IMAGE"
+    ],
+    "output_is_list": [
+     false
+    ],
+    "output_name": [
+     "IMAGE"
+    ],
+    "output_node": false,
+    "python_module": "custom_nodes.comfyui_controlnet_aux"
+   },
+   "TilePreprocessor": {
+    "category": "ControlNet Preprocessors/tile",
+    "description": "",
+    "display_name": "Tile",
+    "input": {
+     "optional": {
+      "pyrUp_iters": [
+       "INT",
+       {
+        "default": 3,
+        "max": 10,
+        "min": 1,
+        "step": 1
+       }
+      ],
+      "resolution": [
+       "INT",
+       {
+        "default": 512,
+        "max": 16384,
+        "min": 64,
+        "step": 64
+       }
+      ]
+     },
+     "required": {
+      "image": [
+       "IMAGE"
+      ]
+     }
+    },
+    "input_order": {
+     "optional": [
+      "pyrUp_iters",
+      "resolution"
+     ],
+     "required": [
+      "image"
+     ]
+    },
+    "name": "TilePreprocessor",
+    "output": [
+     "IMAGE"
+    ],
+    "output_is_list": [
+     false
+    ],
+    "output_name": [
+     "IMAGE"
+    ],
+    "output_node": false,
+    "python_module": "custom_nodes.comfyui_controlnet_aux"
+   },
+   "UniFormer-SemSegPreprocessor": {
+    "category": "ControlNet Preprocessors/Semantic Segmentation",
+    "description": "",
+    "display_name": "UniFormer Segmentor",
+    "input": {
+     "optional": {
+      "resolution": [
+       "INT",
+       {
+        "default": 512,
+        "max": 16384,
+        "min": 64,
+        "step": 64
+       }
+      ]
+     },
+     "required": {
+      "image": [
+       "IMAGE"
+      ]
+     }
+    },
+    "input_order": {
+     "optional": [
+      "resolution"
+     ],
+     "required": [
+      "image"
+     ]
+    },
+    "name": "UniFormer-SemSegPreprocessor",
+    "output": [
+     "IMAGE"
+    ],
+    "output_is_list": [
+     false
+    ],
+    "output_name": [
+     "IMAGE"
+    ],
+    "output_node": false,
+    "python_module": "custom_nodes.comfyui_controlnet_aux"
+   },
+   "Unimatch_OptFlowPreprocessor": {
+    "category": "ControlNet Preprocessors/Optical Flow",
+    "description": "",
+    "display_name": "Unimatch Optical Flow",
+    "input": {
+     "required": {
+      "backward_flow": [
+       "BOOLEAN",
+       {
+        "default": false
+       }
+      ],
+      "bidirectional_flow": [
+       "BOOLEAN",
+       {
+        "default": false
+       }
+      ],
+      "ckpt_name": [
+       [
+        "gmflow-scale1-mixdata.pth",
+        "gmflow-scale2-mixdata.pth",
+        "gmflow-scale2-regrefine6-mixdata.pth"
+       ],
+       {
+        "default": "gmflow-scale2-regrefine6-mixdata.pth"
+       }
+      ],
+      "image": [
+       "IMAGE"
+      ]
+     }
+    },
+    "input_order": {
+     "required": [
+      "image",
+      "ckpt_name",
+      "backward_flow",
+      "bidirectional_flow"
+     ]
+    },
+    "name": "Unimatch_OptFlowPreprocessor",
+    "output": [
+     "OPTICAL_FLOW",
+     "IMAGE"
+    ],
+    "output_is_list": [
+     false,
+     false
+    ],
+    "output_name": [
+     "OPTICAL_FLOW",
+     "PREVIEW_IMAGE"
+    ],
+    "output_node": false,
+    "python_module": "custom_nodes.comfyui_controlnet_aux"
+   },
+   "UpperBodyTrackingFromPoseKps": {
+    "category": "ControlNet Preprocessors/Pose Keypoint Postprocess",
+    "description": "",
+    "display_name": "Upper Body Tracking From PoseKps (InstanceDiffusion)",
+    "input": {
+     "required": {
+      "Head_width_height": [
+       "STRING",
+       {
+        "default": "256, 256",
+        "multiline": false
+       }
+      ],
+      "LArm_width_height": [
+       "STRING",
+       {
+        "default": "128, 256",
+        "multiline": false
+       }
+      ],
+      "LForearm_width_height": [
+       "STRING",
+       {
+        "default": "128, 256",
+        "multiline": false
+       }
+      ],
+      "Neck_width_height": [
+       "STRING",
+       {
+        "default": "100, 100",
+        "multiline": false
+       }
+      ],
+      "RArm_width_height": [
+       "STRING",
+       {
+        "default": "128, 256",
+        "multiline": false
+       }
+      ],
+      "RForearm_width_height": [
+       "STRING",
+       {
+        "default": "128, 256",
+        "multiline": false
+       }
+      ],
+      "Shoulder_width_height": [
+       "STRING",
+       {
+        "default": "",
+        "multiline": false
+       }
+      ],
+      "Torso_width_height": [
+       "STRING",
+       {
+        "default": "350, 450",
+        "multiline": false
+       }
+      ],
+      "id_include": [
+       "STRING",
+       {
+        "default": "",
+        "multiline": false
+       }
+      ],
+      "pose_kps": [
+       "POSE_KEYPOINT"
+      ]
+     }
+    },
+    "input_order": {
+     "required": [
+      "pose_kps",
+      "id_include",
+      "Head_width_height",
+      "Neck_width_height",
+      "Shoulder_width_height",
+      "Torso_width_height",
+      "RArm_width_height",
+      "RForearm_width_height",
+      "LArm_width_height",
+      "LForearm_width_height"
+     ]
+    },
+    "name": "UpperBodyTrackingFromPoseKps",
+    "output": [
+     "TRACKING",
+     "STRING"
+    ],
+    "output_is_list": [
+     false,
+     false
+    ],
+    "output_name": [
+     "tracking",
+     "prompt"
+    ],
+    "output_node": false,
+    "python_module": "custom_nodes.comfyui_controlnet_aux"
+   },
+   "Zoe-DepthMapPreprocessor": {
+    "category": "ControlNet Preprocessors/Normal and Depth Estimators",
+    "description": "",
+    "display_name": "Zoe Depth Map",
+    "input": {
+     "optional": {
+      "resolution": [
+       "INT",
+       {
+        "default": 512,
+        "max": 16384,
+        "min": 64,
+        "step": 64
+       }
+      ]
+     },
+     "required": {
+      "image": [
+       "IMAGE"
+      ]
+     }
+    },
+    "input_order": {
+     "optional": [
+      "resolution"
+     ],
+     "required": [
+      "image"
+     ]
+    },
+    "name": "Zoe-DepthMapPreprocessor",
+    "output": [
+     "IMAGE"
+    ],
+    "output_is_list": [
+     false
+    ],
+    "output_name": [
+     "IMAGE"
+    ],
+    "output_node": false,
+    "python_module": "custom_nodes.comfyui_controlnet_aux"
+   },
+   "Zoe_DepthAnythingPreprocessor": {
+    "category": "ControlNet Preprocessors/Normal and Depth Estimators",
+    "description": "",
+    "display_name": "Zoe Depth Anything",
+    "input": {
+     "optional": {
+      "environment": [
+       [
+        "indoor",
+        "outdoor"
+       ],
+       {
+        "default": "indoor"
+       }
+      ],
+      "resolution": [
+       "INT",
+       {
+        "default": 512,
+        "max": 16384,
+        "min": 64,
+        "step": 64
+       }
+      ]
+     },
+     "required": {
+      "image": [
+       "IMAGE"
+      ]
+     }
+    },
+    "input_order": {
+     "optional": [
+      "environment",
+      "resolution"
+     ],
+     "required": [
+      "image"
+     ]
+    },
+    "name": "Zoe_DepthAnythingPreprocessor",
+    "output": [
+     "IMAGE"
+    ],
+    "output_is_list": [
+     false
+    ],
+    "output_name": [
+     "IMAGE"
+    ],
+    "output_node": false,
+    "python_module": "custom_nodes.comfyui_controlnet_aux"
+   }
+  },
+  "/object_info/KSampler": {
+   "KSampler": {
+    "category": "sampling",
+    "description": "Uses the provided model, positive and negative conditioning to denoise the latent image.",
+    "display_name": "KSampler",
+    "input": {
+     "required": {
+      "cfg": [
+       "FLOAT",
+       {
+        "default": 8.0,
+        "max": 100.0,
+        "min": 0.0,
+        "round": 0.01,
+        "step": 0.1,
+        "tooltip": "The Classifier-Free Guidance scale balances creativity and adherence to the prompt. Higher values result in images more closely matching the prompt however too high values will negatively impact quality."
+       }
+      ],
+      "denoise": [
+       "FLOAT",
+       {
+        "default": 1.0,
+        "max": 1.0,
+        "min": 0.0,
+        "step": 0.01,
+        "tooltip": "The amount of denoising applied, lower values will maintain the structure of the initial image allowing for image to image sampling."
+       }
+      ],
+      "latent_image": [
+       "LATENT",
+       {
+        "tooltip": "The latent image to denoise."
+       }
+      ],
+      "model": [
+       "MODEL",
+       {
+        "tooltip": "The model used for denoising the input latent."
+       }
+      ],
+      "negative": [
+       "CONDITIONING",
+       {
+        "tooltip": "The conditioning describing the attributes you want to exclude from the image."
+       }
+      ],
+      "positive": [
+       "CONDITIONING",
+       {
+        "tooltip": "The conditioning describing the attributes you want to include in the image."
+       }
+      ],
+      "sampler_name": [
+       [
+        "euler",
+        "euler_cfg_pp",
+        "euler_ancestral",
+        "euler_ancestral_cfg_pp",
+        "heun",
+        "heunpp2",
+        "dpm_2",
+        "dpm_2_ancestral",
+        "lms",
+        "dpm_fast",
+        "dpm_adaptive",
+        "dpmpp_2s_ancestral",
+        "dpmpp_2s_ancestral_cfg_pp",
+        "dpmpp_sde",
+        "dpmpp_sde_gpu",
+        "dpmpp_2m",
+        "dpmpp_2m_cfg_pp",
+        "dpmpp_2m_sde",
+        "dpmpp_2m_sde_gpu",
+        "dpmpp_2m_sde_heun",
+        "dpmpp_2m_sde_heun_gpu",
+        "dpmpp_3m_sde",
+        "dpmpp_3m_sde_gpu",
+        "ddpm",
+        "lcm",
+        "ipndm",
+        "ipndm_v",
+        "deis",
+        "res_multistep",
+        "res_multistep_cfg_pp",
+        "res_multistep_ancestral",
+        "res_multistep_ancestral_cfg_pp",
+        "gradient_estimation",
+        "gradient_estimation_cfg_pp",
+        "er_sde",
+        "seeds_2",
+        "seeds_3",
+        "sa_solver",
+        "sa_solver_pece",
+        "ddim",
+        "uni_pc",
+        "uni_pc_bh2"
+       ],
+       {
+        "tooltip": "The algorithm used when sampling, this can affect the quality, speed, and style of the generated output."
+       }
+      ],
+      "scheduler": [
+       [
+        "simple",
+        "sgm_uniform",
+        "karras",
+        "exponential",
+        "ddim_uniform",
+        "beta",
+        "normal",
+        "linear_quadratic",
+        "kl_optimal"
+       ],
+       {
+        "tooltip": "The scheduler controls how noise is gradually removed to form the image."
+       }
+      ],
+      "seed": [
+       "INT",
+       {
+        "control_after_generate": true,
+        "default": 0,
+        "max": 18446744073709551615,
+        "min": 0,
+        "tooltip": "The random seed used for creating the noise."
+       }
+      ],
+      "steps": [
+       "INT",
+       {
+        "default": 20,
+        "max": 10000,
+        "min": 1,
+        "tooltip": "The number of steps used in the denoising process."
+       }
+      ]
+     }
+    },
+    "input_order": {
+     "required": [
+      "model",
+      "seed",
+      "steps",
+      "cfg",
+      "sampler_name",
+      "scheduler",
+      "positive",
+      "negative",
+      "latent_image",
+      "denoise"
+     ]
+    },
+    "name": "KSampler",
+    "output": [
+     "LATENT"
+    ],
+    "output_is_list": [
+     false
+    ],
+    "output_name": [
+     "LATENT"
+    ],
+    "output_node": false,
+    "output_tooltips": [
+     "The denoised latent."
+    ],
+    "python_module": "nodes"
+   }
+  },
+  "/queue": {
+   "queue_pending": [],
+   "queue_running": []
+  },
+  "/system_stats": {
+   "devices": [
+    {
+     "index": 0,
+     "name": "cuda:0 NVIDIA GeForce RTX 3080 : cudaMallocAsync",
+     "torch_vram_free": 33554432,
+     "torch_vram_total": 33554432,
+     "type": "cuda",
+     "vram_free": 7336427520,
+     "vram_total": 12542345216
+    }
+   ],
+   "system": {
+    "argv": [],
+    "comfyui_version": "0.3.64",
+    "embedded_python": false,
+    "installed_templates_version": "0.1.95",
+    "os": "posix",
+    "python_version": "3.11.13 (main, Jun  5 2025, 13:12:00) [GCC 11.2.0]",
+    "pytorch_version": "2.7.0+cu126",
+    "ram_free": 12453646336,
+    "ram_total": 33546616832,
+    "required_frontend_version": "1.27.10",
+    "required_templates_version": "0.1.95"
+   }
+  }
+ }
+}

@@ -16,13 +16,16 @@ from pydantic import ValidationError
 
 from sd_backend_client.api.a1111_webservice import A1111Webservice
 from sd_backend_client.api.comfyui.comfyui_types import CONTROLNET_PREPROCESSOR_CATEGORY, NodeInfoResponse
-from sd_backend_client.api.comfyui.controlnet_comfyui_utils import INVALID_PREPROCESSOR_NODES
+from sd_backend_client.api.comfyui.controlnet_comfyui_utils import COMBO_INPUT_TYPE, INVALID_PREPROCESSOR_NODES
+from sd_backend_client.api.comfyui.nodes.controlnet.dynamic_preprocessor_node import DynamicPreprocessorNode
 from sd_backend_client.api.comfyui_webservice import AsyncTaskStatus, ComfyEndpoints, ComfyUiWebservice
 from sd_backend_client.api.shared_data.controlnet.controlnet_preprocessor import ControlNetPreprocessor
 from sd_backend_client.api.webservice import WebService
 from sd_backend_client.errors import ServerError
 
 RECORDED_DIR = Path(__file__).parent / 'fixtures' / 'recorded'
+# ComfyUI input types get_all_preprocessors reads as parameters; any other type name is a node connection.
+PARAMETER_INPUT_TYPES = {'INT', 'FLOAT', 'BOOLEAN', 'STRING', COMBO_INPUT_TYPE}
 
 
 def _recordings(backend: str) -> list[Any]:
@@ -123,9 +126,22 @@ def test_comfyui_sampler_and_scheduler_names(recording):
         assert names and all(isinstance(name, str) for name in names)
 
 
+def _requires_other_connection(node: NodeInfoResponse) -> bool:
+    """Whether a required input, other than `image` and `mask`, takes a node connection rather than a parameter.
+
+    get_all_preprocessors skips such nodes, since DynamicPreprocessorNode wires only the image and mask."""
+    for input_name, input_tuple in node.input.required.items():
+        if input_name in (DynamicPreprocessorNode.IMAGE, DynamicPreprocessorNode.MASK):
+            continue
+        input_type = input_tuple[0]
+        if isinstance(input_type, str) and input_type not in PARAMETER_INPUT_TYPES:
+            return True
+    return False
+
+
 @pytest.mark.parametrize('recording', COMFYUI_RECORDINGS)
 def test_comfyui_discovers_every_recorded_preprocessor(recording):
-    """Every valid node in the preprocessor category becomes a preprocessor, with consistent parameters."""
+    """Every usable node in the preprocessor category becomes a preprocessor, with consistent parameters."""
     object_info = recording['responses'][ComfyEndpoints.OBJECT_INFO]
     expected = set()
     for name, info in object_info.items():
@@ -133,8 +149,10 @@ def test_comfyui_discovers_every_recorded_preprocessor(recording):
             node = NodeInfoResponse.model_validate(info)
         except ValidationError:
             continue
-        if CONTROLNET_PREPROCESSOR_CATEGORY in node.category and name not in INVALID_PREPROCESSOR_NODES:
+        if CONTROLNET_PREPROCESSOR_CATEGORY in node.category and name not in INVALID_PREPROCESSOR_NODES \
+                and not _requires_other_connection(node):
             expected.add(name)
+    assert expected, 'The recording has no usable preprocessor nodes to test discovery against'
 
     service = _comfy(recording)
     preprocessors = service.get_controlnet_preprocessors()
