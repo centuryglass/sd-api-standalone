@@ -5,7 +5,8 @@ from unittest.mock import MagicMock
 import pytest
 import requests
 
-from sd_backend_client.api.webservice import JSON_DATA_TYPE, MULTIPART_FORM_DATA_TYPE, WebService
+from sd_backend_client.api.webservice import DEFAULT_REQUEST_TIMEOUT, JSON_DATA_TYPE, MULTIPART_FORM_DATA_TYPE, \
+    WebService
 
 
 def _response(status: int = 200, text: str = '') -> MagicMock:
@@ -26,20 +27,73 @@ def _service(status: int = 200, text: str = '') -> WebService:
 def test_get_joins_endpoint_and_passes_timeout_and_headers():
     service = _service()
     service.get('/sdapi/v1/options', timeout=12, headers={'X-Test': '1'})
-    service._session.get.assert_called_once_with('http://host:7860/sdapi/v1/options', timeout=12,
+    service._session.get.assert_called_once_with('http://host:7860/sdapi/v1/options', params=None, timeout=12,
                                                  headers={'X-Test': '1'})
 
 
-def test_get_appends_url_params_as_query_string():
+def test_get_passes_url_params_to_requests():
     service = _service()
     service.get('/view', url_params={'filename': 'a.png', 'type': 'output'})
-    assert service._session.get.call_args.args[0] == 'http://host:7860/view?filename=a.png&type=output'
+    assert service._session.get.call_args.args[0] == 'http://host:7860/view'
+    assert service._session.get.call_args.kwargs['params'] == {'filename': 'a.png', 'type': 'output'}
+
+
+def test_url_params_with_reserved_characters_are_encoded():
+    """The real Session prepares the request, so this checks the URL that would go on the wire."""
+    service = WebService('http://host:7860')
+    prepared: list[requests.PreparedRequest] = []
+
+    def fake_send(request: requests.PreparedRequest, **_kwargs) -> MagicMock:
+        prepared.append(request)
+        return _response()
+
+    service._session.send = fake_send  # type: ignore[method-assign]
+    service.get('/sd_extra_networks/thumb', url_params={'filename': 'my lora&v2#1?.png'})
+    assert prepared[0].url == 'http://host:7860/sd_extra_networks/thumb?filename=my+lora%26v2%231%3F.png'
+
+
+@pytest.mark.parametrize('url', ['http://host:7860/', 'http://host:7860//'])
+def test_trailing_slashes_are_stripped_from_the_server_url(url: str):
+    service = WebService(url)
+    service._session = MagicMock()
+    service._session.get.return_value = _response()
+    service.get('/sdapi/v1/options')
+    assert service.server_url == 'http://host:7860'
+    assert service._session.get.call_args.args[0] == 'http://host:7860/sdapi/v1/options'
+
+
+def test_requests_without_a_timeout_use_the_constructor_default():
+    service = _service()
+    service.get('/x')
+    service.post('/y', {})
+    assert service._session.get.call_args.kwargs['timeout'] == DEFAULT_REQUEST_TIMEOUT
+    assert service._session.post.call_args.kwargs['timeout'] == DEFAULT_REQUEST_TIMEOUT
+
+
+def test_constructor_timeout_is_overridable():
+    service = WebService('http://host:7860', request_timeout=None)
+    service._session = MagicMock()
+    service._session.get.return_value = _response()
+    service.get('/x')
+    assert service._session.get.call_args.kwargs['timeout'] is None
+    service.get('/x', timeout=3)
+    assert service._session.get.call_args.kwargs['timeout'] == 3
+
+
+@pytest.mark.parametrize('url, expected', [
+    ('http://host:8188', 'ws://host:8188'),
+    ('https://host', 'wss://host'),
+    ('https://host:443/comfy/', 'wss://host:443/comfy'),
+    ('HTTPS://host', 'wss://host'),
+])
+def test_websocket_url_maps_scheme_and_keeps_path(url: str, expected: str):
+    assert WebService(url).websocket_url == expected
 
 
 def test_post_json_body_is_sent_as_json():
     service = _service()
     service.post('/prompt', {'prompt': {}}, timeout=5)
-    service._session.post.assert_called_once_with('http://host:7860/prompt', timeout=5, headers={},
+    service._session.post.assert_called_once_with('http://host:7860/prompt', params=None, timeout=5, headers={},
                                                   json={'prompt': {}})
 
 
@@ -89,6 +143,13 @@ def test_connection_error_is_wrapped_with_endpoint():
     with pytest.raises(RuntimeError, match='Error connecting to /x') as error:
         service.get('/x')
     assert isinstance(error.value.__cause__, requests.exceptions.ConnectionError)
+
+
+def test_timeout_is_wrapped_with_endpoint():
+    service = _service()
+    service._session.post.side_effect = requests.exceptions.ReadTimeout('read timed out')
+    with pytest.raises(RuntimeError, match='Error connecting to /x: read timed out'):
+        service.post('/x', {})
 
 
 def test_fail_on_auth_error_raises_without_reauthenticating():

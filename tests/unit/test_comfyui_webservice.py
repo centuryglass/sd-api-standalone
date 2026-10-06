@@ -10,11 +10,14 @@ from urllib.parse import parse_qsl, urlsplit
 from unittest.mock import MagicMock
 
 import pytest
+import requests
+import websocket
 from PIL import Image
 
 from sd_backend_client.api.comfyui.comfyui_types import ImageFileReference
 from sd_backend_client.api.comfyui.comfyui_diffusion_params import ComfyUIDiffusionParams
-from sd_backend_client.api.comfyui_webservice import AsyncTaskStatus, ComfyEndpoints, ComfyModelType, ComfyUiWebservice
+from sd_backend_client.api.comfyui_webservice import (AsyncTaskStatus, ComfyEndpoints, ComfyModelType,
+                                                      ComfyUiWebservice, EXTENDED_TIMEOUT)
 from sd_backend_client.util.visual.image_utils import image_to_png_bytes
 
 PROMPT_ID = '7d4c0f0e-6a3b-4c1e-9f6e-0a1b2c3d4e5f'
@@ -30,7 +33,7 @@ class _FakeSession:
         self.auth = None
 
     def _respond(self, method: str, address: str, kwargs: dict[str, Any]) -> MagicMock:
-        url = urlsplit(address)
+        url = urlsplit(requests.Request(method, address, params=kwargs.get('params')).prepare().url)
         query = dict(parse_qsl(url.query, keep_blank_values=True))
         self.requests.append({'method': method, 'path': url.path, 'query': query, **kwargs})
         body = self.routes.get((method, url.path), {})
@@ -260,6 +263,31 @@ def test_download_images_sends_reference_as_query_and_skips_failures():
     assert not service.download_images(refs)
 
 
+def test_download_images_encodes_reserved_characters_in_query():
+    """Filenames and subfolders containing '&', '#', '?' or spaces reach the server intact."""
+    png = image_to_png_bytes(Image.new('RGB', (1, 1)))
+    service, session = _service({('GET', ComfyEndpoints.VIEW_IMAGE): png})
+    service.download_images([ImageFileReference(filename='a&b #1?.png', subfolder='x y/z', type='output')])
+    assert session.requests[0]['query'] == {'filename': 'a&b #1?.png', 'subfolder': 'x y/z', 'type': 'output'}
+
+
+def test_is_node_available_encodes_node_name_as_one_path_segment():
+    """A node name containing '/' or '#' stays one /object_info path segment."""
+    service, session = _service({('GET', f'{ComfyEndpoints.OBJECT_INFO}/a%2Fb%23c'): {'a/b#c': {}}})
+    assert service.is_node_available('a/b#c')
+    assert session.requests[0]['path'] == f'{ComfyEndpoints.OBJECT_INFO}/a%2Fb%23c'
+
+
+def test_requests_use_the_constructor_timeout_unless_they_set_their_own():
+    """Plain requests get request_timeout; image downloads keep their longer fixed timeout."""
+    service = ComfyUiWebservice('http://127.0.0.1:8188', request_timeout=7)
+    session = _FakeSession({('GET', ComfyEndpoints.VIEW_IMAGE): image_to_png_bytes(Image.new('RGB', (1, 1)))})
+    service._session = session  # type: ignore[assignment]
+    service.get_embeddings()
+    service.download_images([ImageFileReference(filename='a.png', subfolder='')])
+    assert [request['timeout'] for request in session.requests] == [7, EXTENDED_TIMEOUT]
+
+
 # Generation requests
 
 def test_txt2img_posts_workflow_with_client_id_and_returns_seed():
@@ -315,3 +343,21 @@ def test_img2img_and_inpaint_require_their_inputs():
 def test_parse_percentage_from_websocket_message(message: str, expected: Optional[float]):
     """Only progress messages with value and max produce a percentage."""
     assert ComfyUiWebservice.parse_percentage_from_websocket_message(message) == expected
+
+
+@pytest.mark.parametrize('server_url, expected', [
+    ('http://127.0.0.1:8188', 'ws://127.0.0.1:8188/ws'),
+    ('http://127.0.0.1:8188/', 'ws://127.0.0.1:8188/ws'),
+    ('https://comfy.example.com/proxy/comfy/', 'wss://comfy.example.com/proxy/comfy/ws'),
+])
+def test_open_websocket_maps_scheme_and_keeps_base_path(monkeypatch, server_url: str, expected: str):
+    """https servers connect over wss, and a base path in the server URL is kept."""
+    socket = MagicMock()
+    monkeypatch.setattr(websocket, 'WebSocket', lambda: socket)
+    service = ComfyUiWebservice(server_url)
+    with service.open_websocket():
+        pass
+    url = urlsplit(socket.connect.call_args.args[0])
+    assert f'{url.scheme}://{url.netloc}{url.path}' == expected
+    assert dict(parse_qsl(url.query)) == {'clientId': service._client_id}
+    socket.close.assert_called_once()
