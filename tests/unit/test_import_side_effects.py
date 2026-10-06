@@ -13,8 +13,7 @@ def test_import_creates_no_directories(tmp_path: Path) -> None:
            'XDG_DATA_HOME': str(tmp_path / 'data'), 'XDG_STATE_HOME': str(tmp_path / 'state'),
            'XDG_CACHE_HOME': str(tmp_path / 'cache'), 'XDG_CONFIG_HOME': str(tmp_path / 'config'),
            'PYTHONPATH': str(REPO_ROOT), 'PYTHONDONTWRITEBYTECODE': '1'}
-    code = ('import sd_backend_client, sd_backend_client.util.shared_constants, '
-            'sd_backend_client.api.a1111_webservice, sd_backend_client.api.comfyui_webservice')
+    code = 'import sd_backend_client, sd_backend_client.api.a1111_webservice, sd_backend_client.api.comfyui_webservice'
     result = subprocess.run([sys.executable, '-c', code], env=env, cwd=tmp_path, capture_output=True, text=True,
                             check=False)
     assert result.returncode == 0, result.stderr

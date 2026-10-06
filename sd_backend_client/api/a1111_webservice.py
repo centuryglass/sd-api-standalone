@@ -28,7 +28,6 @@ from sd_backend_client.api.webui.request_formats import UpscalingRequestBody
 from sd_backend_client.api.webui.response_formats import GenerationInfoData, ProgressResponseBody, \
     InterrogateResponse, PromptStyleData, SamplerInfo, UpscalerInfo, ModelInfo, VaeInfo, LoraInfo
 from sd_backend_client.api.webui.script_info_types import ScriptResponseData, ScriptInfo
-from sd_backend_client.util.shared_constants import INTERROGATE_DEFAULT_MODEL
 from sd_backend_client.util.visual.image_utils import (image_to_base64, image_from_base64, image_from_bytes,
                                                     mask_to_grayscale)
 
@@ -45,6 +44,7 @@ class ImageResponse(TypedDict):
 
 
 ULTIMATE_UPSCALE_SCRIPT = 'ultimate sd upscale'
+INTERROGATE_DEFAULT_MODEL = 'clip'
 DEFAULT_TIMEOUT = 30
 MAX_LOGIN_ATTEMPTS = 3
 SETTINGS_UPDATE_TIMEOUT = 90
@@ -222,7 +222,7 @@ class A1111Webservice(WebService):
         mask: Optional[Image.Image] = None
             Optional inpainting mask.  This will also be ignored if request_body is not None, and it already has a mask.
         request_body : Optional[DiffusionRequestBody] = None
-            Optional initial request body to use. If None, a new one will be constructed from cache/config parameters.
+            Optional initial request body to use. If None, a default DiffusionRequestBody is used.
             The caller's body is not modified.
         Returns
         -------
@@ -314,7 +314,7 @@ class A1111Webservice(WebService):
         Parameters
         ----------
         image : Image.Image
-            Source image to upscale, usually the entire image loaded in EditedImage.
+            Source image to upscale.
         width : int
             New image width in pixels requested.
         height : int
@@ -394,8 +394,8 @@ class A1111Webservice(WebService):
         image : PIL Image
             The image to describe.
         interrogate_model : Optional[str]
-            Specific image interrogation model to use. Must be supported by the backend. Default defined in
-             util.shared_constants as "clip".
+            Specific image interrogation model to use. Must be supported by the backend. Defaults to
+            INTERROGATE_DEFAULT_MODEL.
         Returns
         -------
         str
@@ -563,7 +563,7 @@ class A1111Webservice(WebService):
         return deepcopy(self._preprocessor_cache)
 
     def get_controlnet_type_categories(self) -> dict[str, ControlTypeDef]:
-        """Gets the set of valid ControlNet proeprocessor/model categories, taking into account available options and
+        """Gets the set of valid ControlNet preprocessor/model categories, taking into account available options and
            API category definitions if possible."""
         modules = self.get_controlnet_modules()
         models = self.get_controlnet_models()

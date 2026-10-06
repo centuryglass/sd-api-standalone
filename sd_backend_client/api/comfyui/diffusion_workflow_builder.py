@@ -36,10 +36,6 @@ from sd_backend_client.api.shared_data.controlnet.controlnet_preprocessor import
 from sd_backend_client.api.shared_data.diffusion_params import DiffusionParams
 from sd_backend_client.util.geometry import Size
 
-# Key used to reference a LoRA model's file path within cached LoRA metadata dicts (originally defined in IntraPaint's
-# extra_network_window UI, inlined here to keep the API standalone):
-LORA_KEY_PATH = 'path'
-
 logger = logging.getLogger(__name__)
 DEFAULT_STEP_COUNT = 30
 DEFAULT_CFG = 8.0
@@ -576,8 +572,8 @@ class DiffusionWorkflowBuilder:
         self.clip_skip = diffusion_params.clip_skip
 
         # TODO: Find and add LoRA and Hypernetwork models:
-        available_loras: list[str] = [] # [lora[LORA_KEY_PATH] for lora in cache.get(Cache.LORA_MODELS)]
-        available_hypernetworks: list[str] = [] # cache.get(Cache.HYPERNETWORK_MODELS)
+        available_loras: list[str] = []
+        available_hypernetworks: list[str] = []
         lora_name_map: dict[str, str] = {}
         hypernet_name_map: dict[str, str] = {}
         for model_list, model_dict in ((available_loras, lora_name_map),

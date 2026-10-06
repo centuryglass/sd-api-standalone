@@ -6,7 +6,7 @@ from sd_backend_client.api.comfyui.nodes.comfy_node import NodeConnection, Comfy
 
 NODE_NAME = 'ControlNetApplyAdvanced'
 
-CONTROLNET_COMFTUI_CONTROL_WEIGHT_KEY = 'strength'
+CONTROLNET_COMFYUI_CONTROL_WEIGHT_KEY = 'strength'
 CONTROLNET_COMFYUI_START_STEP_KEY = 'start_percent'
 CONTROLNET_COMFYUI_END_STEP_KEY = 'end_percent'
 

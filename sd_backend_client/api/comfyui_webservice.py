@@ -43,20 +43,10 @@ if TYPE_CHECKING:
 logger = logging.getLogger(__name__)
 
 
-class AuthError(Exception):
-    """Identifies login failures."""
-
-
-UPSCALE_SCRIPT = 'ultimate sd upscale'
 DEFAULT_TIMEOUT = 30
 EXTENDED_TIMEOUT = 90
 TYPE_PNG_IMAGE = 'image/png'
 INTRAPAINT_UPLOAD_SUBFOLDER = 'IntraPaint'
-LORA_EXTENSION = '.safetensors'
-
-TILE_PREPROCESSOR_NODE_NAME = 'TilePreprocessor'
-TILE_PREPROCESSOR_DOWNSAMPLING_PARAM_KEY = 'pyrUp_iters'
-TILE_PREPROCESSOR_RESOLUTION_KEY = 'resolution'
 
 # Keys used when extracting data from the KSampler node definition:
 SAMPLER_OPTION_KEY = 'sampler_name'
@@ -125,7 +115,7 @@ class AsyncTaskStatus(Enum):
 class AsyncTaskProgress(BaseModel):
     """The status of an async ComfyUI task, including queue index and generated image data when relevant."""
     status: AsyncTaskStatus
-    index: Optional[int] = None  # Only used if statis is PENDING
+    index: Optional[int] = None  # Only used if status is PENDING
     outputs: Optional[PromptExecOutputs] = None  # Only used if status is FINISHED
 
 
@@ -233,7 +223,7 @@ class ComfyUiWebservice(WebService):
 
     def get_controlnet_type_categories(self, preprocessors: Optional[list[ControlNetPreprocessor]] = None
                                        ) -> dict[str, ControlTypeDef]:
-        """Gets the set of valid ControlNet proeprocessor/model categories, taking into account available options and
+        """Gets the set of valid ControlNet preprocessor/model categories, taking into account available options and
            API category definitions if possible."""
         if preprocessors is None:
             preprocessors = self.get_controlnet_preprocessors()
@@ -353,7 +343,7 @@ class ComfyUiWebservice(WebService):
     def _build_diffusion_body(self,
                               diffusion_params: DiffusionParams,
                               workflow_builder: Optional[DiffusionWorkflowBuilder] = None) -> DiffusionWorkflowBuilder:
-        """Apply cached parameters to begin building a ComfyUI workflow."""
+        """Loads diffusion parameters into a workflow builder, resolving the model config file against the server."""
         if workflow_builder is None:
             workflow_builder = DiffusionWorkflowBuilder()
         workflow_builder.load_diffusion_parameters(diffusion_params)
@@ -374,7 +364,7 @@ class ComfyUiWebservice(WebService):
 
     def _prepare_controlnet_data(self, workflow_builder: DiffusionWorkflowBuilder,
                                  controlnet_units: list[ControlNetUnit]) -> None:
-        """Loads ControlNet units from the cache into a workflow builder.
+        """Uploads ControlNet unit images and adds each usable unit to a workflow builder.
 
         Parameters:
         ----------
@@ -408,8 +398,7 @@ class ComfyUiWebservice(WebService):
     def txt2img(self, diffusion_params: DiffusionParams) -> QueueAdditionResponse:
         """Queues an async text-to-image job with the ComfyUI server.
 
-        Most parameters are read directly from the cache, where they should have been written from UI inputs. Calling
-        this method will update the LAST_SEED value in the cache.
+        The response's `seed` holds the seed the workflow used, including one chosen at random.
 
         Parameters:
         -----------
@@ -519,7 +508,7 @@ class ComfyUiWebservice(WebService):
 
     def upscale(self, image: Image.Image, width: int, height: int,
                 upscale_params: Optional[DiffusionUpscalingParams] = None) -> QueueAdditionResponse:
-        """Upscale an image using an upscaling model and/or a latent updcaling workflow."""
+        """Upscale an image using an upscaling model and/or a latent upscaling workflow."""
         if upscale_params is None:
             upscale_params = DiffusionUpscalingParams()
         upscale_multiplier = max(width / image.width, height / image.height)

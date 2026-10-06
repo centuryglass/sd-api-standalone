@@ -129,13 +129,13 @@ The request body is a **node graph**, not JSON fields. This is the most involved
 
 ### `util/`
 
-`geometry.py` (`Size`), `shared_constants.py`, `api_defaults.py`, `singleton.py` (a `Singleton` metaclass), and
-`visual/image_utils.py` (base64/PNG to and from `PIL.Image`, RGBA normalization).
+`geometry.py` (`Size`), `api_defaults.py` (defaults shared by the parameter models), and `visual/image_utils.py`
+(base64/PNG to and from `PIL.Image`, RGBA normalization).
 
 ## Conventions
 
 - **No Qt / PySide6, no cv2 / numpy.** Images are plain `PIL.Image` (normalized to RGBA); sizes use the minimal `Size`
-  class in `util/geometry.py`. The `_tr()` translation helpers are no-op shims.
+  class in `util/geometry.py`. The package carries no UI strings or translation helpers.
 - **No config layer.** Generation parameters are passed explicitly as pydantic models, never read from a
   `Cache`/`AppConfig` singleton. A new parameter is threaded through the pydantic model.
 - **Code runs on Python 3.11,** the `requires-python` minimum CI tests. Two 3.12-only forms break it:
