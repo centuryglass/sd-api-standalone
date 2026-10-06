@@ -105,11 +105,102 @@ workflow builders read from.
   warnings); *(opt-in)* img2img resizes a source to `width` x `height` on both backends, and WebUI applies the
   requested scheduler.
 
-### Saved outputs
+## Reviewing saved outputs
 
-The generation tests write their results to the output dir (default `tests/output/`,
-git-ignored) so you can eyeball fidelity — including the ControlNet input, the
-`/controlnet/detect` preview, and the with/without-ControlNet baseline pair.
+The generation tests save their images to the output dir (default `tests/output/`, git-ignored). No test checks
+that an image matches its prompt, so after a `--run-generation` run, review the images against this checklist.
+
+- Each test overwrites its own files. A file older than the rest came from a skipped test or from a test that no
+  longer exists.
+- Files with the `comfy_` prefix come from ComfyUI. All others come from WebUI.
+- Generated images are small and use few steps, so soft, low-detail output is expected. Judge whether each image
+  follows its prompt and inputs, not its quality.
+- Inputs (`*_source`, `*_mask`, `*_input`) are drawn by `helpers.py` and are the same on every run. A change in one
+  points to the test helpers, not the backend.
+
+Every generated image:
+
+- [ ] Is not solid black, solid gray or pure noise. Any of these points to a VAE, sampler or decode failure.
+- [ ] Has no transparent or checkerboard areas.
+- [ ] Has natural colors, not inverted or channel-swapped (for example, a red apple that comes out blue).
+
+### WebUI
+
+From `test_a1111_generation.py`, `test_a1111_async.py` and `test_shared_params.py`. Except where noted, images are
+256x256 at 4 steps.
+
+- [ ] `txt2img.png`: a red apple on a wooden table.
+- [ ] `txt2img_batch_0.png`, `txt2img_batch_1.png`: two apple-on-table images that differ from each other. Two
+  identical images mean the batch reused one seed.
+- [ ] `img2img_result.png`: a landscape painting, clearly changed from `img2img_source.png` (a diagonal color
+  gradient with a white square outline and a black circle outline). Traces of the source's colors or framing may
+  remain at 0.75 denoise.
+- [ ] `inpaint_result.png`: a flower fills the center square, which `inpaint_mask.png` marks white.
+- [ ] Outside the center square of `inpaint_result.png`, the gradient and white square outline match
+  `inpaint_source.png` pixel for pixel, with a crisp boundary (`mask_blur=0`). A changed border around an untouched
+  center means the mask was inverted.
+- [ ] `upscale_result.png`: `upscale_source.png` at 256x256, with the same composition and no added content.
+- [ ] `async_txt2img.png` (512x512, 20 steps, as are the other `async_*` images): a red apple on a wooden table.
+- [ ] `async_img2img.png`: an oil-painting look in blue-dominant colors, from a flat blue source.
+- [ ] `async_serialize_1.png` is a blue teapot and `async_serialize_2.png` is a green frog. Swapped or identical
+  subjects mean the two queued jobs' results were mixed up.
+- [ ] `async_idle_wait.png`: a small red cube. A fantasy landscape here is the other client's job, not ours.
+- [ ] `shared_params_webui_img2img.png`: a 256x320 portrait watercolor from a 192x128 landscape source, filling the
+  frame without stretching or letterbox bars.
+
+### ComfyUI
+
+From `test_comfyui_generation.py`, `test_comfyui_async.py` and `test_shared_params.py`. Except where noted, images
+are 256x256 at 8 steps.
+
+- [ ] `comfy_txt2img.png`: a red apple on a wooden table.
+- [ ] `comfy_img2img_result.png`: a vivid landscape painting, clearly changed from `comfy_img2img_source.png`.
+- [ ] `comfy_inpaint_result.png`: flower-like content replaces the center square that `comfy_inpaint_mask.png`
+  marks white.
+- [ ] Outside the center square of `comfy_inpaint_result.png`, the gradient and white square outline survive. Slight
+  softening is normal, because ComfyUI passes the whole image through the VAE. An edited border around an untouched
+  center means `ComfyUiWebservice.upload_mask` converted the mask polarity wrong.
+- [ ] `comfy_upscale_result.png`: `comfy_upscale_source.png` at 256x256, sharper than a plain resize, with no new
+  content. It is missing when the server has no upscale model installed.
+- [ ] `comfy_async_txt2img.png`: identical to `comfy_txt2img.png`, since both use the same prompt, seed, size and
+  steps. A visible difference means the async path builds a different workflow.
+- [ ] `comfy_async_img2img.png`: an oil-painting look in blue-dominant colors, from a flat blue source.
+- [ ] `comfy_async_queue_1.png` is a blue teapot and `comfy_async_queue_2.png` is a green frog. Swapped or identical
+  subjects mean a handle downloaded another prompt's outputs.
+- [ ] `comfy_async_running_survived_cancel.png`: a fully rendered 512x512 fantasy landscape. A half-finished, noisy
+  or missing image means cancelling the queued job interrupted the running one. A red cube is the cancelled job.
+- [ ] `shared_params_comfyui_img2img.png`: a 256x320 portrait watercolor filling the frame without stretching.
+  Expect a similar style to the WebUI version, not the same image.
+
+### ControlNet
+
+ControlNet can fail silently: the server returns a normal image and ignores the control unit. Each backend's suite
+generates "a photograph of a city street, detailed" with seed 42, once without ControlNet and once with Canny.
+
+- [ ] `controlnet_input.png` and `comfy_controlnet_input.png`: identical black lines on white, a square outline, a
+  centered circle and both corner-to-corner diagonals.
+- [ ] `controlnet_preview_canny.png` and `comfy_controlnet_preview_CannyEdgePreprocessor.png`: thin white edge lines
+  on black tracing the same shapes, with each thick input line doubled. They are 512x512, the preprocessors'
+  default resolution, though the input is 256x256.
+- [ ] `controlnet_baseline_no_cn.png` and `comfy_controlnet_baseline_no_cn.png`: a loose street scene with no
+  visible square or circle structure.
+- [ ] `controlnet_with_canny.png` and `comfy_controlnet_with_CannyEdgePreprocessor.png`: the composition follows
+  the edge map, with the square frame, central circle and diagonals plainly visible, typically as a corridor or
+  room seen head-on. The test only asserts a mean difference of 2/255 from the baseline, which a weak or partly
+  applied unit can pass.
+
+### What the tests already assert
+
+| Image group | Asserted automatically | Left to the reviewer |
+|-------------|------------------------|----------------------|
+| All generated images | RGBA, size within 8 px of target | Prompt adherence; black, noise or color-swap output |
+| img2img | Mean difference from source >= 10/255 | Style matches the prompt |
+| Inpainting | Center changes >= 20/255. WebUI border <= 5/255; ComfyUI center change >= 3x border change | Seam quality; the fill is a flower |
+| Upscale | At least 200 px on each side | No added content or artifacts |
+| ControlNet pair | Mean difference >= 2/255 | The edge structure shapes the image |
+| Preprocessor preview | Not a single flat color | Edges match the input shapes |
+| Async queue and cancel | Status sequence; both images returned | Each image matches its own prompt |
+| Shared params img2img | 256x320 size; WebUI reports DPM++ 2M with Karras | No stretching or distortion |
 
 ## Graceful degradation
 
