@@ -2,11 +2,12 @@ name: release-please
 
 # Keeps a release pull request open against main, collecting the Conventional Commits titles of merged pull requests
 # into CHANGELOG.md and bumping pyproject.toml's version (release-please-config.json). Merging it tags the release and
-# publishes a GitHub release with that changelog section as its notes; the upload-artifacts job then attaches the sdist
-# and wheel built from the tag to that release. While the version is below 1.0.0, a breaking change bumps the minor
-# version (bump-minor-pre-major).
+# publishes a GitHub release with that changelog section as its notes. The build job then builds the sdist and wheel
+# from the tag and attaches them to that release, and the publish-pypi job uploads them to PyPI. While the version is
+# below 1.0.0, a breaking change bumps the minor version (bump-minor-pre-major).
 #
-# Releases are not published to PyPI. Library users install from a release asset URL or a git URL.
+# Running this workflow by hand (workflow_dispatch) with a tag skips release-please and builds, attaches and publishes
+# that existing release, for a release whose upload failed or predates the publish jobs.
 #
 # Pull requests opened with GITHUB_TOKEN don't trigger workflows, so CI has to be started by hand on the release pull
 # request: run the ci workflow from the Actions tab on its branch. The repository setting "Allow GitHub Actions to
@@ -14,6 +15,12 @@ name: release-please
 on:
   push:
     branches: [main]
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: Existing release tag to build, attach and publish (e.g. v0.2.0)
+        required: true
+        type: string
 
 permissions:
   contents: write
@@ -27,6 +34,7 @@ concurrency:
 jobs:
   release-please:
     name: release-please
+    if: github.event_name == 'push'
     runs-on: ubuntu-latest
     timeout-minutes: 10
     outputs:
@@ -38,16 +46,28 @@ jobs:
         with:
           target-branch: main
 
-  upload-artifacts:
-    name: upload-artifacts
+  build:
+    name: build
     needs: release-please
-    if: needs.release-please.outputs.release_created == 'true'
+    # always() lets a workflow_dispatch run proceed past the skipped release-please job.
+    if: always() && (github.event_name == 'workflow_dispatch' || needs.release-please.outputs.release_created == 'true')
     runs-on: ubuntu-latest
     timeout-minutes: 10
+    permissions:
+      contents: write
+    env:
+      TAG: ${{ inputs.tag || needs.release-please.outputs.tag_name }}
     steps:
       - uses: actions/checkout@v7
         with:
-          ref: ${{ needs.release-please.outputs.tag_name }}
+          ref: ${{ env.TAG }}
+
+      # The tag can predate scripts/check_dist.py, so the copy from this workflow's own commit is used.
+      - uses: actions/checkout@v7
+        with:
+          path: workflow-ref
+          sparse-checkout: scripts/check_dist.py
+          sparse-checkout-cone-mode: false
 
       - uses: actions/setup-python@v7
         with:
@@ -60,11 +80,34 @@ jobs:
           pip install build twine
           python -m build
           twine check --strict dist/*
+          cp workflow-ref/scripts/check_dist.py scripts/check_dist.py
           python scripts/check_dist.py dist
 
       - name: Attach to the GitHub release
         env:
           GH_TOKEN: ${{ github.token }}
-          TAG: ${{ needs.release-please.outputs.tag_name }}
-        # --clobber lets a re-run of this job replace assets from a failed earlier attempt.
+        # --clobber lets a re-run replace assets from a failed earlier attempt.
         run: gh release upload "$TAG" dist/* --clobber --repo "$GITHUB_REPOSITORY"
+
+      - uses: actions/upload-artifact@v7
+        with:
+          name: dist
+          path: dist/
+
+  # Uses PyPI trusted publishing: pypi.org trusts this repository and workflow file by name, with no environment, so
+  # renaming this file or adding a GitHub environment here breaks uploads until the PyPI publisher settings match.
+  publish-pypi:
+    name: publish-pypi
+    needs: build
+    if: always() && needs.build.result == 'success'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      id-token: write
+    steps:
+      - uses: actions/download-artifact@v8
+        with:
+          name: dist
+          path: dist/
+
+      - uses: pypa/gh-action-pypi-publish@release/v1
