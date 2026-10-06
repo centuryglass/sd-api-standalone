@@ -1,5 +1,6 @@
 [build-system]
-requires = ["setuptools>=68"]
+# 77 is the first release that reads the PEP 639 `license` expression and `license-files`.
+requires = ["setuptools>=77"]
 build-backend = "setuptools.build_meta"
 
 [project]
@@ -8,6 +9,25 @@ version = "0.2.0"
 description = "Standalone, headless Stable Diffusion backend client (ComfyUI / Forge / A1111 WebUI, ControlNet)"
 readme = "README.md"
 requires-python = ">=3.11"
+license = "Unlicense"
+license-files = ["LICENSE"]
+authors = [{ name = "Anthony Brown" }]
+keywords = ["stable-diffusion", "comfyui", "automatic1111", "forge", "webui", "controlnet", "api-client"]
+# Keep the Python versions in step with CI's test matrix (.github/workflows/ci.yml).
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Intended Audience :: Developers",
+    "Operating System :: OS Independent",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3 :: Only",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Programming Language :: Python :: 3.14",
+    "Topic :: Multimedia :: Graphics",
+    "Topic :: Scientific/Engineering :: Artificial Intelligence",
+    "Typing :: Typed",
+]
 dependencies = [
     "pillow",
     "requests",
@@ -15,6 +35,11 @@ dependencies = [
     "pydantic",
     "typing-extensions",
 ]
+
+[project.urls]
+Homepage = "https://github.com/centuryglass/sd-backend-client"
+Issues = "https://github.com/centuryglass/sd-backend-client/issues"
+Changelog = "https://github.com/centuryglass/sd-backend-client/blob/main/CHANGELOG.md"
 
 [tool.setuptools.packages.find]
 include = ["sd_backend_client*"]
