@@ -63,6 +63,24 @@ These pin behavior ahead of the planned config-decoupling refactor: they cover e
 logic that survives it, so a regression that silently changes an emitted request will fail
 here (fast, offline) rather than only showing up in a live generation.
 
+### Recorded responses (`tests/unit/fixtures/recorded/`)
+
+`test_recorded_responses.py` replays real server responses through the clients' public
+methods: ComfyUI's `/object_info`, `/history`, `/queue` and `/system_stats`, and the WebUI's
+ControlNet and option-list endpoints. Each `<label>.json` there is written by
+`scripts/capture_fixtures.py`, which runs the clients against live servers (the same
+`COMFYUI_API_URL`, `SD_API_URL`, `SD_UNAME`/`SD_PASS` variables as the integration tests) and
+records every response they read:
+
+```bash
+python scripts/capture_fixtures.py                          # every reachable backend
+python scripts/capture_fixtures.py --only webui --label a1111
+```
+
+The ComfyUI capture queues one small txt2img job, so it needs a checkpoint. Recordings list
+the server's model names, so review them before committing. When a client change requests an
+endpoint a recording lacks, the replay fails and names it; re-run the capture to refresh.
+
 ## What's covered (integration)
 
 ### A1111 / Forge / ReForge
