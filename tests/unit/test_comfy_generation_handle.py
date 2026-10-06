@@ -18,6 +18,7 @@ from sd_backend_client.api.comfyui.comfyui_types import (ImageFileReference, Pro
                                                       QueueAdditionResponse)
 from sd_backend_client.api.comfyui_webservice import AsyncTaskProgress, AsyncTaskStatus
 from sd_backend_client.api.shared_data.generation_handle import (GenerationError, GenerationStatus)
+from sd_backend_client.errors import BackendTimeoutError, WorkflowValidationError
 
 
 class FakeComfyService:
@@ -68,14 +69,14 @@ def test_from_queue_response_populates_ids_and_seed():
 
 def test_from_queue_response_rejects_missing_prompt_id():
     response = QueueAdditionResponse(prompt_id=None, error='node validation failed')
-    with pytest.raises(RuntimeError, match='rejected the workflow'):
+    with pytest.raises(WorkflowValidationError, match='rejected the workflow: node validation failed'):
         ComfyGenerationHandle.from_queue_response(FakeComfyService([]), response)
 
 
 def test_from_queue_response_rejects_missing_number():
     """A response without a queue number is rejected, since check_queue_entry needs it to find a pending job."""
     response = QueueAdditionResponse(prompt_id='abc', number=None)
-    with pytest.raises(RuntimeError, match='rejected the workflow'):
+    with pytest.raises(WorkflowValidationError, match='rejected the workflow'):
         ComfyGenerationHandle.from_queue_response(FakeComfyService([]), response)
 
 
@@ -184,3 +185,11 @@ def test_cancelled_job_wait_raises():
     handle.cancel()
     with pytest.raises(GenerationError):
         handle.wait(poll_interval=0.0)
+
+
+def test_wait_timeout_raises_backend_timeout_error():
+    """The polling wait() raises BackendTimeoutError, which is also a TimeoutError, when the timeout elapses."""
+    handle = _handle([AsyncTaskProgress(status=AsyncTaskStatus.ACTIVE)] * 3)
+    with pytest.raises(BackendTimeoutError) as error:
+        handle.wait(timeout=0, poll_interval=0.0)
+    assert isinstance(error.value, TimeoutError)

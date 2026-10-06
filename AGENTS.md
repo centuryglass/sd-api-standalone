@@ -141,6 +141,9 @@ The request body is a **node graph**, not JSON fields. This is the most involved
 - **Code runs on Python 3.11,** the `requires-python` minimum CI tests. Two 3.12-only forms break it:
   - the `type X = ...` statement. Write `X: TypeAlias = ...`.
   - `typing.TypedDict` in anything pydantic validates. Import `TypedDict` from `typing_extensions`.
+- **Errors use the tree in `sd_backend_client/errors.py`.** A failure talking to a backend raises an `SDBackendError`
+  subclass, invalid caller input raises `ValueError`, and `assert` only guards internal invariants, since `python -O`
+  strips it.
 - **Ask the maintainer before adding a dependency,** and keep them minimal. Every runtime dependency lands in each
   library user's environment.
 - Match the surrounding code's style, naming, and structure.

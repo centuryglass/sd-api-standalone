@@ -8,7 +8,8 @@ authenticated *and* an unauthenticated instance.
 """
 import pytest
 
-from sd_backend_client.api.a1111_webservice import A1111Webservice, AuthError
+from sd_backend_client.api.a1111_webservice import A1111Webservice
+from sd_backend_client.errors import AuthError, SDBackendError
 
 pytestmark = pytest.mark.integration
 
@@ -22,7 +23,7 @@ def test_login_with_valid_credentials(api_url, credentials, auth_enforced):
     try:
         res = client.login(*credentials)
         assert res.status_code == 200, f'valid login rejected ({res.status_code}): {res.text}'
-    except RuntimeError as err:
+    except SDBackendError as err:
         pytest.skip(f'No WebUI server reachable at {api_url}: {err}')
     finally:
         client.disconnect()
@@ -36,7 +37,7 @@ def test_login_with_bad_credentials_is_rejected(api_url, auth_enforced):
         res = client.login('definitely-not-a-real-user', 'definitely-not-a-real-password')
         # login() only raises on a transport error, not on an HTTP failure status.
         assert res.status_code != 200, 'bad credentials were accepted'
-    except RuntimeError as err:
+    except SDBackendError as err:
         pytest.skip(f'No WebUI server reachable at {api_url}: {err}')
     finally:
         client.disconnect()
@@ -56,7 +57,7 @@ def test_credentials_provider_drives_authenticated_requests(api_url, credentials
         assert isinstance(samplers, list)
     except AuthError as err:
         pytest.fail(f'authenticated request failed with provided credentials: {err}')
-    except RuntimeError as err:
+    except SDBackendError as err:
         pytest.skip(f'No WebUI server reachable at {api_url}: {err}')
     finally:
         client.disconnect()
@@ -74,7 +75,7 @@ def test_missing_provider_raises_autherror_on_protected_server(api_url, auth_enf
     try:
         with pytest.raises(AuthError):
             client.get_samplers()
-    except RuntimeError as err:
+    except SDBackendError as err:
         pytest.skip(f'No WebUI server reachable at {api_url}: {err}')
     finally:
         client.disconnect()

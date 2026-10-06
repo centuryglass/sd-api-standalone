@@ -198,8 +198,8 @@ class ErrorEntry(BaseModel):
     """A single queue error."""
     type: str
     message: str
-    details: str
-    extra_info: dict[str, str]
+    details: str = ''
+    extra_info: dict[str, Any] = {}  # Holds input names, input configs and received values of any JSON type.
 
 
 class NodeErrorEntry(BaseModel):

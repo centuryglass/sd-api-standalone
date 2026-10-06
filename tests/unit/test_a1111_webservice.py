@@ -10,6 +10,7 @@ from sd_backend_client.api.shared_data.api_datatypes import DiffusionUpscalingPa
 from sd_backend_client.api.shared_data.controlnet.controlnet_preprocessor import ControlNetPreprocessor
 from sd_backend_client.api.webui.diffusion_request_body import DiffusionRequestBody
 from sd_backend_client.api.webservice import DEFAULT_REQUEST_TIMEOUT
+from sd_backend_client.errors import SDBackendError, ServerError, UnexpectedResponseError
 from sd_backend_client.util.visual.image_utils import image_from_base64, image_to_base64, image_to_png_bytes
 
 
@@ -191,7 +192,7 @@ def test_image_response_with_invalid_info_keeps_images(monkeypatch):
 def test_get_vae_falls_back_to_forge_endpoint(monkeypatch):
     """When /sdapi/v1/sd-vae fails, Forge's /sdapi/v1/sd-modules is used."""
     service, _ = _service_with_routes(monkeypatch, {
-        A1111Webservice.Endpoints.VAE_MODELS: RuntimeError('404: Not Found'),
+        A1111Webservice.Endpoints.VAE_MODELS: ServerError(404, 'Not Found', '/sdapi/v1/sd-vae', 'GET'),
         A1111Webservice.ForgeEndpoints.SD_MODULES: [{'model_name': 'ae', 'filename': '/models/VAE/ae.safetensors'}],
     }, None)
     assert [vae.model_name for vae in service.get_vae()] == ['ae']
@@ -263,3 +264,38 @@ def test_get_thumbnail_sends_file_path_as_query_param():
     assert service.get_thumbnail('models/Lora/a&b #1.png') is not None
     assert session.get.call_args.args[0] == 'http://unused.invalid/sd_extra_networks/thumb'
     assert session.get.call_args.kwargs['params'] == {'filename': 'models/Lora/a&b #1.png'}
+
+
+class _HtmlResponse:
+    """A successful response whose body is an HTML page rather than JSON."""
+    status_code = 200
+    url = 'http://unused.invalid/sdapi/v1/txt2img'
+    text = '<html>proxy error</html>'
+
+    def json(self) -> Any:
+        """Fail the way `requests` does on a non-JSON body."""
+        raise ValueError('Expecting value: line 1 column 1 (char 0)')
+
+
+def test_non_json_image_response_raises_unexpected_response(monkeypatch):
+    """A generation response that is not JSON raises UnexpectedResponseError quoting the body."""
+    service = A1111Webservice('http://unused.invalid')
+    monkeypatch.setattr(service, 'post', lambda *_args, **_kwargs: _HtmlResponse())
+    with pytest.raises(UnexpectedResponseError, match='proxy error') as error:
+        service.txt2img(DiffusionRequestBody())
+    assert isinstance(error.value, SDBackendError)
+
+
+def test_interrogate_with_unexpected_response_raises(monkeypatch):
+    """An interrogate response that is neither a caption string nor an object raises UnexpectedResponseError."""
+    service, _ = _service_with_routes(monkeypatch, {}, ['not', 'a', 'caption'])
+    with pytest.raises(UnexpectedResponseError, match='interrogate'):
+        service.interrogate(Image.new('RGBA', (1, 1)))
+
+
+def test_preprocessor_preview_without_images_raises(monkeypatch):
+    """A /controlnet/detect response with no images raises UnexpectedResponseError."""
+    service, _ = _service_with_routes(monkeypatch, {}, {'images': []})
+    preprocessor = ControlNetPreprocessor(name='canny')
+    with pytest.raises(UnexpectedResponseError, match='no preview image'):
+        service.controlnet_preprocessor_preview(Image.new('RGBA', (1, 1)), None, preprocessor)

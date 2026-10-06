@@ -7,6 +7,8 @@ import requests
 
 from sd_backend_client.api.webservice import DEFAULT_REQUEST_TIMEOUT, JSON_DATA_TYPE, MULTIPART_FORM_DATA_TYPE, \
     WebService
+from sd_backend_client.errors import AuthError, BackendConnectionError, BackendTimeoutError, SDBackendError, \
+    ServerError
 
 
 def _response(status: int = 200, text: str = '') -> MagicMock:
@@ -126,10 +128,13 @@ def test_unsupported_method_raises_value_error():
         _service()._send('/x', 'PUT', None, JSON_DATA_TYPE)
 
 
-def test_error_status_raises_with_status_and_body():
+def test_error_status_raises_server_error_with_status_and_body():
     service = _service(500, 'CUDA out of memory')
-    with pytest.raises(RuntimeError, match='500: CUDA out of memory'):
+    with pytest.raises(ServerError, match='500: CUDA out of memory') as error:
         service.get('/x')
+    assert (error.value.status_code, error.value.body) == (500, 'CUDA out of memory')
+    assert (error.value.method, error.value.endpoint) == ('GET', '/x')
+    assert isinstance(error.value, SDBackendError)
 
 
 def test_error_status_is_returned_when_throw_on_failure_is_off():
@@ -140,22 +145,26 @@ def test_error_status_is_returned_when_throw_on_failure_is_off():
 def test_connection_error_is_wrapped_with_endpoint():
     service = _service()
     service._session.get.side_effect = requests.exceptions.ConnectionError('refused')
-    with pytest.raises(RuntimeError, match='Error connecting to /x') as error:
+    with pytest.raises(BackendConnectionError, match='Error connecting to .*/x: refused') as error:
         service.get('/x')
     assert isinstance(error.value.__cause__, requests.exceptions.ConnectionError)
+    assert isinstance(error.value, ConnectionError)
+    assert isinstance(error.value, SDBackendError)
 
 
 def test_timeout_is_wrapped_with_endpoint():
     service = _service()
     service._session.post.side_effect = requests.exceptions.ReadTimeout('read timed out')
-    with pytest.raises(RuntimeError, match='Error connecting to /x: read timed out'):
+    with pytest.raises(BackendTimeoutError, match='POST /x timed out.*read timed out') as error:
         service.post('/x', {})
+    assert isinstance(error.value, TimeoutError)
+    assert isinstance(error.value, SDBackendError)
 
 
 def test_fail_on_auth_error_raises_without_reauthenticating():
     service = _service(401)
     service._handle_auth_error = MagicMock()
-    with pytest.raises(RuntimeError, match='401'):
+    with pytest.raises(AuthError, match='401'):
         service.get('/x', fail_on_auth_error=True)
     service._handle_auth_error.assert_not_called()
 

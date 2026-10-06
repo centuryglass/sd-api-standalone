@@ -10,6 +10,7 @@ from sd_backend_client.api.webui.controlnet_webui_constants import RESIZE_MODE_P
     PREPROCESSOR_RES_PARAM_NAME, PREPROCESSOR_RES_PARAM_KEY, PREPROCESSOR_NO_RESOLUTION, PREPROCESSOR_RES_DEFAULT, \
     PREPROCESSOR_RES_DEFAULTS, PREPROCESSOR_RES_LABEL, PREPROCESSOR_RES_MIN, PREPROCESSOR_RES_MAX, \
     PREPROCESSOR_RES_STEP, THRESHOLD_A_PARAMETER_NAMES, THRESHOLD_B_PARAMETER_NAMES, PREPROCESSOR_MODEL_FREE
+from sd_backend_client.errors import UnexpectedResponseError
 
 logger = logging.getLogger(__name__)
 
@@ -64,7 +65,7 @@ def get_all_preprocessors(preprocessor_names: list[str],
                     parameters.insert(resize_insert_index + 1, res_param)
                 else:
                     if next_threshold_key is None:
-                        raise RuntimeError(f'Unexpected extra parameter in "{preprocessor_name}" details')
+                        raise UnexpectedResponseError(f'Unexpected extra parameter in "{preprocessor_name}" details')
                     key = next_threshold_key
                     if next_threshold_key == FIRST_GENERIC_PARAMETER_KEY:
                         next_threshold_key = SECOND_GENERIC_PARAMETER_KEY

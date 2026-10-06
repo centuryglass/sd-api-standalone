@@ -5,6 +5,7 @@ The response bodies follow the shapes ComfyUI's /history, /queue, /object_info a
 # pylint: disable=protected-access
 import io
 import json
+import re
 from typing import Any, Optional
 from urllib.parse import parse_qsl, urlsplit
 from unittest.mock import MagicMock
@@ -18,10 +19,21 @@ from sd_backend_client.api.comfyui.comfyui_types import ImageFileReference
 from sd_backend_client.api.comfyui.comfyui_diffusion_params import ComfyUIDiffusionParams
 from sd_backend_client.api.comfyui_webservice import (AsyncTaskStatus, ComfyEndpoints, ComfyModelType,
                                                       ComfyUiWebservice, EXTENDED_TIMEOUT)
+from sd_backend_client.api.shared_data.api_datatypes import DiffusionUpscalingParams
+from sd_backend_client.errors import BackendConnectionError, BackendTimeoutError, ServerError, \
+    UnexpectedResponseError, WorkflowValidationError
 from sd_backend_client.util.visual.image_utils import image_to_png_bytes
 
 PROMPT_ID = '7d4c0f0e-6a3b-4c1e-9f6e-0a1b2c3d4e5f'
 OTHER_ID = '11111111-2222-3333-4444-555555555555'
+
+
+class _Status:
+    """A canned failure response: a status code and a raw text body."""
+
+    def __init__(self, status_code: int, text: str) -> None:
+        self.status_code = status_code
+        self.text = text
 
 
 class _FakeSession:
@@ -41,7 +53,10 @@ class _FakeSession:
             raise body
         response = MagicMock()
         response.status_code = 200
-        if isinstance(body, bytes):
+        if isinstance(body, _Status):
+            response.status_code = body.status_code
+            response.text = body.text
+        elif isinstance(body, bytes):
             response.content = body
         else:
             response.json.return_value = json.loads(json.dumps(body))
@@ -245,8 +260,8 @@ def test_upload_image_rejects_non_base64_string():
         service.upload_image('not base64!')
 
 
-def test_download_images_sends_reference_as_query_and_skips_failures():
-    """Each reference becomes /view query parameters, and an image that fails to download is skipped."""
+def test_download_images_sends_reference_as_query():
+    """Each reference becomes /view query parameters, and each downloaded image is returned in order."""
     png = image_to_png_bytes(Image.new('RGB', (2, 2), (255, 0, 0)))
     service, session = _service({('GET', ComfyEndpoints.VIEW_IMAGE): png})
     refs = [ImageFileReference(filename='a.png', subfolder='', type='output'),
@@ -259,8 +274,19 @@ def test_download_images_sends_reference_as_query_and_skips_failures():
         {'filename': 'a.png', 'subfolder': '', 'type': 'output'},
         {'filename': 'b.png', 'subfolder': 'sub'}]
 
-    session.routes[('GET', ComfyEndpoints.VIEW_IMAGE)] = RuntimeError('404: not found')
-    assert not service.download_images(refs)
+
+def test_download_images_raises_when_an_image_is_missing():
+    """A failed download raises instead of returning fewer images than were generated."""
+    service, _ = _service({('GET', ComfyEndpoints.VIEW_IMAGE): _Status(404, 'not found')})
+    with pytest.raises(ServerError, match='404: not found'):
+        service.download_images([ImageFileReference(filename='a.png', subfolder='')])
+
+
+def test_download_images_raises_when_data_is_not_an_image():
+    """Data that does not decode as an image raises UnexpectedResponseError naming the file."""
+    service, _ = _service({('GET', ComfyEndpoints.VIEW_IMAGE): b'not an image'})
+    with pytest.raises(UnexpectedResponseError, match='a.png'):
+        service.download_images([ImageFileReference(filename='a.png', subfolder='')])
 
 
 def test_download_images_encodes_reserved_characters_in_query():
@@ -306,6 +332,55 @@ def test_txt2img_posts_workflow_with_client_id_and_returns_seed():
     assert len(samplers) == 1
     assert samplers[0]['inputs']['seed'] == 1234
     assert samplers[0]['inputs']['denoise'] == 1.0
+
+
+# ComfyUI's /prompt rejection body: an `error` plus `node_errors` keyed by node id.
+_REJECTION = {
+    'error': {'type': 'prompt_outputs_failed_validation', 'message': 'Prompt outputs failed validation',
+              'details': '', 'extra_info': {}},
+    'node_errors': {'4': {
+        'errors': [{'type': 'value_not_in_list', 'message': 'Value not in list',
+                    'details': "ckpt_name: 'missing.safetensors' not in ['model.safetensors']",
+                    'extra_info': {'input_name': 'ckpt_name', 'input_config': [['model.safetensors']],
+                                   'received_value': 'missing.safetensors'}}],
+        'dependent_outputs': ['9'], 'class_type': 'CheckpointLoaderSimple'}},
+}
+
+
+def test_rejected_workflow_raises_workflow_validation_error():
+    """A 400 from /prompt with ComfyUI's error body raises WorkflowValidationError carrying the node errors."""
+    service, _ = _service({('GET', '/models/configs'): [],
+                           ('POST', ComfyEndpoints.PROMPT): _Status(400, json.dumps(_REJECTION))})
+    expected = re.escape("node 4 (CheckpointLoaderSimple): Value not in list: ckpt_name: 'missing.safetensors'")
+    with pytest.raises(WorkflowValidationError, match=expected) as error:
+        service.txt2img(ComfyUIDiffusionParams(sd_model_name='missing.safetensors'))
+    assert error.value.node_errors['4'].errors[0].extra_info['input_name'] == 'ckpt_name'
+    assert isinstance(error.value.__cause__, ServerError)
+
+
+def test_prompt_400_without_error_body_stays_a_server_error():
+    """A 400 whose body is not ComfyUI's rejection format is reported as a plain ServerError."""
+    service, _ = _service({('GET', '/models/configs'): [],
+                           ('POST', ComfyEndpoints.PROMPT): _Status(400, 'Bad Request')})
+    with pytest.raises(ServerError, match='400: Bad Request') as error:
+        service.txt2img(ComfyUIDiffusionParams(sd_model_name='model.safetensors'))
+    assert not isinstance(error.value, WorkflowValidationError)
+
+
+def test_queue_info_without_queue_lists_raises_unexpected_response():
+    """A /queue response missing its queue lists raises UnexpectedResponseError."""
+    service, _ = _service({('GET', ComfyEndpoints.QUEUE): {'queue_running': []}})
+    with pytest.raises(UnexpectedResponseError, match='queue_pending'):
+        service.get_queue_info()
+
+
+def test_basic_upscale_without_an_installed_model_raises_value_error():
+    """Basic upscaling with a model the server does not have is a caller error."""
+    service, _ = _service({('POST', ComfyEndpoints.IMG_UPLOAD): _upload_response(),
+                           ('GET', '/models/upscale_models'): ['4x.pth']})
+    params = DiffusionUpscalingParams(upscaling_mode='missing.pth', use_stable_diffusion_upscaling=False)
+    with pytest.raises(ValueError, match='missing.pth'):
+        service.upscale(Image.new('RGBA', (8, 8)), 16, 16, params)
 
 
 def test_img2img_uploads_init_image_and_wires_it_into_the_workflow():
@@ -361,3 +436,19 @@ def test_open_websocket_maps_scheme_and_keeps_base_path(monkeypatch, server_url:
     assert f'{url.scheme}://{url.netloc}{url.path}' == expected
     assert dict(parse_qsl(url.query)) == {'clientId': service._client_id}
     socket.close.assert_called_once()
+
+
+@pytest.mark.parametrize('failure, expected', [
+    (websocket.WebSocketTimeoutException('timed out'), BackendTimeoutError),
+    (ConnectionRefusedError('refused'), BackendConnectionError),
+    (websocket.WebSocketBadStatusException('Handshake status 404', 404), BackendConnectionError),
+])
+def test_open_websocket_wraps_connection_failures(monkeypatch, failure: Exception, expected: type):
+    """A websocket that fails to open raises the package's connection or timeout error."""
+    socket = MagicMock()
+    socket.connect.side_effect = failure
+    monkeypatch.setattr(websocket, 'WebSocket', lambda: socket)
+    with pytest.raises(expected) as error:
+        with ComfyUiWebservice('http://127.0.0.1:8188').open_websocket():
+            pass
+    assert error.value.__cause__ is failure

@@ -25,11 +25,14 @@ class PreprocessorPreviewWorkflowBuilder:
 
     def build_workflow(self, source_image: Optional[ImageFileReference],
                        mask: Optional[ImageFileReference] = None) -> ComfyNodeGraph:
-        """Use the provided parameters to build a complete workflow graph."""
+        """Use the provided parameters to build a complete workflow graph.
+
+        Raises ValueError if the preprocessor takes an image input and source_image is None."""
         workflow = ComfyNodeGraph()
 
         if self._preprocessor_node.has_image_input:
-            assert source_image is not None
+            if source_image is None:
+                raise ValueError(f'Preprocessor {self._preprocessor.name!r} needs a source image.')
             load_image_node = LoadImageNode(image_ref_to_str(source_image))
             workflow.connect_nodes(self._preprocessor_node, DynamicPreprocessorNode.IMAGE,
                                    load_image_node, LoadImageNode.IDX_IMAGE)

@@ -11,6 +11,7 @@ import pytest
 from PIL import Image
 
 from sd_backend_client.api.shared_data.generation_handle import GenerationError, GenerationStatus
+from sd_backend_client.errors import BackendTimeoutError, SDBackendError, ServerError
 from sd_backend_client.api.webui import webui_generation_handle
 from sd_backend_client.api.webui.response_formats import ProgressResponseBody
 from sd_backend_client.api.webui.webui_generation_handle import WebUIDispatcher, WebUIGenerationHandle, create_task_id
@@ -188,8 +189,10 @@ def test_cancel_after_finish_is_rejected():
 
 def test_failed_job_reports_error_and_next_job_still_runs():
     """An exception from the generation call ends the job FAILED with its message; the worker keeps going."""
+    cause = ServerError(500, 'out of memory', '/sdapi/v1/txt2img', 'POST')
+
     def failing_call() -> dict[str, Any]:
-        raise RuntimeError('500: out of memory')
+        raise cause
 
     dispatcher = _dispatcher()
     failed = dispatcher.submit(failing_call, 'task(fail)')
@@ -199,17 +202,19 @@ def test_failed_job_reports_error_and_next_job_still_runs():
 
     with pytest.raises(GenerationError, match='out of memory') as error:
         failed.wait(timeout=SAFETY_TIMEOUT_S)
+    assert isinstance(error.value, SDBackendError)
     assert error.value.status is GenerationStatus.FAILED
-    assert failed.poll().text_info == '500: out of memory'
+    assert error.value.__cause__ is cause
+    assert failed.poll().text_info == str(cause)
     assert following.wait(timeout=SAFETY_TIMEOUT_S).info == 'next'
 
 
 def test_wait_times_out_while_job_runs():
-    """wait() raises TimeoutError when the timeout elapses before the job ends."""
+    """wait() raises BackendTimeoutError, which is also a TimeoutError, when the timeout elapses first."""
     job = _BlockingJob('a', [])
     handle = _dispatcher().submit(job, 'task(a)')
     try:
-        with pytest.raises(TimeoutError):
+        with pytest.raises(BackendTimeoutError):
             handle.wait(timeout=0)
     finally:
         job.release.set()

@@ -20,6 +20,7 @@ from sd_backend_client.api.shared_data.controlnet.controlnet_preprocessor import
                                                                                 PreprocessorParams)
 from sd_backend_client.api.webui.controlnet_webui_constants import ControlNetModuleResponse, ModuleDetail
 from sd_backend_client.api.webui.controlnet_webui_utils import get_all_preprocessors as webui_preprocessors
+from sd_backend_client.errors import UnexpectedResponseError
 
 PREPROCESSOR_CATEGORY = 'ControlNet Preprocessors/Line Extractors'
 A1111_MODULE_LIST = Path(__file__).parent / 'fixtures' / 'a1111_controlnet_module_list.json'
@@ -176,7 +177,7 @@ def test_webui_module_details_reject_a_third_threshold():
     """More than two non-resolution sliders is an error."""
     slider = {'name': 'Value', 'value': 0, 'min': 0, 'max': 1, 'step': 1}
     details = {'odd': ModuleDetail.model_validate({'model_free': True, 'sliders': [slider] * 3})}
-    with pytest.raises(RuntimeError, match='odd'):
+    with pytest.raises(UnexpectedResponseError, match='odd'):
         webui_preprocessors(['odd'], details)
 
 

@@ -11,6 +11,7 @@ from sd_backend_client.api.comfyui.latent_upscale_workflow_builder import Latent
 from sd_backend_client.api.comfyui.nodes.ultimate_upscale_node import ULTIMATE_UPSCALE_NODE_WITHOUT_UPSCALE_MODEL
 from sd_backend_client.api.comfyui.nodes.vae.vae_encode_tiled_node import TILE_MAX, TILE_MIN
 from sd_backend_client.api.comfyui_webservice import ComfyUiWebservice
+from sd_backend_client.api.comfyui.preprocessor_preview_workflow_builder import PreprocessorPreviewWorkflowBuilder
 from sd_backend_client.api.shared_data.controlnet.controlnet_model import ControlNetModel
 from sd_backend_client.api.shared_data.controlnet.controlnet_preprocessor import (ControlNetPreprocessor,
                                                                               PreprocessorParams)
@@ -227,5 +228,12 @@ def test_latent_workflow_without_source_image_raises():
     """A builder whose source image was cleared refuses to build."""
     builder = latent_builder(True, None)
     builder.source_image = None
-    with pytest.raises(RuntimeError, match='No image'):
+    with pytest.raises(ValueError, match='No image'):
         builder.build_workflow()
+
+
+def test_preprocessor_preview_without_a_required_image_raises_value_error():
+    """A preview of a preprocessor that takes an image needs a source image."""
+    builder = PreprocessorPreviewWorkflowBuilder(ControlNetPreprocessor(name='CannyEdgePreprocessor'))
+    with pytest.raises(ValueError, match='CannyEdgePreprocessor'):
+        builder.build_workflow(None)
