@@ -1,0 +1,57 @@
+name: Bug report
+description: The client sends a wrong request, mishandles a response, or fails against a backend.
+labels: [bug]
+body:
+  - type: textarea
+    id: description
+    attributes:
+      label: What happened
+      description: What you expected, and what happened instead. Include the full traceback or server error if there is one.
+    validations:
+      required: true
+  - type: textarea
+    id: reproduction
+    attributes:
+      label: Minimal reproduction
+      description: The smallest snippet that shows the problem, with the parameters you passed.
+      render: python
+    validations:
+      required: true
+  - type: dropdown
+    id: backend
+    attributes:
+      label: Backend
+      options:
+        - ComfyUI
+        - Automatic1111 WebUI
+        - Forge
+        - reForge
+        - Other / not backend-specific
+    validations:
+      required: true
+  - type: input
+    id: backend-version
+    attributes:
+      label: Backend version
+      description: Version, or commit hash for a git checkout.
+      placeholder: e.g. ComfyUI v0.3.40, Forge f2.0.1v1.10.1
+    validations:
+      required: true
+  - type: textarea
+    id: extensions
+    attributes:
+      label: Extensions involved
+      description: Name and version of any extension the request uses, such as ControlNet (sd-webui-controlnet or comfyui_controlnet_aux) or Ultimate SD Upscale.
+      placeholder: e.g. sd-webui-controlnet 1.1.455
+  - type: input
+    id: client-version
+    attributes:
+      label: sd-backend-client version
+      description: Release version, or commit hash if installed from source.
+    validations:
+      required: true
+  - type: input
+    id: python-version
+    attributes:
+      label: Python version and OS
+      placeholder: e.g. Python 3.12.4 on Ubuntu 24.04

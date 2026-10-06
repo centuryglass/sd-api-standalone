@@ -1,0 +1,26 @@
+name: Feature request
+description: Support for a backend feature, extension or workflow the client doesn't cover yet.
+labels: [enhancement]
+body:
+  - type: textarea
+    id: problem
+    attributes:
+      label: What you want to do
+      description: The task you're trying to accomplish and what stops you today.
+    validations:
+      required: true
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Proposed API or behavior
+      description: How you'd like to call it, if you have an idea. A short code sketch helps.
+      render: python
+  - type: dropdown
+    id: backends
+    attributes:
+      label: Backends affected
+      multiple: true
+      options:
+        - ComfyUI
+        - Automatic1111 WebUI / Forge / reForge
+        - Both
