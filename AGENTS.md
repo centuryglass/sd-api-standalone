@@ -208,6 +208,9 @@ don't need rewriting to conform, and nothing enforces these rules mechanically.
 - CI (`.github/workflows/ci.yml`) runs on every pull request into `main` and every push to it: `pytest tests/` on
   Python 3.11-3.14 and once more on 3.11 with the oldest allowed runtime dependencies, plus the lint and type checks
   below. Its `ci` job is the single check to require for merging.
+- **The test job fails when line-and-branch coverage drops below its `--cov-fail-under` floor** in `ci.yml`. New code
+  comes with unit tests that keep it above the floor; raise the floor when coverage rises, and don't lower it to land
+  a change.
 
 ## Type checking
 

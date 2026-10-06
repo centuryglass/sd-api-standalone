@@ -1,0 +1,1683 @@
+{
+ "errors": {},
+ "meta": {
+  "backend": "webui",
+  "captured": "2026-10-06",
+  "controlnet_version": 3
+ },
+ "responses": {
+  "/controlnet/control_types": {
+   "control_types": {
+    "All": {
+     "default_model": "None",
+     "default_option": "none",
+     "model_list": [
+      "None"
+     ],
+     "module_list": [
+      "none",
+      "ip-adapter-auto",
+      "tile_resample",
+      "softedge_pidinet",
+      "seg_ofade20k",
+      "scribble_pidinet",
+      "revision_clipvision",
+      "reference_only",
+      "recolor_luminance",
+      "openpose_full",
+      "normal_bae",
+      "mlsd",
+      "lineart_standard (from white bg & black line)",
+      "ip-adapter_clip_h",
+      "inpaint_only",
+      "depth_midas",
+      "canny",
+      "invert (from white bg & black line)",
+      "tile_colorfix+sharp",
+      "tile_colorfix",
+      "threshold",
+      "t2ia_style_clipvision",
+      "t2ia_sketch_pidi",
+      "t2ia_color_grid",
+      "softedge_teed",
+      "softedge_pidisafe",
+      "softedge_hedsafe",
+      "softedge_hed",
+      "softedge_anyline",
+      "shuffle",
+      "seg_ufade20k",
+      "seg_ofcoco",
+      "seg_anime_face",
+      "scribble_xdog",
+      "scribble_hed",
+      "revision_ignore_prompt",
+      "reference_adain+attn",
+      "reference_adain",
+      "recolor_intensity",
+      "openpose_hand",
+      "openpose_faceonly",
+      "openpose_face",
+      "openpose",
+      "normal_midas",
+      "normal_dsine",
+      "mediapipe_face",
+      "lineart_realistic",
+      "lineart_coarse",
+      "lineart_anime_denoise",
+      "lineart_anime",
+      "ip-adapter_pulid",
+      "ip-adapter_face_id_plus",
+      "ip-adapter_face_id",
+      "ip-adapter_clip_sdxl_plus_vith",
+      "ip-adapter_clip_g",
+      "instant_id_face_keypoints",
+      "instant_id_face_embedding",
+      "inpaint_only+lama",
+      "inpaint_global_harmonious",
+      "facexlib",
+      "dw_openpose_full",
+      "depth_zoe",
+      "depth_leres++",
+      "depth_leres",
+      "depth_hand_refiner",
+      "depth_anything_v2",
+      "depth_anything",
+      "densepose_parula (black bg & blue torso)",
+      "densepose (pruple bg & purple torso)",
+      "blur_gaussian",
+      "animal_openpose"
+     ]
+    },
+    "Canny": {
+     "default_model": "None",
+     "default_option": "canny",
+     "model_list": [
+      "None"
+     ],
+     "module_list": [
+      "none",
+      "canny",
+      "invert (from white bg & black line)"
+     ]
+    },
+    "Depth": {
+     "default_model": "None",
+     "default_option": "depth_midas",
+     "model_list": [
+      "None"
+     ],
+     "module_list": [
+      "none",
+      "depth_midas",
+      "depth_zoe",
+      "depth_leres++",
+      "depth_leres",
+      "depth_hand_refiner",
+      "depth_anything_v2",
+      "depth_anything"
+     ]
+    },
+    "IP-Adapter": {
+     "default_model": "None",
+     "default_option": "ip-adapter-auto",
+     "model_list": [
+      "None"
+     ],
+     "module_list": [
+      "none",
+      "ip-adapter-auto",
+      "ip-adapter_clip_h",
+      "ip-adapter_pulid",
+      "ip-adapter_face_id_plus",
+      "ip-adapter_face_id",
+      "ip-adapter_clip_sdxl_plus_vith",
+      "ip-adapter_clip_g"
+     ]
+    },
+    "Inpaint": {
+     "default_model": "None",
+     "default_option": "inpaint_only",
+     "model_list": [
+      "None"
+     ],
+     "module_list": [
+      "none",
+      "inpaint_only",
+      "inpaint_only+lama",
+      "inpaint_global_harmonious"
+     ]
+    },
+    "Instant-ID": {
+     "default_model": "None",
+     "default_option": "instant_id_face_keypoints",
+     "model_list": [
+      "None"
+     ],
+     "module_list": [
+      "none",
+      "instant_id_face_keypoints",
+      "instant_id_face_embedding"
+     ]
+    },
+    "InstructP2P": {
+     "default_model": "None",
+     "default_option": "none",
+     "model_list": [
+      "None"
+     ],
+     "module_list": [
+      "none"
+     ]
+    },
+    "Lineart": {
+     "default_model": "None",
+     "default_option": "lineart_standard (from white bg & black line)",
+     "model_list": [
+      "None"
+     ],
+     "module_list": [
+      "none",
+      "lineart_standard (from white bg & black line)",
+      "invert (from white bg & black line)",
+      "lineart_realistic",
+      "lineart_coarse",
+      "lineart_anime_denoise",
+      "lineart_anime"
+     ]
+    },
+    "MLSD": {
+     "default_model": "None",
+     "default_option": "mlsd",
+     "model_list": [
+      "None"
+     ],
+     "module_list": [
+      "none",
+      "mlsd",
+      "invert (from white bg & black line)"
+     ]
+    },
+    "NormalMap": {
+     "default_model": "None",
+     "default_option": "normal_bae",
+     "model_list": [
+      "None"
+     ],
+     "module_list": [
+      "none",
+      "normal_bae",
+      "normal_midas",
+      "normal_dsine"
+     ]
+    },
+    "OpenPose": {
+     "default_model": "None",
+     "default_option": "openpose_full",
+     "model_list": [
+      "None"
+     ],
+     "module_list": [
+      "none",
+      "openpose_full",
+      "openpose_hand",
+      "openpose_faceonly",
+      "openpose_face",
+      "openpose",
+      "dw_openpose_full",
+      "densepose_parula (black bg & blue torso)",
+      "densepose (pruple bg & purple torso)",
+      "animal_openpose"
+     ]
+    },
+    "Recolor": {
+     "default_model": "None",
+     "default_option": "recolor_luminance",
+     "model_list": [
+      "None"
+     ],
+     "module_list": [
+      "none",
+      "recolor_luminance",
+      "recolor_intensity"
+     ]
+    },
+    "Reference": {
+     "default_model": "None",
+     "default_option": "reference_only",
+     "model_list": [
+      "None"
+     ],
+     "module_list": [
+      "none",
+      "reference_only",
+      "reference_adain+attn",
+      "reference_adain"
+     ]
+    },
+    "Revision": {
+     "default_model": "None",
+     "default_option": "revision_clipvision",
+     "model_list": [
+      "None"
+     ],
+     "module_list": [
+      "none",
+      "revision_clipvision",
+      "revision_ignore_prompt"
+     ]
+    },
+    "Scribble": {
+     "default_model": "None",
+     "default_option": "scribble_pidinet",
+     "model_list": [
+      "None"
+     ],
+     "module_list": [
+      "none",
+      "scribble_pidinet",
+      "invert (from white bg & black line)",
+      "scribble_xdog",
+      "scribble_hed"
+     ]
+    },
+    "Segmentation": {
+     "default_model": "None",
+     "default_option": "seg_ofade20k",
+     "model_list": [
+      "None"
+     ],
+     "module_list": [
+      "none",
+      "seg_ofade20k",
+      "seg_ufade20k",
+      "seg_ofcoco",
+      "seg_anime_face"
+     ]
+    },
+    "Shuffle": {
+     "default_model": "None",
+     "default_option": "shuffle",
+     "model_list": [
+      "None"
+     ],
+     "module_list": [
+      "none",
+      "shuffle"
+     ]
+    },
+    "SoftEdge": {
+     "default_model": "None",
+     "default_option": "softedge_pidinet",
+     "model_list": [
+      "None"
+     ],
+     "module_list": [
+      "none",
+      "softedge_pidinet",
+      "softedge_teed",
+      "softedge_pidisafe",
+      "softedge_hedsafe",
+      "softedge_hed",
+      "softedge_anyline"
+     ]
+    },
+    "SparseCtrl": {
+     "default_model": "None",
+     "default_option": "scribble_pidinet",
+     "model_list": [
+      "None"
+     ],
+     "module_list": [
+      "none",
+      "scribble_pidinet",
+      "scribble_xdog",
+      "scribble_hed"
+     ]
+    },
+    "T2I-Adapter": {
+     "default_model": "None",
+     "default_option": "t2ia_style_clipvision",
+     "model_list": [
+      "None"
+     ],
+     "module_list": [
+      "none",
+      "t2ia_style_clipvision",
+      "t2ia_sketch_pidi",
+      "t2ia_color_grid"
+     ]
+    },
+    "Tile": {
+     "default_model": "None",
+     "default_option": "tile_resample",
+     "model_list": [
+      "None"
+     ],
+     "module_list": [
+      "none",
+      "tile_resample",
+      "tile_colorfix+sharp",
+      "tile_colorfix",
+      "blur_gaussian"
+     ]
+    }
+   }
+  },
+  "/controlnet/model_list": {
+   "model_list": []
+  },
+  "/controlnet/module_list": {
+   "module_detail": {
+    "animal_openpose": {
+     "model_free": false,
+     "sliders": [
+      {
+       "max": 2048,
+       "min": 64,
+       "name": "Resolution",
+       "step": 8,
+       "value": 512
+      }
+     ]
+    },
+    "anime_face_segment": {
+     "model_free": false,
+     "sliders": [
+      {
+       "max": 2048,
+       "min": 64,
+       "name": "Resolution",
+       "step": 8,
+       "value": 512
+      }
+     ]
+    },
+    "blur_gaussian": {
+     "model_free": false,
+     "sliders": [
+      {
+       "max": 2048,
+       "min": 64,
+       "name": "Resolution",
+       "step": 8,
+       "value": 512
+      },
+      {
+       "max": 64.0,
+       "min": 0.01,
+       "name": "Sigma",
+       "step": 0.01,
+       "value": 9.0
+      }
+     ]
+    },
+    "canny": {
+     "model_free": false,
+     "sliders": [
+      {
+       "max": 2048,
+       "min": 64,
+       "name": "Resolution",
+       "step": 8,
+       "value": 512
+      },
+      {
+       "max": 255,
+       "min": 1,
+       "name": "Low Threshold",
+       "step": 1,
+       "value": 100
+      },
+      {
+       "max": 255,
+       "min": 1,
+       "name": "High Threshold",
+       "step": 1,
+       "value": 200
+      }
+     ]
+    },
+    "clip_vision": {
+     "model_free": false,
+     "sliders": [
+      {
+       "max": 2048,
+       "min": 64,
+       "name": "Resolution",
+       "step": 8,
+       "value": 512
+      }
+     ]
+    },
+    "color": {
+     "model_free": false,
+     "sliders": [
+      {
+       "max": 2048,
+       "min": 64,
+       "name": "Resolution",
+       "step": 8,
+       "value": 512
+      }
+     ]
+    },
+    "densepose": {
+     "model_free": false,
+     "sliders": [
+      {
+       "max": 2048,
+       "min": 64,
+       "name": "Resolution",
+       "step": 8,
+       "value": 512
+      }
+     ]
+    },
+    "densepose_parula": {
+     "model_free": false,
+     "sliders": [
+      {
+       "max": 2048,
+       "min": 64,
+       "name": "Resolution",
+       "step": 8,
+       "value": 512
+      }
+     ]
+    },
+    "depth": {
+     "model_free": false,
+     "sliders": [
+      {
+       "max": 2048,
+       "min": 64,
+       "name": "Resolution",
+       "step": 8,
+       "value": 512
+      }
+     ]
+    },
+    "depth_anything": {
+     "model_free": false,
+     "sliders": [
+      {
+       "max": 2048,
+       "min": 64,
+       "name": "Resolution",
+       "step": 8,
+       "value": 512
+      }
+     ]
+    },
+    "depth_anything_v2": {
+     "model_free": false,
+     "sliders": [
+      {
+       "max": 2048,
+       "min": 64,
+       "name": "Resolution",
+       "step": 8,
+       "value": 512
+      }
+     ]
+    },
+    "depth_hand_refiner": {
+     "model_free": false,
+     "sliders": [
+      {
+       "max": 2048,
+       "min": 64,
+       "name": "Resolution",
+       "step": 8,
+       "value": 512
+      }
+     ]
+    },
+    "depth_leres": {
+     "model_free": false,
+     "sliders": [
+      {
+       "max": 2048,
+       "min": 64,
+       "name": "Resolution",
+       "step": 8,
+       "value": 512
+      },
+      {
+       "max": 100,
+       "min": 0,
+       "name": "Remove Near %",
+       "step": 0.1,
+       "value": 0
+      },
+      {
+       "max": 100,
+       "min": 0,
+       "name": "Remove Background %",
+       "step": 0.1,
+       "value": 0
+      }
+     ]
+    },
+    "depth_leres++": {
+     "model_free": false,
+     "sliders": [
+      {
+       "max": 2048,
+       "min": 64,
+       "name": "Resolution",
+       "step": 8,
+       "value": 512
+      },
+      {
+       "max": 100,
+       "min": 0,
+       "name": "Remove Near %",
+       "step": 0.1,
+       "value": 0
+      },
+      {
+       "max": 100,
+       "min": 0,
+       "name": "Remove Background %",
+       "step": 0.1,
+       "value": 0
+      }
+     ]
+    },
+    "depth_zoe": {
+     "model_free": false,
+     "sliders": [
+      {
+       "max": 2048,
+       "min": 64,
+       "name": "Resolution",
+       "step": 8,
+       "value": 512
+      }
+     ]
+    },
+    "dw_openpose_full": {
+     "model_free": false,
+     "sliders": [
+      {
+       "max": 2048,
+       "min": 64,
+       "name": "Resolution",
+       "step": 8,
+       "value": 512
+      }
+     ]
+    },
+    "facexlib": {
+     "model_free": false,
+     "sliders": []
+    },
+    "hed": {
+     "model_free": false,
+     "sliders": [
+      {
+       "max": 2048,
+       "min": 64,
+       "name": "Resolution",
+       "step": 8,
+       "value": 512
+      }
+     ]
+    },
+    "hed_safe": {
+     "model_free": false,
+     "sliders": [
+      {
+       "max": 2048,
+       "min": 64,
+       "name": "Resolution",
+       "step": 8,
+       "value": 512
+      }
+     ]
+    },
+    "inpaint": {
+     "model_free": false,
+     "sliders": []
+    },
+    "inpaint_only": {
+     "model_free": false,
+     "sliders": []
+    },
+    "inpaint_only+lama": {
+     "model_free": false,
+     "sliders": []
+    },
+    "instant_id_face_embedding": {
+     "model_free": false,
+     "sliders": [
+      {
+       "max": 2048,
+       "min": 64,
+       "name": "Resolution",
+       "step": 8,
+       "value": 512
+      }
+     ]
+    },
+    "instant_id_face_keypoints": {
+     "model_free": false,
+     "sliders": [
+      {
+       "max": 2048,
+       "min": 64,
+       "name": "Resolution",
+       "step": 8,
+       "value": 512
+      }
+     ]
+    },
+    "invert": {
+     "model_free": false,
+     "sliders": []
+    },
+    "ip-adapter-auto": {
+     "model_free": false,
+     "sliders": [
+      {
+       "max": 2048,
+       "min": 64,
+       "name": "Resolution",
+       "step": 8,
+       "value": 512
+      }
+     ]
+    },
+    "ip-adapter_clip_sd15": {
+     "model_free": false,
+     "sliders": [
+      {
+       "max": 2048,
+       "min": 64,
+       "name": "Resolution",
+       "step": 8,
+       "value": 512
+      }
+     ]
+    },
+    "ip-adapter_clip_sdxl": {
+     "model_free": false,
+     "sliders": [
+      {
+       "max": 2048,
+       "min": 64,
+       "name": "Resolution",
+       "step": 8,
+       "value": 512
+      }
+     ]
+    },
+    "ip-adapter_clip_sdxl_plus_vith": {
+     "model_free": false,
+     "sliders": [
+      {
+       "max": 2048,
+       "min": 64,
+       "name": "Resolution",
+       "step": 8,
+       "value": 512
+      }
+     ]
+    },
+    "ip-adapter_face_id": {
+     "model_free": false,
+     "sliders": [
+      {
+       "max": 2048,
+       "min": 64,
+       "name": "Resolution",
+       "step": 8,
+       "value": 512
+      }
+     ]
+    },
+    "ip-adapter_face_id_plus": {
+     "model_free": false,
+     "sliders": [
+      {
+       "max": 2048,
+       "min": 64,
+       "name": "Resolution",
+       "step": 8,
+       "value": 512
+      }
+     ]
+    },
+    "ip-adapter_pulid": {
+     "model_free": false,
+     "sliders": []
+    },
+    "lineart": {
+     "model_free": false,
+     "sliders": [
+      {
+       "max": 2048,
+       "min": 64,
+       "name": "Resolution",
+       "step": 8,
+       "value": 512
+      }
+     ]
+    },
+    "lineart_anime": {
+     "model_free": false,
+     "sliders": [
+      {
+       "max": 2048,
+       "min": 64,
+       "name": "Resolution",
+       "step": 8,
+       "value": 512
+      }
+     ]
+    },
+    "lineart_anime_denoise": {
+     "model_free": false,
+     "sliders": [
+      {
+       "max": 2048,
+       "min": 64,
+       "name": "Resolution",
+       "step": 8,
+       "value": 512
+      }
+     ]
+    },
+    "lineart_coarse": {
+     "model_free": false,
+     "sliders": [
+      {
+       "max": 2048,
+       "min": 64,
+       "name": "Resolution",
+       "step": 8,
+       "value": 512
+      }
+     ]
+    },
+    "lineart_standard": {
+     "model_free": false,
+     "sliders": [
+      {
+       "max": 2048,
+       "min": 64,
+       "name": "Resolution",
+       "step": 8,
+       "value": 512
+      }
+     ]
+    },
+    "mediapipe_face": {
+     "model_free": false,
+     "sliders": [
+      {
+       "max": 2048,
+       "min": 64,
+       "name": "Resolution",
+       "step": 8,
+       "value": 512
+      },
+      {
+       "max": 10,
+       "min": 1,
+       "name": "Max Faces",
+       "step": 1,
+       "value": 1
+      },
+      {
+       "max": 1.0,
+       "min": 0.01,
+       "name": "Min Face Confidence",
+       "step": 0.01,
+       "value": 0.5
+      }
+     ]
+    },
+    "mlsd": {
+     "model_free": false,
+     "sliders": [
+      {
+       "max": 2048,
+       "min": 64,
+       "name": "Resolution",
+       "step": 8,
+       "value": 512
+      },
+      {
+       "max": 2.0,
+       "min": 0.01,
+       "name": "MLSD Value Threshold",
+       "step": 0.01,
+       "value": 0.1
+      },
+      {
+       "max": 20.0,
+       "min": 0.01,
+       "name": "MLSD Distance Threshold",
+       "step": 0.01,
+       "value": 0.1
+      }
+     ]
+    },
+    "none": {
+     "model_free": false,
+     "sliders": [
+      {
+       "max": 2048,
+       "min": 64,
+       "name": "Resolution",
+       "step": 8,
+       "value": 512
+      }
+     ]
+    },
+    "normal_bae": {
+     "model_free": false,
+     "sliders": [
+      {
+       "max": 2048,
+       "min": 64,
+       "name": "Resolution",
+       "step": 8,
+       "value": 512
+      }
+     ]
+    },
+    "normal_dsine": {
+     "model_free": false,
+     "sliders": [
+      {
+       "max": 2048,
+       "min": 64,
+       "name": "Resolution",
+       "step": 8,
+       "value": 512
+      },
+      {
+       "max": 360,
+       "min": 0,
+       "name": "Fov",
+       "step": 0.1,
+       "value": 60
+      },
+      {
+       "max": 20,
+       "min": 1,
+       "name": "Iterations",
+       "step": 1,
+       "value": 5
+      }
+     ]
+    },
+    "normal_map": {
+     "model_free": false,
+     "sliders": [
+      {
+       "max": 2048,
+       "min": 64,
+       "name": "Resolution",
+       "step": 8,
+       "value": 512
+      },
+      {
+       "max": 1.0,
+       "min": 0.0,
+       "name": "Normal Background Threshold",
+       "step": 0.01,
+       "value": 0.4
+      }
+     ]
+    },
+    "oneformer_ade20k": {
+     "model_free": false,
+     "sliders": [
+      {
+       "max": 2048,
+       "min": 64,
+       "name": "Resolution",
+       "step": 8,
+       "value": 512
+      }
+     ]
+    },
+    "oneformer_coco": {
+     "model_free": false,
+     "sliders": [
+      {
+       "max": 2048,
+       "min": 64,
+       "name": "Resolution",
+       "step": 8,
+       "value": 512
+      }
+     ]
+    },
+    "openpose": {
+     "model_free": false,
+     "sliders": [
+      {
+       "max": 2048,
+       "min": 64,
+       "name": "Resolution",
+       "step": 8,
+       "value": 512
+      }
+     ]
+    },
+    "openpose_face": {
+     "model_free": false,
+     "sliders": [
+      {
+       "max": 2048,
+       "min": 64,
+       "name": "Resolution",
+       "step": 8,
+       "value": 512
+      }
+     ]
+    },
+    "openpose_faceonly": {
+     "model_free": false,
+     "sliders": [
+      {
+       "max": 2048,
+       "min": 64,
+       "name": "Resolution",
+       "step": 8,
+       "value": 512
+      }
+     ]
+    },
+    "openpose_full": {
+     "model_free": false,
+     "sliders": [
+      {
+       "max": 2048,
+       "min": 64,
+       "name": "Resolution",
+       "step": 8,
+       "value": 512
+      }
+     ]
+    },
+    "openpose_hand": {
+     "model_free": false,
+     "sliders": [
+      {
+       "max": 2048,
+       "min": 64,
+       "name": "Resolution",
+       "step": 8,
+       "value": 512
+      }
+     ]
+    },
+    "pidinet": {
+     "model_free": false,
+     "sliders": [
+      {
+       "max": 2048,
+       "min": 64,
+       "name": "Resolution",
+       "step": 8,
+       "value": 512
+      }
+     ]
+    },
+    "pidinet_safe": {
+     "model_free": false,
+     "sliders": [
+      {
+       "max": 2048,
+       "min": 64,
+       "name": "Resolution",
+       "step": 8,
+       "value": 512
+      }
+     ]
+    },
+    "pidinet_scribble": {
+     "model_free": false,
+     "sliders": [
+      {
+       "max": 2048,
+       "min": 64,
+       "name": "Resolution",
+       "step": 8,
+       "value": 512
+      }
+     ]
+    },
+    "pidinet_sketch": {
+     "model_free": false,
+     "sliders": [
+      {
+       "max": 2048,
+       "min": 64,
+       "name": "Resolution",
+       "step": 8,
+       "value": 512
+      }
+     ]
+    },
+    "recolor_intensity": {
+     "model_free": false,
+     "sliders": [
+      {
+       "max": 2048,
+       "min": 64,
+       "name": "Resolution",
+       "step": 8,
+       "value": 512
+      },
+      {
+       "max": 2.0,
+       "min": 0.1,
+       "name": "Gamma Correction",
+       "step": 0.001,
+       "value": 1.0
+      }
+     ]
+    },
+    "recolor_luminance": {
+     "model_free": false,
+     "sliders": [
+      {
+       "max": 2048,
+       "min": 64,
+       "name": "Resolution",
+       "step": 8,
+       "value": 512
+      },
+      {
+       "max": 2.0,
+       "min": 0.1,
+       "name": "Gamma Correction",
+       "step": 0.001,
+       "value": 1.0
+      }
+     ]
+    },
+    "reference_adain": {
+     "model_free": true,
+     "sliders": [
+      {
+       "max": 2048,
+       "min": 64,
+       "name": "Resolution",
+       "step": 8,
+       "value": 512
+      },
+      {
+       "max": 1.0,
+       "min": 0.0,
+       "name": "Style Fidelity (only for Balanced mode)",
+       "step": 0.01,
+       "value": 0.5
+      }
+     ]
+    },
+    "reference_adain+attn": {
+     "model_free": true,
+     "sliders": [
+      {
+       "max": 2048,
+       "min": 64,
+       "name": "Resolution",
+       "step": 8,
+       "value": 512
+      },
+      {
+       "max": 1.0,
+       "min": 0.0,
+       "name": "Style Fidelity (only for Balanced mode)",
+       "step": 0.01,
+       "value": 0.5
+      }
+     ]
+    },
+    "reference_only": {
+     "model_free": true,
+     "sliders": [
+      {
+       "max": 2048,
+       "min": 64,
+       "name": "Resolution",
+       "step": 8,
+       "value": 512
+      },
+      {
+       "max": 1.0,
+       "min": 0.0,
+       "name": "Style Fidelity (only for Balanced mode)",
+       "step": 0.01,
+       "value": 0.5
+      }
+     ]
+    },
+    "revision_clipvision": {
+     "model_free": true,
+     "sliders": [
+      {
+       "max": 2048,
+       "min": 64,
+       "name": "Resolution",
+       "step": 8,
+       "value": 512
+      },
+      {
+       "max": 1.0,
+       "min": 0.0,
+       "name": "Noise Augmentation",
+       "step": 0.01,
+       "value": 0.0
+      }
+     ]
+    },
+    "revision_ignore_prompt": {
+     "model_free": true,
+     "sliders": [
+      {
+       "max": 2048,
+       "min": 64,
+       "name": "Resolution",
+       "step": 8,
+       "value": 512
+      },
+      {
+       "max": 1.0,
+       "min": 0.0,
+       "name": "Noise Augmentation",
+       "step": 0.01,
+       "value": 0.0
+      }
+     ]
+    },
+    "scribble_hed": {
+     "model_free": false,
+     "sliders": [
+      {
+       "max": 2048,
+       "min": 64,
+       "name": "Resolution",
+       "step": 8,
+       "value": 512
+      }
+     ]
+    },
+    "scribble_xdog": {
+     "model_free": false,
+     "sliders": [
+      {
+       "max": 2048,
+       "min": 64,
+       "name": "Resolution",
+       "step": 8,
+       "value": 512
+      },
+      {
+       "max": 64,
+       "min": 1,
+       "name": "XDoG Threshold",
+       "step": 0.01,
+       "value": 32
+      }
+     ]
+    },
+    "segmentation": {
+     "model_free": false,
+     "sliders": [
+      {
+       "max": 2048,
+       "min": 64,
+       "name": "Resolution",
+       "step": 8,
+       "value": 512
+      }
+     ]
+    },
+    "shuffle": {
+     "model_free": false,
+     "sliders": []
+    },
+    "softedge_anyline": {
+     "model_free": false,
+     "sliders": [
+      {
+       "max": 2048,
+       "min": 64,
+       "name": "Resolution",
+       "step": 8,
+       "value": 1280
+      },
+      {
+       "max": 10,
+       "min": 0,
+       "name": "Safe Steps",
+       "step": 1,
+       "value": 2
+      }
+     ]
+    },
+    "softedge_teed": {
+     "model_free": false,
+     "sliders": [
+      {
+       "max": 2048,
+       "min": 64,
+       "name": "Resolution",
+       "step": 8,
+       "value": 512
+      },
+      {
+       "max": 10,
+       "min": 0,
+       "name": "Safe Steps",
+       "step": 1,
+       "value": 2
+      }
+     ]
+    },
+    "threshold": {
+     "model_free": false,
+     "sliders": [
+      {
+       "max": 2048,
+       "min": 64,
+       "name": "Resolution",
+       "step": 8,
+       "value": 512
+      },
+      {
+       "max": 255,
+       "min": 0,
+       "name": "Binarization Threshold",
+       "step": 0.01,
+       "value": 127
+      }
+     ]
+    },
+    "tile_colorfix": {
+     "model_free": false,
+     "sliders": [
+      {
+       "max": 2048,
+       "min": 64,
+       "name": "Resolution",
+       "step": 8,
+       "value": 512
+      },
+      {
+       "max": 32.0,
+       "min": 3.0,
+       "name": "Variation",
+       "step": 1.0,
+       "value": 8.0
+      }
+     ]
+    },
+    "tile_colorfix+sharp": {
+     "model_free": false,
+     "sliders": [
+      {
+       "max": 2048,
+       "min": 64,
+       "name": "Resolution",
+       "step": 8,
+       "value": 512
+      },
+      {
+       "max": 32.0,
+       "min": 3.0,
+       "name": "Variation",
+       "step": 1.0,
+       "value": 8.0
+      },
+      {
+       "max": 2.0,
+       "min": 0.0,
+       "name": "Sharpness",
+       "step": 0.01,
+       "value": 1.0
+      }
+     ]
+    },
+    "tile_resample": {
+     "model_free": false,
+     "sliders": [
+      {
+       "max": 2048,
+       "min": 64,
+       "name": "Resolution",
+       "step": 8,
+       "value": 512
+      },
+      {
+       "max": 8.0,
+       "min": 1.0,
+       "name": "Down Sampling Rate",
+       "step": 0.01,
+       "value": 1.0
+      }
+     ]
+    }
+   },
+   "module_list": [
+    "none",
+    "ip-adapter-auto",
+    "tile_resample",
+    "pidinet",
+    "oneformer_ade20k",
+    "pidinet_scribble",
+    "revision_clipvision",
+    "reference_only",
+    "recolor_luminance",
+    "openpose_full",
+    "normal_bae",
+    "mlsd",
+    "lineart_standard",
+    "ip-adapter_clip_sd15",
+    "inpaint_only",
+    "depth",
+    "canny",
+    "invert",
+    "tile_colorfix+sharp",
+    "tile_colorfix",
+    "threshold",
+    "clip_vision",
+    "pidinet_sketch",
+    "color",
+    "softedge_teed",
+    "pidinet_safe",
+    "hed_safe",
+    "hed",
+    "softedge_anyline",
+    "shuffle",
+    "segmentation",
+    "oneformer_coco",
+    "anime_face_segment",
+    "scribble_xdog",
+    "scribble_hed",
+    "revision_ignore_prompt",
+    "reference_adain+attn",
+    "reference_adain",
+    "recolor_intensity",
+    "openpose_hand",
+    "openpose_faceonly",
+    "openpose_face",
+    "openpose",
+    "normal_map",
+    "normal_dsine",
+    "mediapipe_face",
+    "lineart",
+    "lineart_coarse",
+    "lineart_anime_denoise",
+    "lineart_anime",
+    "ip-adapter_pulid",
+    "ip-adapter_face_id_plus",
+    "ip-adapter_face_id",
+    "ip-adapter_clip_sdxl_plus_vith",
+    "ip-adapter_clip_sdxl",
+    "instant_id_face_keypoints",
+    "instant_id_face_embedding",
+    "inpaint_only+lama",
+    "inpaint",
+    "facexlib",
+    "dw_openpose_full",
+    "depth_zoe",
+    "depth_leres++",
+    "depth_leres",
+    "depth_hand_refiner",
+    "depth_anything_v2",
+    "depth_anything",
+    "densepose_parula",
+    "densepose",
+    "blur_gaussian",
+    "animal_openpose"
+   ]
+  },
+  "/controlnet/version": {
+   "version": 3
+  },
+  "/sdapi/v1/latent-upscale-modes": [
+   {
+    "name": "Latent"
+   },
+   {
+    "name": "Latent (antialiased)"
+   },
+   {
+    "name": "Latent (bicubic)"
+   },
+   {
+    "name": "Latent (bicubic antialiased)"
+   },
+   {
+    "name": "Latent (nearest)"
+   },
+   {
+    "name": "Latent (nearest-exact)"
+   }
+  ],
+  "/sdapi/v1/samplers": [
+   {
+    "aliases": [
+     "k_dpmpp_2m"
+    ],
+    "name": "DPM++ 2M",
+    "options": {
+     "scheduler": "karras"
+    }
+   },
+   {
+    "aliases": [
+     "k_dpmpp_sde"
+    ],
+    "name": "DPM++ SDE",
+    "options": {
+     "brownian_noise": "True",
+     "scheduler": "karras",
+     "second_order": "True"
+    }
+   },
+   {
+    "aliases": [
+     "k_dpmpp_2m_sde"
+    ],
+    "name": "DPM++ 2M SDE",
+    "options": {
+     "brownian_noise": "True",
+     "scheduler": "exponential"
+    }
+   },
+   {
+    "aliases": [
+     "k_dpmpp_2m_sde_heun"
+    ],
+    "name": "DPM++ 2M SDE Heun",
+    "options": {
+     "brownian_noise": "True",
+     "scheduler": "exponential",
+     "solver_type": "heun"
+    }
+   },
+   {
+    "aliases": [
+     "k_dpmpp_2s_a"
+    ],
+    "name": "DPM++ 2S a",
+    "options": {
+     "scheduler": "karras",
+     "second_order": "True",
+     "uses_ensd": "True"
+    }
+   },
+   {
+    "aliases": [
+     "k_dpmpp_3m_sde"
+    ],
+    "name": "DPM++ 3M SDE",
+    "options": {
+     "brownian_noise": "True",
+     "discard_next_to_last_sigma": "True",
+     "scheduler": "exponential"
+    }
+   },
+   {
+    "aliases": [
+     "k_euler_a",
+     "k_euler_ancestral"
+    ],
+    "name": "Euler a",
+    "options": {
+     "uses_ensd": "True"
+    }
+   },
+   {
+    "aliases": [
+     "k_euler"
+    ],
+    "name": "Euler",
+    "options": {}
+   },
+   {
+    "aliases": [
+     "k_lms"
+    ],
+    "name": "LMS",
+    "options": {}
+   },
+   {
+    "aliases": [
+     "k_heun"
+    ],
+    "name": "Heun",
+    "options": {
+     "second_order": "True"
+    }
+   },
+   {
+    "aliases": [
+     "k_dpm_2"
+    ],
+    "name": "DPM2",
+    "options": {
+     "discard_next_to_last_sigma": "True",
+     "scheduler": "karras",
+     "second_order": "True"
+    }
+   },
+   {
+    "aliases": [
+     "k_dpm_2_a"
+    ],
+    "name": "DPM2 a",
+    "options": {
+     "discard_next_to_last_sigma": "True",
+     "scheduler": "karras",
+     "second_order": "True",
+     "uses_ensd": "True"
+    }
+   },
+   {
+    "aliases": [
+     "k_dpm_fast"
+    ],
+    "name": "DPM fast",
+    "options": {
+     "uses_ensd": "True"
+    }
+   },
+   {
+    "aliases": [
+     "k_dpm_ad"
+    ],
+    "name": "DPM adaptive",
+    "options": {
+     "uses_ensd": "True"
+    }
+   },
+   {
+    "aliases": [
+     "restart"
+    ],
+    "name": "Restart",
+    "options": {
+     "scheduler": "karras",
+     "second_order": "True"
+    }
+   },
+   {
+    "aliases": [
+     "ddim"
+    ],
+    "name": "DDIM",
+    "options": {}
+   },
+   {
+    "aliases": [
+     "ddim_cfgpp"
+    ],
+    "name": "DDIM CFG++",
+    "options": {}
+   },
+   {
+    "aliases": [
+     "plms"
+    ],
+    "name": "PLMS",
+    "options": {}
+   },
+   {
+    "aliases": [
+     "unipc"
+    ],
+    "name": "UniPC",
+    "options": {}
+   },
+   {
+    "aliases": [
+     "k_lcm"
+    ],
+    "name": "LCM",
+    "options": {}
+   }
+  ],
+  "/sdapi/v1/scripts": {
+   "img2img": [
+    "img2img alternative test",
+    "loopback",
+    "outpainting mk2",
+    "poor man's outpainting",
+    "prompt matrix",
+    "prompts from file or textbox",
+    "sd upscale",
+    "x/y/z plot",
+    "extra options",
+    "Hypertile",
+    "soft inpainting",
+    "controlnet m2m",
+    "refiner",
+    "sampler",
+    "seed"
+   ],
+   "txt2img": [
+    "prompt matrix",
+    "prompts from file or textbox",
+    "x/y/z plot",
+    "extra options",
+    "Hypertile",
+    "controlnet m2m",
+    "refiner",
+    "sampler",
+    "seed"
+   ]
+  }
+ }
+}

@@ -46,7 +46,14 @@ jobs:
 
       - name: Run tests
         # No backend runs here, so the integration tests skip themselves and only tests/unit/ executes.
-        run: python -m pytest tests/
+        # The --cov-fail-under floor is a ratchet (AGENTS.md, "Testing").
+        run: python -m pytest tests/ --cov=sd_backend_client --cov-branch --cov-report=term-missing --cov-fail-under=91
+
+      - name: Publish coverage summary
+        if: ${{ !cancelled() && matrix.python-version == '3.13' && hashFiles('.coverage') != '' }}
+        run: |
+          echo '## Unit-test coverage' >> "$GITHUB_STEP_SUMMARY"
+          python -m coverage report --format=markdown --skip-covered --sort=cover >> "$GITHUB_STEP_SUMMARY"
 
   test-minimum-deps:
     name: test (minimum dependencies)
