@@ -1,6 +1,7 @@
 """
 Accesses ComfyUI through its REST API, providing access to image generation and editing through Stable Diffusion.
 """
+import hashlib
 import json
 import logging
 import os
@@ -38,7 +39,7 @@ from sd_backend_client.errors import BackendConnectionError, BackendTimeoutError
     UnexpectedResponseError, WorkflowValidationError
 from sd_backend_client.util.geometry import Size
 from sd_backend_client.util.visual.image_utils import image_to_png_bytes, image_from_bytes, image_from_base64, \
-    ImageKey, get_image_key, mask_to_grayscale
+    mask_to_grayscale
 
 if TYPE_CHECKING:
     from sd_backend_client.api.comfyui.comfyui_generation_handle import ComfyGenerationHandle
@@ -48,7 +49,7 @@ logger = logging.getLogger(__name__)
 
 EXTENDED_TIMEOUT = 90
 TYPE_PNG_IMAGE = 'image/png'
-INTRAPAINT_UPLOAD_SUBFOLDER = 'IntraPaint'
+UPLOAD_SUBFOLDER = 'sd_backend_client'
 
 # Keys used when extracting data from the KSampler node definition:
 SAMPLER_OPTION_KEY = 'sampler_name'
@@ -141,7 +142,6 @@ class ComfyUiWebservice(WebService):
         self._preprocessor_cache: Optional[list[ControlNetPreprocessor]] = None
         self._ksampler_info: Optional[NodeInfoResponse] = None
         self._client_id = str(uuid.uuid4())
-        self._uploaded_images: dict[ImageKey, ImageFileReference] = {}
 
     # Loading available options and settings:
 
@@ -259,8 +259,13 @@ class ComfyUiWebservice(WebService):
                            image: Image.Image | str,
                            endpoint:str, name: Optional[str] = None,
                            subfolder: Optional[str] = None,
-                           temp=False, overwrite=True,
+                           temp=False, overwrite=False,
                            original_ref: Optional[ImageFileReference] = None) -> ImageFileReference:
+        """Upload an image and return the reference the server saved it under.
+
+        With no `name`, the file is named by a hash of its PNG data, so a name always maps to one image and a queued
+        job can't load a file a later upload replaced. ComfyUI reads uploads when a job runs, not when it is queued.
+        """
         if isinstance(image, str):
             if os.path.isfile(image):
                 with open(image, 'rb') as image_file:
@@ -271,10 +276,7 @@ class ComfyUiWebservice(WebService):
                 except binascii.Error as err:
                     raise ValueError(f"invalid image string {image}: expected base64") from err
         assert isinstance(image, Image.Image)
-        image_key = get_image_key(image)
-        if image_key in self._uploaded_images:
-            return self._uploaded_images[image_key]
-        resolved_subfolder = subfolder if subfolder is not None else INTRAPAINT_UPLOAD_SUBFOLDER
+        resolved_subfolder = subfolder if subfolder is not None else UPLOAD_SUBFOLDER
         if original_ref is not None:
             # Mask uploads must reference the original image via `original_ref` (a JSON string), which ComfyUI's
             # /upload/mask endpoint json.loads(); omitting it makes the server fail on json.loads(None).
@@ -287,8 +289,8 @@ class ComfyUiWebservice(WebService):
             body.overwrite = '1'
         image_data = image_to_png_bytes(image)
         if name is None:
-            name = 'src_image.png'
-        elif not name.endswith('.png'):
+            name = hashlib.blake2b(image_data, digest_size=16).hexdigest()
+        if not name.endswith('.png'):
             name = f'{name}.png'
         files = {IMAGE_UPLOAD_FILE_NAME: (name, image_data, TYPE_PNG_IMAGE)}
         res_json = self.post(endpoint,
@@ -297,28 +299,24 @@ class ComfyUiWebservice(WebService):
                              files=files,
                              timeout=EXTENDED_TIMEOUT).json()
         res_body = ImageUploadResponse.model_validate(res_json)
-        file_ref = ImageFileReference(filename = res_body.name,
-                                      subfolder = res_body.subfolder or '',
-                                      type = res_body.type)
-        self._uploaded_images[image_key] = file_ref
-        # Update overwritten references:
-        old_keys: list[ImageKey] = []
-        for key in self._uploaded_images:
-            if key != image_key and self._uploaded_images[key] == file_ref:
-                old_keys.append(key)
-        for key in old_keys:
-            del self._uploaded_images[key]
-        return file_ref
+        return ImageFileReference(filename = res_body.name,
+                                  subfolder = res_body.subfolder or '',
+                                  type = res_body.type)
 
     def upload_image(self, image: Image.Image | str,
                      name: Optional[str] = None, subfolder: Optional[str] = None,
-                     temp=False, overwrite=True) -> ImageFileReference:
-        """Uploads an image for img2img, inpainting, ControlNet, etc."""
+                     temp=False, overwrite=False) -> ImageFileReference:
+        """Uploads an image for img2img, inpainting, ControlNet, etc.
+
+        With no `name`, the file is named by a hash of its contents. A fixed `name` with `overwrite=True` replaces
+        the server's file, which changes the input of any queued job that reads it. Use the returned reference, since
+        the server may rename the file.
+        """
         return self._upload_image_file(image, ComfyEndpoints.IMG_UPLOAD, name, subfolder, temp, overwrite)
 
     def upload_mask(self, mask: Image.Image | str, ref_image: ImageFileReference,
                     subfolder: Optional[str] = None,
-                    overwrite=True) -> ImageFileReference:
+                    overwrite=False) -> ImageFileReference:
         """Upload an inpainting mask for a particular image.
 
         The ref_image parameter should contain data returned by a previous upload_image request. Mask size must match
@@ -340,7 +338,10 @@ class ComfyUiWebservice(WebService):
                     raise ValueError(f"invalid mask string {mask}: expected base64") from err
         comfy_mask = Image.new('RGBA', mask.size, (0, 0, 0, 255))
         comfy_mask.putalpha(ImageChops.invert(mask_to_grayscale(mask)))
-        return self._upload_image_file(comfy_mask, ComfyEndpoints.MASK_UPLOAD, f'mask_{ref_image.filename}',
+        # The server saves the reference image with the mask as its alpha, so the name covers both inputs.
+        mask_hash = hashlib.blake2b(image_to_png_bytes(comfy_mask), digest_size=16).hexdigest()
+        ref_stem = os.path.splitext(ref_image.filename)[0]
+        return self._upload_image_file(comfy_mask, ComfyEndpoints.MASK_UPLOAD, f'mask_{mask_hash}_{ref_stem}',
                                        subfolder, False, overwrite, original_ref=ref_image)
 
 
@@ -436,7 +437,7 @@ class ComfyUiWebservice(WebService):
 
             control_image_ref: Optional[ImageFileReference] = None
             if control_unit.image is not None:
-                control_image_ref = self.upload_image(control_unit.image, f"control_{i}")
+                control_image_ref = self.upload_image(control_unit.image)
             workflow_builder.add_controlnet_unit(model_name, preprocessor, control_image_ref,
                                                  float(control_unit.control_strength),
                                                  float(control_unit.control_start),

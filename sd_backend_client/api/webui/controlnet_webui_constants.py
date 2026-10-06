@@ -2,7 +2,7 @@
 from typing import Dict, Optional, Literal
 from typing_extensions import TypedDict
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, ConfigDict, Field
 
 from sd_backend_client.api.shared_data.controlnet.controlnet_constants import ControlTypeDef
 from sd_backend_client.api.shared_data.controlnet.controlnet_unit import ControlNetUnit
@@ -13,6 +13,8 @@ CONTROLNET_SCRIPT_KEY = 'controlNet'
 
 class ControlNetModelResponse(BaseModel):
     """Response format from the WebUI API when loading ControlNet model options."""
+    model_config = ConfigDict(protected_namespaces=('model_validate', 'model_dump'))
+
     model_list: list[str]
 
 
@@ -36,6 +38,8 @@ class ModuleSliderDef(BaseModel):
 
 class ModuleDetail(BaseModel):
     """Defines a ControlNet preprocessor's parameters as returned by the preprocessor module list endpoint."""
+    model_config = ConfigDict(protected_namespaces=('model_validate', 'model_dump'))
+
     model_free: bool  # Whether the preprocessor module can be used without a model.
     sliders: list[ModuleSliderDef]
 

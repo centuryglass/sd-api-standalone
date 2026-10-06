@@ -226,31 +226,62 @@ def test_preprocessor_discovery_skips_nodes_that_fail_validation():
 
 # Uploads and downloads
 
-def _upload_response(name: str = 'src_image.png') -> dict[str, str]:
-    return {'name': name, 'subfolder': 'IntraPaint', 'type': 'input'}
+def _upload_response(name: str = 'uploaded.png') -> dict[str, str]:
+    return {'name': name, 'subfolder': 'sd_backend_client', 'type': 'input'}
 
 
-def test_upload_image_sends_png_multipart_and_caches_by_content():
-    """upload_image posts a PNG as multipart form data, and the same image again reuses the first reference."""
+def _uploaded_names(session: _FakeSession) -> list[str]:
+    return [upload['files']['image'][0] for upload in session.of('POST', ComfyEndpoints.IMG_UPLOAD)]
+
+
+def test_upload_image_sends_png_multipart_named_by_content():
+    """upload_image posts a PNG as multipart form data under a content-hash name, without overwriting."""
     service, session = _service({('POST', ComfyEndpoints.IMG_UPLOAD): _upload_response()})
     image = Image.new('RGBA', (3, 2), (1, 2, 3, 255))
     reference = service.upload_image(image)
-    again = service.upload_image(image.copy())
 
-    assert reference == again == ImageFileReference(filename='src_image.png', subfolder='IntraPaint', type='input')
+    assert reference == ImageFileReference(filename='uploaded.png', subfolder='sd_backend_client', type='input')
     uploads = session.of('POST', ComfyEndpoints.IMG_UPLOAD)
     assert len(uploads) == 1
-    assert uploads[0]['data'] == {'type': 'input', 'subfolder': 'IntraPaint', 'overwrite': '1'}
+    assert uploads[0]['data'] == {'type': 'input', 'subfolder': 'sd_backend_client'}
     name, data, content_type = uploads[0]['files']['image']
-    assert (name, content_type) == ('src_image.png', 'image/png')
+    assert re.fullmatch(r'[0-9a-f]{32}\.png', name)
+    assert content_type == 'image/png'
     assert Image.open(io.BytesIO(data)).size == (3, 2)
+
+
+def test_upload_image_names_differ_for_different_images():
+    """Two different images never share an upload name, so a queued job can't load a later job's image."""
+    service, session = _service({('POST', ComfyEndpoints.IMG_UPLOAD): _upload_response()})
+    service.upload_image(Image.new('RGBA', (3, 2), (1, 2, 3, 255)))
+    service.upload_image(Image.new('RGBA', (3, 2), (4, 5, 6, 255)))
+    service.upload_image(Image.new('RGBA', (2, 3), (1, 2, 3, 255)))
+    service.upload_image(Image.new('RGBA', (3, 2), (1, 2, 3, 255)))
+
+    names = _uploaded_names(session)
+    assert len(set(names[:3])) == 3
+    assert names[3] == names[0]
+
+
+def test_upload_image_uses_server_returned_reference():
+    """The returned reference is the server's, which may rename a file whose name is taken."""
+    service, _ = _service({('POST', ComfyEndpoints.IMG_UPLOAD): _upload_response('control (1).png')})
+    reference = service.upload_image(Image.new('RGBA', (1, 1)), 'control')
+    assert reference.filename == 'control (1).png'
 
 
 def test_upload_image_adds_png_extension_to_name():
     """A name without .png gets one."""
     service, session = _service({('POST', ComfyEndpoints.IMG_UPLOAD): _upload_response('control_0.png')})
     service.upload_image(Image.new('RGBA', (1, 1)), 'control_0')
-    assert session.requests[0]['files']['image'][0] == 'control_0.png'
+    assert _uploaded_names(session) == ['control_0.png']
+
+
+def test_upload_image_overwrite_sends_overwrite_flag():
+    """overwrite=True asks the server to replace a same-named file."""
+    service, session = _service({('POST', ComfyEndpoints.IMG_UPLOAD): _upload_response()})
+    service.upload_image(Image.new('RGBA', (1, 1)), 'fixed', overwrite=True)
+    assert session.requests[0]['data']['overwrite'] == '1'
 
 
 def test_upload_image_rejects_non_base64_string():
@@ -394,7 +425,7 @@ def test_img2img_uploads_init_image_and_wires_it_into_the_workflow():
     assert len(session.of('POST', ComfyEndpoints.IMG_UPLOAD)) == 1
     prompt = session.of('POST', ComfyEndpoints.PROMPT)[0]['json']['prompt']
     load_nodes = [node for node in prompt.values() if node['class_type'] == 'LoadImage']
-    assert [node['inputs']['image'] for node in load_nodes] == ['IntraPaint/src_image.png']
+    assert [node['inputs']['image'] for node in load_nodes] == ['sd_backend_client/uploaded.png']
 
 
 def test_img2img_and_inpaint_require_their_inputs():

@@ -1,4 +1,4 @@
-"""Importing the package must not create files or directories outside the process."""
+"""Package imports must not create files or emit warnings."""
 import os
 import subprocess
 import sys
@@ -18,3 +18,11 @@ def test_import_creates_no_directories(tmp_path: Path) -> None:
                             check=False)
     assert result.returncode == 0, result.stderr
     assert not list(tmp_path.iterdir())
+
+
+def test_import_emits_no_user_warnings() -> None:
+    """Backend client imports work with UserWarning treated as an error."""
+    code = 'import sd_backend_client.api.a1111_webservice, sd_backend_client.api.comfyui_webservice'
+    result = subprocess.run([sys.executable, '-W', 'error::UserWarning', '-c', code],
+                            cwd=REPO_ROOT, capture_output=True, text=True, check=False)
+    assert result.returncode == 0, result.stderr

@@ -2,7 +2,7 @@
 
 from typing import Optional, Any, Self
 
-from pydantic import BaseModel, model_validator
+from pydantic import BaseModel, ConfigDict, model_validator
 
 
 def _value_type_matches(value: Any, default: Any) -> bool:
@@ -47,6 +47,8 @@ class ParameterDef(BaseModel):
 
 class ControlNetPreprocessor(BaseModel):
     """Defines a ControlNet preprocessor's name and parameters for use with a Stable Diffusion API."""
+    model_config = ConfigDict(protected_namespaces=('model_validate', 'model_dump'))
+
     name: str
 
     category_name: str = ""

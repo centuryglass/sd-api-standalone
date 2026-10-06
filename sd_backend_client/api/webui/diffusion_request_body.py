@@ -3,7 +3,8 @@ import logging
 from enum import Enum
 from typing import Any, Optional
 
-from sd_backend_client.api.shared_data.diffusion_params import DiffusionParams
+from sd_backend_client.api.shared_data.diffusion_params import DEFAULT_DENOISING_STRENGTH, DiffusionParams
+from sd_backend_client.api.shared_data.sampler_names import webui_sampler_name, webui_scheduler_name
 from sd_backend_client.api.webui.controlnet_webui_constants import CONTROLNET_SCRIPT_KEY, ControlNetUnitDict
 from sd_backend_client.api.webui.script_info_types import ScriptRequestData
 from sd_backend_client.util.visual.image_utils import image_to_base64, mask_to_grayscale
@@ -34,7 +35,10 @@ class DiffusionRequestBody(DiffusionParams):
 
 
     resize_mode: Optional[ResizeMode] = None
-    """Controls how source images are resized when source resolution doesn't match generated image size."""
+    """Controls how source images are resized when source resolution doesn't match generated image size.
+
+    None (omitted) selects the server default, `JUST_RESIZE`, which matches ComfyUI's resizing.
+    """
 
     image_cfg_scale: Optional[float] = None
     """How strongly generation follows the image prompt (InstructPix2Pix models only)."""
@@ -222,11 +226,16 @@ class DiffusionRequestBody(DiffusionParams):
 
     # Probably deprecated, present for compatibility reasons:
     sampler_index: Optional[str] = None
-    """Deprecated alias for sampler_name, kept for backward compatibility."""
+    """Deprecated WebUI alias for the `sampler_name` request key. The server ignores it, since `to_dict` always sends
+    `sampler_name` from `sampler`."""
 
     def to_dict(self) -> dict[str, Any]:
         """Convert the request body to a dict, removing unused optional parameters."""
         data = super().to_dict()
+        data['sampler_name'] = webui_sampler_name(data.pop('sampler'))
+        data['scheduler'] = webui_scheduler_name(data.pop('scheduler'))
+        if self.init_images and self.denoising_strength is None:
+            data['denoising_strength'] = DEFAULT_DENOISING_STRENGTH
         # The WebUI request schema has no sd_model_name field; the checkpoint is selected through override_settings.
         sd_model_name = data.pop('sd_model_name', '')
         if sd_model_name:

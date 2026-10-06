@@ -54,6 +54,7 @@ class Txt2ImgRequestBody(TypedDict):
     SEE ALSO: src/api/webui/diffusion_request_body.py
     """
     sampler_name: str
+    scheduler: NotRequired[str]
     batch_size: int
     n_iter: int  # number of batches
     steps: int
