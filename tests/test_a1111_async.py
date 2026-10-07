@@ -122,7 +122,8 @@ def test_submit_img2img_lifecycle(service, output_dir):
     source = Image.new('RGBA', (512, 512), (40, 90, 160, 255))
     body = _body('turn this into an oil painting', seed=7)
     body.denoising_strength = 0.75
-    handle = service.submit_img2img(source, request_body=body)
+    body.init_images = [source]
+    handle = service.submit_img2img(body)
     result = handle.wait(timeout=120)
     assert len(result.images) >= 1
     _assert_valid_image(result.images[0], expected_size=512)

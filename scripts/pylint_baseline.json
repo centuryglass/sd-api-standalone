@@ -3,7 +3,7 @@
     "duplicate-code": 12
   },
   "sd_backend_client/api/a1111_webservice.py": {
-    "import-outside-toplevel": 3
+    "import-outside-toplevel": 2
   },
   "sd_backend_client/api/comfyui/comfyui_diffusion_params.py": {
     "trailing-newlines": 1
@@ -24,7 +24,6 @@
   "sd_backend_client/api/comfyui_webservice.py": {
     "consider-using-enumerate": 1,
     "import-outside-toplevel": 3,
-    "inconsistent-quotes": 3,
     "line-too-long": 1,
     "no-else-continue": 1,
     "unused-import": 1
@@ -118,7 +117,6 @@
   },
   "tests/unit/test_diffusion_request_body.py": {
     "fixme": 1,
-    "missing-final-newline": 1,
     "missing-function-docstring": 3
   },
   "tests/unit/test_image_and_geometry.py": {

@@ -91,6 +91,8 @@ understand.
 - `diffusion_params.py`: `DiffusionParams`, the pydantic base holding parameters common to both backends. Each backend
   **subclasses** it: `DiffusionRequestBody` (WebUI) and `ComfyUIDiffusionParams` add backend-specific fields.
 - `api_datatypes.py`: `DiffusionUpscalingParams` and related shared models.
+- `backend.py`: `Backend`, the `submit_*` interface both clients implement. Its contract is pinned by
+  `tests/unit/test_backend_contract.py`, which drives both clients through it.
 - `generation_handle.py`: the backend-agnostic async generation handle both clients implement.
 - `controlnet/`: `ControlNetUnit` + `ControlNetModel` + `ControlNetPreprocessor`, all backend-agnostic. Units are
   attached to `diffusion_params.controlnet_units`; each backend serializes them into its own form. Serialization
