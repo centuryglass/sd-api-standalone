@@ -10,6 +10,7 @@ refactor from silently changing the emitted workflow.
 """
 import pytest
 
+from sd_backend_client.api.comfyui.comfyui_diffusion_params import ComfyUIDiffusionParams
 from sd_backend_client.api.comfyui.comfyui_types import ImageFileReference
 from sd_backend_client.api.comfyui.diffusion_workflow_builder import DiffusionWorkflowBuilder
 from sd_backend_client.api.shared_data.controlnet.controlnet_preprocessor import (
@@ -187,3 +188,83 @@ def test_controlnet_unit_without_any_image_raises_naming_the_unit():
     builder.add_controlnet_unit('control_canny.safetensors', None, None, 1.0, 0.0, 1.0)
     with pytest.raises(ValueError, match='control_canny.safetensors'):
         builder.build_workflow()
+
+
+# LoRA and hypernetwork prompt tags
+
+LORAS = ['detail.safetensors', 'styles/ink.safetensors']
+HYPERNETWORKS = ['anime.pt']
+
+
+def _load_tagged(prompt: str, negative: str = '') -> DiffusionWorkflowBuilder:
+    builder = DiffusionWorkflowBuilder()
+    builder.load_diffusion_parameters(
+        ComfyUIDiffusionParams(prompt=prompt, negative_prompt=negative, sd_model_name='m.safetensors', seed=1),
+        LORAS, HYPERNETWORKS)
+    return builder
+
+
+def _source_class(workflow: dict, connection: list) -> str:
+    return workflow[connection[0]]['class_type']
+
+
+def test_lora_tag_becomes_lora_loader_wired_into_model_and_clip():
+    """A LoRA tag resolves to the server's file name, is stripped from the prompt, and feeds sampler and encoders."""
+    builder = _load_tagged('a cat <lora:detail:0.8> sitting')
+    assert builder.prompt == 'a cat  sitting'
+    workflow = builder.build_workflow().get_workflow_dict()
+
+    lora = single_node(workflow, 'LoraLoader')
+    assert lora['inputs']['lora_name'] == 'detail.safetensors'
+    assert lora['inputs']['strength_model'] == 0.8
+    assert lora['inputs']['strength_clip'] == 0.8
+    assert _source_class(workflow, lora['inputs']['model']) == 'CheckpointLoaderSimple'
+    assert _source_class(workflow, single_node(workflow, 'KSampler')['inputs']['model']) == 'LoraLoader'
+    for encoder in nodes_of_type(workflow, 'CLIPTextEncode'):
+        assert _source_class(workflow, encoder['inputs']['clip']) == 'LoraLoader'
+    assert {encoder['inputs']['text'] for encoder in nodes_of_type(workflow, 'CLIPTextEncode')} == {'a cat  sitting',
+                                                                                                    ''}
+
+
+def test_lora_tag_with_clip_weight_and_lyco_alias():
+    """A second weight sets CLIP strength, and <lyco:...> is treated as a LoRA; full file names also match."""
+    builder = _load_tagged('<lyco:styles/ink:0.5:0.25> <lora:detail.safetensors:1>')
+    loras = nodes_of_type(builder.build_workflow().get_workflow_dict(), 'LoraLoader')
+    assert [(n['inputs']['lora_name'], n['inputs']['strength_model'], n['inputs']['strength_clip']) for n in loras] \
+        == [('styles/ink.safetensors', 0.5, 0.25), ('detail.safetensors', 1.0, 1.0)]
+
+
+def test_hypernetwork_tag_chains_model_only():
+    """A hypernetwork tag adds a HypernetworkLoader on the model path."""
+    builder = _load_tagged('<hypernet:anime:0.6> a fox')
+    workflow = builder.build_workflow().get_workflow_dict()
+    hypernet = single_node(workflow, 'HypernetworkLoader')
+    assert hypernet['inputs']['hypernetwork_name'] == 'anime.pt'
+    assert hypernet['inputs']['strength'] == 0.6
+    assert _source_class(workflow, single_node(workflow, 'KSampler')['inputs']['model']) == 'HypernetworkLoader'
+
+
+def test_negative_prompt_tag_negates_strength():
+    """A tag in the negative prompt applies with negated strength and is stripped from it."""
+    builder = _load_tagged('a cat', 'blurry <lora:detail:0.5>')
+    assert builder.negative_prompt == 'blurry '
+    lora = single_node(builder.build_workflow().get_workflow_dict(), 'LoraLoader')
+    assert lora['inputs']['strength_model'] == -0.5
+
+
+@pytest.mark.parametrize('prompt, match', [
+    ('a cat <lora:missing:0.8>', 'missing.*detail.safetensors'),
+    ('a cat <hypernet:detail:0.8>', 'hypernetwork "detail"'),
+    ('a cat <lora:detail:strong>', 'not a number'),
+])
+def test_unresolvable_tag_raises(prompt: str, match: str):
+    """An unknown model or a non-numeric weight raises instead of silently dropping the tag."""
+    with pytest.raises(ValueError, match=match):
+        _load_tagged(prompt)
+
+
+def test_tag_without_model_lists_raises():
+    """Without the server's model lists, a tag cannot resolve and raises."""
+    builder = DiffusionWorkflowBuilder()
+    with pytest.raises(ValueError, match='Available LoRA models: none'):
+        builder.load_diffusion_parameters(ComfyUIDiffusionParams(prompt='a cat <lora:foo:0.8>', sd_model_name='m'))

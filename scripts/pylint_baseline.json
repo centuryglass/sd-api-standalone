@@ -18,9 +18,6 @@
     "inconsistent-quotes": 2,
     "unused-variable": 1
   },
-  "sd_backend_client/api/comfyui/diffusion_workflow_builder.py": {
-    "fixme": 1
-  },
   "sd_backend_client/api/comfyui/latent_upscale_workflow_builder.py": {
     "fixme": 1
   },

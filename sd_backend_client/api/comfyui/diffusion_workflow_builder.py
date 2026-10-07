@@ -1,6 +1,7 @@
 """Unified class for building text to image, image to image, and inpainting ComfyUI workflows."""
-import logging
+import os
 import re
+from collections.abc import Sequence
 from copy import deepcopy
 from dataclasses import dataclass
 from enum import Enum
@@ -38,13 +39,15 @@ from sd_backend_client.api.shared_data.diffusion_params import DEFAULT_DENOISING
 from sd_backend_client.api.shared_data.sampler_names import comfyui_sampler_name, comfyui_scheduler_name
 from sd_backend_client.util.geometry import Size
 
-logger = logging.getLogger(__name__)
 DEFAULT_STEP_COUNT = 30
 DEFAULT_CFG = 8.0
 DEFAULT_SIZE = 512
 DEFAULT_SAMPLER = 'euler'
 DEFAULT_SCHEDULER = 'normal'
 MAX_BATCH_SIZE = 64
+
+# Prompt tag syntax WebUI uses for extra networks: <lora|lyco|hypernet:name:weight[:clip_weight]>
+EXTENSION_MODEL_PATTERN = r'<(lora|lyco|hypernet):([^:><]+):([^:>]+)(?::([^>]+))?>'
 
 
 class ExtensionModelType(Enum):
@@ -549,8 +552,62 @@ class DiffusionWorkflowBuilder:
             controlnet_unit.control_apply_node.clear_connections()
         return final_workflow
 
-    def load_diffusion_parameters(self, diffusion_params: DiffusionParams) -> None:
-        """Loads diffusion parameters."""
+    def _load_extension_models(self, available_loras: Sequence[str], available_hypernetworks: Sequence[str]) -> None:
+        """Replaces `<lora:name:weight>`, `<lyco:...>` and `<hypernet:...>` prompt tags with extension model nodes.
+
+        A tag's name matches a model file by its full name or its name without the final extension. An optional
+        second weight sets the LoRA CLIP strength separately. Tags in the negative prompt apply with negated strength.
+        Matched tags are removed from both prompts.
+        """
+        name_maps: dict[ExtensionModelType, dict[str, str]] = {}
+        for model_type, model_list in ((ExtensionModelType.LORA, available_loras),
+                                       (ExtensionModelType.HYPERNETWORK, available_hypernetworks)):
+            name_map: dict[str, str] = {}
+            for model_option in model_list:
+                name_map[os.path.splitext(model_option)[0]] = model_option
+            for model_option in model_list:
+                name_map[model_option] = model_option
+            name_maps[model_type] = name_map
+
+        for prompt, strength_multiplier in ((self.prompt, 1.0),
+                                            (self.negative_prompt, -1.0)):
+            for match in re.finditer(EXTENSION_MODEL_PATTERN, prompt):
+                model_type = ExtensionModelType.HYPERNETWORK if match.group(1) == 'hypernet' \
+                    else ExtensionModelType.LORA
+                type_label = 'hypernetwork' if model_type == ExtensionModelType.HYPERNETWORK else 'LoRA'
+                model_name = match.group(2)
+                if model_name not in name_maps[model_type]:
+                    available = ', '.join(sorted(set(name_maps[model_type].values()))) or 'none'
+                    raise ValueError(f'Prompt tag {match.group(0)} names {type_label} "{model_name}", which the'
+                                     f' server does not list. Available {type_label} models: {available}')
+                model_name = name_maps[model_type][model_name]
+                model_strength_str = match.group(3)
+                clip_strength_str = match.group(4) if match.group(4) is not None else model_strength_str
+                try:
+                    model_strength = float(model_strength_str) * strength_multiplier
+                    clip_strength = float(clip_strength_str) * strength_multiplier
+                except ValueError:
+                    raise ValueError(f'Prompt tag {match.group(0)} has a strength that is not a number') from None
+                self.add_extension_model(model_name, model_strength, clip_strength, model_type)
+
+            if strength_multiplier > 0:
+                self.prompt = re.sub(EXTENSION_MODEL_PATTERN, '', prompt)
+            else:
+                self.negative_prompt = re.sub(EXTENSION_MODEL_PATTERN, '', prompt)
+
+    def load_diffusion_parameters(self, diffusion_params: DiffusionParams,
+                                  available_loras: Sequence[str] = (),
+                                  available_hypernetworks: Sequence[str] = ()) -> None:
+        """Loads diffusion parameters, turning LoRA and hypernetwork prompt tags into loader nodes.
+
+        Tags are resolved against `available_loras` and `available_hypernetworks`, the server's model file lists
+        (`ComfyUiWebservice.get_lora_models` and `get_hypernetwork_models`). See `_load_extension_models`.
+
+        Raises
+        ------
+        ValueError
+            If a prompt tag names a model not in the matching list, or has a non-numeric strength.
+        """
         if not isinstance(diffusion_params, ComfyUIDiffusionParams):
             diffusion_params = ComfyUIDiffusionParams(**diffusion_params.model_dump())
         self.sd_model = diffusion_params.sd_model_name
@@ -572,48 +629,7 @@ class DiffusionWorkflowBuilder:
         self.vae_tile_size = diffusion_params.vae_tile_size
         self.clip_skip = diffusion_params.clip_skip
 
-        # TODO: Find and add LoRA and Hypernetwork models:
-        available_loras: list[str] = []
-        available_hypernetworks: list[str] = []
-        lora_name_map: dict[str, str] = {}
-        hypernet_name_map: dict[str, str] = {}
-        for model_list, model_dict in ((available_loras, lora_name_map),
-                                       (available_hypernetworks, hypernet_name_map)):
-            for model_option in model_list:
-                if '.' in model_option:
-                    model_dict[model_option[:model_option.rindex('.')]] = model_option
-                model_dict[model_option] = model_option
-
-        extension_model_pattern = r'<(lora|lyco|hypernet):([^:><]+):([^:>]+)(?::([^>]+))?>'
-        for prompt, strength_multiplier in ((self.prompt, 1.0),
-                                            (self.negative_prompt, -1.0)):
-            extension_model_matches = list(re.finditer(extension_model_pattern, prompt))
-
-            for match in extension_model_matches:
-                model_type_name = match.group(1)
-                model_type = ExtensionModelType.HYPERNETWORK if model_type_name == 'hypernet' \
-                    else ExtensionModelType.LORA
-                model_name = match.group(2)
-                model_option_dict = hypernet_name_map if model_type == ExtensionModelType.HYPERNETWORK \
-                    else lora_name_map
-                if model_name not in model_option_dict:
-                    logger.error(f'Extension model {model_name} specified, but not found')
-                    continue
-                model_name = model_option_dict[model_name]
-                model_strength_str = match.group(3)
-                clip_strength_str = match.group(4) if match.group(4) is not None else model_strength_str
-                try:
-                    model_strength = float(model_strength_str) * strength_multiplier
-                    clip_strength = float(clip_strength_str) * strength_multiplier
-                    self.add_extension_model(model_name, model_strength, clip_strength, model_type)
-                except ValueError:
-                    logger.error(f'Invalid strength value "{model_strength_str}" for lora "{model_name}"')
-
-            # remove the lora/hypernetwork syntax from the prompt now that the models are selected:
-            if strength_multiplier > 0:
-                self.prompt = re.sub(extension_model_pattern, '', prompt)
-            else:
-                self.negative_prompt = re.sub(extension_model_pattern, '', prompt)
+        self._load_extension_models(available_loras, available_hypernetworks)
 
         if diffusion_params.init_images:
             self.denoising_strength = DEFAULT_DENOISING_STRENGTH if diffusion_params.denoising_strength is None \

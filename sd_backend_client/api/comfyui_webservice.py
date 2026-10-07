@@ -5,6 +5,7 @@ import hashlib
 import json
 import logging
 import os
+import re
 import uuid
 from contextlib import contextmanager
 from copy import deepcopy
@@ -23,7 +24,8 @@ from sd_backend_client.api.comfyui.comfyui_types import QueueAdditionRequest, Qu
     MaskUploadParams, IMAGE_UPLOAD_FILE_NAME, ImageUploadResponse, QueueInfoResponse, ACTIVE_QUEUE_KEY, \
     PENDING_QUEUE_KEY, QueueHistoryResponse, PromptHistory, FreeMemoryRequest
 from sd_backend_client.api.comfyui.controlnet_comfyui_utils import get_all_preprocessors
-from sd_backend_client.api.comfyui.diffusion_workflow_builder import DiffusionWorkflowBuilder
+from sd_backend_client.api.comfyui.diffusion_workflow_builder import DiffusionWorkflowBuilder, \
+    EXTENSION_MODEL_PATTERN
 from sd_backend_client.api.comfyui.latent_upscale_workflow_builder import LatentUpscaleWorkflowBuilder
 from sd_backend_client.api.comfyui.nodes.ksampler_node import KSAMPLER_NAME
 from sd_backend_client.api.comfyui.nodes.ultimate_upscale_node import ULTIMATE_UPSCALE_NODE_NAME
@@ -391,10 +393,21 @@ class ComfyUiWebservice(WebService):
     def _build_diffusion_body(self,
                               diffusion_params: DiffusionParams,
                               workflow_builder: Optional[DiffusionWorkflowBuilder] = None) -> DiffusionWorkflowBuilder:
-        """Loads diffusion parameters into a workflow builder, resolving the model config file against the server."""
+        """Loads diffusion parameters into a workflow builder, resolving model names against the server.
+
+        The LoRA and hypernetwork lists are fetched only when a prompt holds an extension model tag.
+        """
         if workflow_builder is None:
             workflow_builder = DiffusionWorkflowBuilder()
-        workflow_builder.load_diffusion_parameters(diffusion_params)
+        available_loras: list[str] = []
+        available_hypernetworks: list[str] = []
+        prompt_tags = [match.group(1) for prompt in (diffusion_params.prompt, diffusion_params.negative_prompt)
+                       for match in re.finditer(EXTENSION_MODEL_PATTERN, prompt)]
+        if any(tag != 'hypernet' for tag in prompt_tags):
+            available_loras = self.get_lora_models()
+        if 'hypernet' in prompt_tags:
+            available_hypernetworks = self.get_hypernetwork_models()
+        workflow_builder.load_diffusion_parameters(diffusion_params, available_loras, available_hypernetworks)
         if diffusion_params.seed is not None:
             workflow_builder.seed = diffusion_params.seed
         config_names = self.get_models(ComfyModelType.CONFIG)
