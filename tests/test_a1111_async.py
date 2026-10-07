@@ -7,6 +7,7 @@ run actual diffusion, so they are opt-in like the other generation tests (``--ru
 
 What is covered:
 - the full async lifecycle (PENDING -> ACTIVE -> FINISHED) and progress callbacks;
+- ``submit_upscale`` and ``submit_preprocessor_preview`` returning their one image through a handle;
 - client-side single-slot serialization of two concurrent submissions;
 - clean cancellation of a still-PENDING job vs. interrupt-based cancellation of an ACTIVE one;
 - ``_await_server_idle``: a submission is held PENDING (not dispatched) while the server is busy with
@@ -27,7 +28,7 @@ from sd_backend_client.api.a1111_webservice import A1111Webservice
 from sd_backend_client.api.shared_data.generation_handle import GenerationError, GenerationStatus
 from sd_backend_client.api.webui.diffusion_request_body import DiffusionRequestBody
 
-from .helpers import save_output
+from .helpers import make_edge_image, make_structured_image, save_output
 
 pytestmark = [pytest.mark.integration, pytest.mark.generation]
 
@@ -128,6 +129,30 @@ def test_submit_img2img_lifecycle(service, output_dir):
     assert len(result.images) >= 1
     _assert_valid_image(result.images[0], expected_size=512)
     save_output(output_dir, 'async_img2img', result.images[0])
+
+
+def test_submit_upscale_lifecycle(service, output_dir):
+    """A basic upscale runs through the dispatcher and yields one image at the requested size."""
+    handle = service.submit_upscale(make_structured_image(128, 128), 256, 256)
+    assert handle.task_id and handle.task_id.startswith('task(upscale-')
+    result = handle.wait(timeout=120)
+    assert len(result.images) == 1
+    _assert_valid_image(result.images[0], expected_size=256)
+    save_output(output_dir, 'async_upscale', result.images[0])
+
+
+@pytest.mark.controlnet
+def test_submit_preprocessor_preview_lifecycle(controlnet_available, controlnet_pairing, output_dir):
+    """A preprocessor preview runs through the dispatcher and yields one non-flat control image."""
+    module, _model = controlnet_pairing
+    preprocessor = next((p for p in controlnet_available.get_controlnet_preprocessors() if p.name == module), None)
+    if preprocessor is None:
+        pytest.skip(f'Preprocessor {module!r} not found among available modules.')
+    result = controlnet_available.submit_preprocessor_preview(make_edge_image(), preprocessor).wait(timeout=120)
+    assert len(result.images) == 1
+    save_output(output_dir, f'async_controlnet_preview_{module}', result.images[0])
+    extrema = result.images[0].convert('L').getextrema()
+    assert extrema[0] != extrema[1], 'preprocessor preview is a flat image; preprocessing likely did nothing'
 
 
 # --------------------------------------------------------------------------- #

@@ -16,7 +16,8 @@ from sd_backend_client.api.shared_data.controlnet.controlnet_category_builder im
 from sd_backend_client.api.shared_data.controlnet.controlnet_preprocessor import ControlNetPreprocessor, \
     PreprocessorParams
 from sd_backend_client.api.shared_data.api_datatypes import DiffusionUpscalingParams, REDRAW_MODES, SEAM_FIX_MODES
-from sd_backend_client.api.shared_data.backend import Backend, require_init_image, require_mask
+from sd_backend_client.api.shared_data.backend import Backend, require_init_image, require_mask, \
+    require_upscale_size
 from sd_backend_client.api.shared_data.controlnet.controlnet_unit import ControlNetUnit
 from sd_backend_client.api.shared_data.diffusion_params import DiffusionParams
 from sd_backend_client.api.webservice import WebService, DEFAULT_REQUEST_TIMEOUT
@@ -57,8 +58,8 @@ class A1111Webservice(WebService, Backend):
     """
     A1111Webservice provides access to the a1111/stable-diffusion-webui through the REST API.
 
-    Its `submit_*` methods implement `Backend`. The blocking `txt2img`, `img2img` and `upscale` methods are
-    WebUI-specific.
+    Its `submit_*` methods implement `Backend`. The blocking `txt2img`, `img2img`, `upscale` and
+    `controlnet_preprocessor_preview` methods are WebUI-specific.
     """
 
     # noinspection SpellCheckingInspection
@@ -144,10 +145,20 @@ class A1111Webservice(WebService, Backend):
         `snapshot` must be a copy the caller no longer changes. Its `force_task_id` is set to a new task id unless it
         already has one.
         """
-        from sd_backend_client.api.webui.webui_generation_handle import create_task_id
-        task_id = snapshot.force_task_id or create_task_id(task_type)
+        task_id = snapshot.force_task_id or self._new_task_id(task_type)
         snapshot.force_task_id = task_id
         return self._generation_dispatcher.submit(lambda: self._post_generation(endpoint, snapshot), task_id)
+
+    def _submit_call(self, run: Callable[[], ImageResponse], task_type: str,
+                     interruptible: bool) -> 'WebUIGenerationHandle':
+        """Enqueue a blocking call on the client-side dispatcher under a new task id, returning its handle."""
+        return self._generation_dispatcher.submit(run, self._new_task_id(task_type), interruptible=interruptible)
+
+    @staticmethod
+    def _new_task_id(task_type: str) -> str:
+        """Mint a WebUI task id for a job of `task_type` (see `create_task_id`)."""
+        from sd_backend_client.api.webui.webui_generation_handle import create_task_id
+        return create_task_id(task_type)
 
     def submit_txt2img(self, diffusion_params: Optional[DiffusionParams] = None) -> 'WebUIGenerationHandle':
         """Enqueue a txt2img job and return a handle immediately, implementing `Backend.submit_txt2img`.
@@ -181,6 +192,37 @@ class A1111Webservice(WebService, Backend):
         require_mask(diffusion_params, 'inpainting')
         return self._submit(A1111Webservice.Endpoints.IMG2IMG, 'img2img',
                             DiffusionRequestBody.from_params(diffusion_params))
+
+    def submit_upscale(self, image: Image.Image, width: int, height: int,
+                       upscale_params: Optional[DiffusionUpscalingParams] = None) -> 'WebUIGenerationHandle':
+        """Enqueue an `upscale` call and return a handle immediately, implementing `Backend.submit_upscale`.
+
+        The job uses copies of `image` and `upscale_params` taken at submit time. Once dispatched, a basic upscale
+        cannot be cancelled, since the server's interrupt is not known to stop it; a Stable Diffusion upscale can.
+        See `submit_txt2img` for the dispatch semantics.
+        """
+        require_upscale_size(image, width, height)
+        image = image.copy()
+        upscale_params = None if upscale_params is None else upscale_params.model_copy(deep=True)
+        interruptible = upscale_params is not None and upscale_params.use_stable_diffusion_upscaling
+        return self._submit_call(lambda: self.upscale(image, width, height, upscale_params), 'upscale', interruptible)
+
+    def submit_preprocessor_preview(self, image: Image.Image,
+                                    preprocessor: ControlNetPreprocessor | PreprocessorParams,
+                                    mask: Optional[Image.Image] = None) -> 'WebUIGenerationHandle':
+        """Enqueue a `controlnet_preprocessor_preview` call and return a handle immediately.
+
+        Implements `Backend.submit_preprocessor_preview`. The job uses copies of its arguments taken at submit time.
+        Once dispatched it cannot be cancelled, since the server's interrupt is not known to stop `/controlnet/detect`.
+        See `submit_txt2img` for the dispatch semantics.
+        """
+        image = image.copy()
+        mask = None if mask is None else mask.copy()
+        preprocessor = preprocessor.model_copy(deep=True)
+
+        def run() -> ImageResponse:
+            return {'images': [self.controlnet_preprocessor_preview(image, mask, preprocessor)], 'info': None}
+        return self._submit_call(run, 'preview', interruptible=False)
 
     # General utility:
     def login_check(self):

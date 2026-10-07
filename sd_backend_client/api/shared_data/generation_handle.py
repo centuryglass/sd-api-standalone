@@ -129,7 +129,9 @@ class GenerationHandle(ABC):
 
         Capability note: ComfyUI can drop a still-queued task *or* interrupt the running one; the WebUI
         can only interrupt the job that is *currently running* — a specific queued WebUI job cannot be
-        cancelled server-side, so this returns ``False`` in that case.
+        cancelled server-side, so this returns ``False`` in that case. The WebUI's interrupt is not known to stop a
+        running basic upscale or preprocessor preview, so cancelling one of those once it is running returns
+        ``False`` and the job finishes normally.
         """
 
     # --- Concrete, shared conveniences ------------------------------------------------------------

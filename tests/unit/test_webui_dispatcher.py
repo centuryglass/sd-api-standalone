@@ -174,6 +174,36 @@ def test_cancel_active_job_interrupts_server_and_discards_result():
     assert error.value.status is GenerationStatus.CANCELLED
 
 
+def test_cancel_active_uninterruptible_job_is_refused_and_job_finishes():
+    """An uninterruptible job refuses cancel() once running, sends no interrupt, and still delivers its result."""
+    service = _FakeService()
+    job = _BlockingJob('a', [])
+    handle = _dispatcher(service).submit(job, 'task(a)', interruptible=False)
+    assert job.started.wait(SAFETY_TIMEOUT_S)
+
+    assert handle.cancel() is False
+    assert service.interrupts == 0
+    job.release.set()
+    assert handle.wait(timeout=SAFETY_TIMEOUT_S).info == 'a'
+
+
+def test_cancel_pending_uninterruptible_job_never_runs_it():
+    """An uninterruptible job is still cancellable while it waits in the client-side queue."""
+    run_log: list[str] = []
+    dispatcher = _dispatcher()
+    blocker = _BlockingJob('blocker', run_log)
+    dispatcher.submit(blocker, 'task(blocker)')
+    assert blocker.started.wait(SAFETY_TIMEOUT_S)
+    queued = _BlockingJob('queued', run_log)
+    handle = dispatcher.submit(queued, 'task(queued)', interruptible=False)
+
+    assert handle.cancel() is True
+    blocker.release.set()
+    _wait_done(handle)
+    assert handle.poll().status is GenerationStatus.CANCELLED
+    assert queued.calls == 0
+
+
 def test_cancel_after_finish_is_rejected():
     """cancel() returns False once the job is terminal, and sends nothing."""
     service = _FakeService()

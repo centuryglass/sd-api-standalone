@@ -83,10 +83,12 @@ class WebUIGenerationHandle(GenerationHandle):
     dispatcher worker and the caller's cancel/poll threads all go through it.
     """
 
-    def __init__(self, dispatcher: 'WebUIDispatcher', run: GenerationCall, task_id: str) -> None:
+    def __init__(self, dispatcher: 'WebUIDispatcher', run: GenerationCall, task_id: str,
+                 interruptible: bool = True) -> None:
         super().__init__(task_id)
         self._dispatcher = dispatcher
         self._run = run
+        self._interruptible = interruptible
         self._lock = threading.Lock()
         self._status = GenerationStatus.PENDING
         self._cancel_requested = False
@@ -118,14 +120,17 @@ class WebUIGenerationHandle(GenerationHandle):
     def cancel(self) -> bool:
         """Cancel the job. Clean while ``PENDING`` (never dispatched); interrupt-based while ``ACTIVE``.
 
-        Returns ``True`` if the cancellation was accepted, ``False`` if the job had already reached a
-        terminal state.
+        Returns ``True`` if the cancellation was accepted. Returns ``False`` if the job had already reached a
+        terminal state, or if it is ``ACTIVE`` on an endpoint the server's interrupt may not stop (see
+        ``WebUIDispatcher.submit``), in which case the job runs on and finishes normally.
         """
         with self._lock:
             if self._status.is_terminal:
                 return False
-            self._cancel_requested = True
             status = self._status
+            if status is GenerationStatus.ACTIVE and not self._interruptible:
+                return False
+            self._cancel_requested = True
 
         if status is GenerationStatus.PENDING:
             # Try to yank it from the client-side queue before the worker ever POSTs it.
@@ -243,9 +248,13 @@ class WebUIDispatcher:
         self._not_empty = threading.Condition(self._lock)
         self._worker: Optional[threading.Thread] = None
 
-    def submit(self, run: GenerationCall, task_id: str) -> WebUIGenerationHandle:
-        """Enqueue a blocking generation call and return its handle immediately (job starts PENDING)."""
-        handle = WebUIGenerationHandle(self, run, task_id)
+    def submit(self, run: GenerationCall, task_id: str, interruptible: bool = True) -> WebUIGenerationHandle:
+        """Enqueue a blocking generation call and return its handle immediately (job starts PENDING).
+
+        Pass ``interruptible=False`` for a call that ``/sdapi/v1/interrupt`` is not known to stop, such as basic
+        upscaling or a ControlNet preprocessor preview. Its handle then refuses to cancel once dispatched.
+        """
+        handle = WebUIGenerationHandle(self, run, task_id, interruptible)
         with self._lock:
             self._queue.append(handle)
             self._ensure_worker_locked()

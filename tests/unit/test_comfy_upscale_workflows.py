@@ -14,7 +14,7 @@ from sd_backend_client.api.comfyui_webservice import ComfyUiWebservice
 from sd_backend_client.api.comfyui.preprocessor_preview_workflow_builder import PreprocessorPreviewWorkflowBuilder
 from sd_backend_client.api.shared_data.controlnet.controlnet_model import ControlNetModel
 from sd_backend_client.api.shared_data.controlnet.controlnet_preprocessor import (ControlNetPreprocessor,
-                                                                              PreprocessorParams)
+                                                                              ParameterDef, PreprocessorParams)
 from sd_backend_client.api.shared_data.controlnet.controlnet_unit import ControlNetUnit
 from sd_backend_client.util.geometry import Size
 
@@ -237,3 +237,23 @@ def test_preprocessor_preview_without_a_required_image_raises_value_error():
     builder = PreprocessorPreviewWorkflowBuilder(ControlNetPreprocessor(name='CannyEdgePreprocessor'))
     with pytest.raises(ValueError, match='CannyEdgePreprocessor'):
         builder.build_workflow(None)
+
+
+_CANNY = ControlNetPreprocessor(name='CannyEdgePreprocessor', has_mask_input=False, parameters=[
+    ParameterDef(key='low_threshold', default_value=100), ParameterDef(key='high_threshold', default_value=200)])
+
+
+@pytest.mark.parametrize('preprocessor, expected', [
+    (_CANNY, {'low_threshold': 100, 'high_threshold': 200}),
+    (PreprocessorParams(typedef=_CANNY, parameter_values={'low_threshold': 50}),
+     {'low_threshold': 50, 'high_threshold': 200}),
+])
+def test_preprocessor_preview_applies_parameter_overrides_over_defaults(
+        preprocessor: ControlNetPreprocessor | PreprocessorParams, expected: dict[str, int]):
+    """Preview inputs take each parameter's default unless a PreprocessorParams sets it."""
+    builder = PreprocessorPreviewWorkflowBuilder(preprocessor)
+    workflow = builder.build_workflow(SOURCE).get_workflow_dict()
+
+    node = single_node(workflow, 'CannyEdgePreprocessor')
+    assert {key: node['inputs'][key] for key in expected} == expected
+    assert source_class(workflow, node['inputs']['image']) == 'LoadImage'

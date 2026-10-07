@@ -23,7 +23,7 @@
   },
   "sd_backend_client/api/comfyui_webservice.py": {
     "consider-using-enumerate": 1,
-    "import-outside-toplevel": 3,
+    "import-outside-toplevel": 1,
     "line-too-long": 1,
     "no-else-continue": 1,
     "unused-import": 1
