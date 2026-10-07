@@ -37,7 +37,10 @@ class _Status:
 
 
 class _FakeSession:
-    """Routes GET/POST by URL path to canned responses and records each request."""
+    """Routes GET/POST by URL path to canned responses and records each request.
+
+    A route whose value is callable is called for each request, so a test can change the response between calls.
+    """
 
     def __init__(self, routes: Optional[dict[tuple[str, str], Any]] = None) -> None:
         self.routes: dict[tuple[str, str], Any] = routes if routes is not None else {}
@@ -49,6 +52,8 @@ class _FakeSession:
         query = dict(parse_qsl(url.query, keep_blank_values=True))
         self.requests.append({'method': method, 'path': url.path, 'query': query, **kwargs})
         body = self.routes.get((method, url.path), {})
+        if callable(body):
+            body = body()
         if isinstance(body, BaseException):
             raise body
         response = MagicMock()
@@ -83,7 +88,8 @@ def _service(routes: Optional[dict[tuple[str, str], Any]] = None) -> tuple[Comfy
 
 
 def _history_entry(status_str: str = 'success', completed: bool = True,
-                   outputs: Optional[dict[str, Any]] = None) -> dict[str, Any]:
+                   outputs: Optional[dict[str, Any]] = None,
+                   messages: Optional[list[list[Any]]] = None) -> dict[str, Any]:
     """One /history/<prompt_id> entry, keyed by prompt id."""
     if outputs is None:
         outputs = {'9': {'images': [{'filename': 'ComfyUI_00001_.png', 'subfolder': '', 'type': 'output'}]}}
@@ -91,7 +97,8 @@ def _history_entry(status_str: str = 'success', completed: bool = True,
         'prompt': [7, PROMPT_ID, {}, {'client_id': 'abc'}, ['9']],
         'outputs': outputs,
         'status': {'status_str': status_str, 'completed': completed,
-                   'messages': [['execution_start', {'prompt_id': PROMPT_ID, 'timestamp': 1700000000000}]]},
+                   'messages': [['execution_start', {'prompt_id': PROMPT_ID, 'timestamp': 1700000000000}]]
+                   + (messages or [])},
     }}
 
 
@@ -122,6 +129,60 @@ def test_error_history_entry_is_failed():
     assert service.check_queue_entry(PROMPT_ID, 7).status is AsyncTaskStatus.FAILED
 
 
+def test_error_history_entry_carries_the_execution_error():
+    """A FAILED status reports the node and exception from ComfyUI's execution_error message."""
+    error = ['execution_error', {'prompt_id': PROMPT_ID, 'timestamp': 1700000000001, 'node_id': '3',
+                                 'node_type': 'KSampler', 'executed': [], 'exception_type': 'RuntimeError',
+                                 'exception_message': 'CUDA out of memory', 'traceback': ['...'],
+                                 'current_inputs': {}, 'current_outputs': {}}]
+    service, _ = _service({('GET', f'/history/{PROMPT_ID}'): _history_entry('error', False, outputs={},
+                                                                           messages=[error])})
+    progress = service.check_queue_entry(PROMPT_ID)
+    assert progress.status is AsyncTaskStatus.FAILED
+    assert progress.error == ('ComfyUI execution failed in KSampler (node 3): RuntimeError: CUDA out of memory')
+
+
+def test_interrupted_history_entry_says_where_it_stopped():
+    """An interrupted run is FAILED, with a reason naming the node it stopped in."""
+    interrupted = ['execution_interrupted', {'prompt_id': PROMPT_ID, 'timestamp': 1700000000001, 'node_id': '3',
+                                             'node_type': 'KSampler', 'executed': []}]
+    service, _ = _service({('GET', f'/history/{PROMPT_ID}'): _history_entry('error', False, outputs={},
+                                                                           messages=[interrupted])})
+    assert service.check_queue_entry(PROMPT_ID).error == 'ComfyUI execution was interrupted in KSampler (node 3)'
+
+
+def test_output_nodes_without_images_still_finish():
+    """An output node that saves no images doesn't stop the entry from reading as FINISHED."""
+    outputs = {'9': {'images': [{'filename': 'a.png', 'subfolder': '', 'type': 'output'}]},
+               '15': {'text': ['a caption']}}
+    service, _ = _service({('GET', f'/history/{PROMPT_ID}'): _history_entry(outputs=outputs)})
+    progress = service.check_queue_entry(PROMPT_ID)
+    assert progress.status is AsyncTaskStatus.FINISHED
+    assert progress.outputs is not None
+    assert [ref.filename for ref in progress.outputs.images] == ['a.png']
+
+
+def test_malformed_history_entry_raises_unexpected_response():
+    """A history entry that doesn't match ComfyUI's format raises UnexpectedResponseError."""
+    service, _ = _service({('GET', f'/history/{PROMPT_ID}'): {PROMPT_ID: {'status': 'done'}}})
+    with pytest.raises(UnexpectedResponseError, match='unexpected format'):
+        service.check_queue_entry(PROMPT_ID)
+
+
+def test_entry_finishing_between_history_and_queue_reads_is_finished():
+    """A job that leaves the queue after the first /history read is found by a second /history read."""
+    history_reads: list[int] = []
+
+    def history() -> dict[str, Any]:
+        history_reads.append(1)
+        return {} if len(history_reads) == 1 else _history_entry()
+
+    service, _ = _service({('GET', f'/history/{PROMPT_ID}'): history,
+                           ('GET', ComfyEndpoints.QUEUE): _queue([], [])})
+    assert service.check_queue_entry(PROMPT_ID).status is AsyncTaskStatus.FINISHED
+    assert len(history_reads) == 2
+
+
 def test_running_entry_is_active():
     """A prompt missing from history but in queue_running is ACTIVE."""
     service, _ = _service({('GET', ComfyEndpoints.QUEUE): _queue([(7, PROMPT_ID)], [])})
@@ -144,6 +205,14 @@ def test_pending_entry_index_counts_lower_numbers():
     assert progress.index == 2
 
 
+def test_pending_entry_is_found_without_a_task_number():
+    """A pending prompt is matched by its id, so the queue number is optional."""
+    service, _ = _service({('GET', ComfyEndpoints.QUEUE): _queue([], [(9, 'later'), (7, PROMPT_ID), (5, 'a')])})
+    progress = service.check_queue_entry(PROMPT_ID, None)
+    assert progress.status is AsyncTaskStatus.PENDING
+    assert progress.index == 1
+
+
 def test_unknown_entry_is_not_found():
     """A prompt in neither history nor queue is NOT_FOUND."""
     service, _ = _service({('GET', ComfyEndpoints.QUEUE): _queue([(3, OTHER_ID)], [(9, 'later')])})
@@ -153,11 +222,20 @@ def test_unknown_entry_is_not_found():
 # Queue control
 
 def test_interrupt_with_task_deletes_it_then_interrupts():
-    """interrupt(task_id) deletes the task from the queue and then posts /interrupt."""
+    """interrupt(task_id) deletes the task from the queue and then posts an /interrupt naming it."""
     service, session = _service()
     service.interrupt(PROMPT_ID)
     assert [request['path'] for request in session.requests] == [ComfyEndpoints.QUEUE, ComfyEndpoints.INTERRUPT]
     assert session.requests[0]['json'] == {'clear': None, 'delete': [PROMPT_ID]}
+    assert session.requests[1]['json'] == {'prompt_id': PROMPT_ID}
+
+
+def test_interrupt_without_task_stops_the_running_job():
+    """interrupt() posts a bare /interrupt and touches no queue entry."""
+    service, session = _service()
+    service.interrupt()
+    assert [request['path'] for request in session.requests] == [ComfyEndpoints.INTERRUPT]
+    assert session.requests[0].get('json') is None
 
 
 def test_remove_from_queue_does_not_interrupt():

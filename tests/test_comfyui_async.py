@@ -5,9 +5,10 @@ against a **real** ComfyUI server. ComfyUI is natively async (the server owns th
 WebUI there is no client-side dispatcher — the handle just tracks one ``prompt_id`` and reports the
 server's view of it through the unified :class:`GenerationHandle` interface.
 
-Covered: the submit -> wait lifecycle, server-side queueing of two jobs, interrupt-based cancellation of
-an ACTIVE job, and — the key check for our ``remove_from_queue`` path — cancelling a still-PENDING job
-without disturbing the job currently running.
+Covered: the submit -> wait lifecycle, live websocket progress, server-side queueing of two jobs,
+interrupt-based cancellation of an ACTIVE job, targeted interrupts that spare other jobs, cancelling a
+still-PENDING job without disturbing the job currently running, and a wait on an unknown job ending
+instead of hanging.
 
 Opt-in like the other generation tests (``--run-generation`` / ``RUN_SD_GENERATION=1``); needs a
 checkpoint installed. The cancellation tests scale a job up (steps/size) so it stays running long enough
@@ -15,10 +16,12 @@ to observe, and fail with a clear "raise the step count" message if the hardware
 """
 import threading
 import time
+import uuid
 
 import pytest
 from PIL import Image
 
+from sd_backend_client.api.comfyui.comfyui_generation_handle import ComfyGenerationHandle
 from sd_backend_client.api.shared_data.generation_handle import GenerationError, GenerationStatus
 
 from .comfy_helpers import build_comfy_params
@@ -115,6 +118,26 @@ def test_submit_img2img_lifecycle(comfy_service, comfy_checkpoint, output_dir):
     save_output(output_dir, 'comfy_async_img2img', result.images[0])
 
 
+def test_active_job_reports_live_progress(comfy_service, comfy_checkpoint):
+    """While a job runs, poll() reports a step fraction read from the websocket."""
+    handle = comfy_service.submit_txt2img(_params(comfy_checkpoint, steps=30, size=512, seed=4))
+    snapshots = []
+    handle.wait(timeout=180, poll_interval=0.1, on_progress=snapshots.append)
+    fractions = [snap.progress for snap in snapshots
+                 if snap.status is GenerationStatus.ACTIVE and snap.progress is not None]
+    assert fractions, 'no ACTIVE snapshot carried websocket progress'
+    assert all(0.0 <= fraction <= 1.0 for fraction in fractions)
+    assert snapshots[-1].progress == 1.0
+
+
+def test_wait_on_unknown_job_ends_not_found(comfy_service):
+    """wait() on a job id the server never saw raises GenerationError(NOT_FOUND) instead of hanging."""
+    handle = ComfyGenerationHandle(comfy_service, str(uuid.uuid4()), registration_grace=1.0)
+    with pytest.raises(GenerationError) as error:
+        handle.wait(timeout=30, poll_interval=0.2)
+    assert error.value.status is GenerationStatus.NOT_FOUND
+
+
 # --------------------------------------------------------------------------- #
 # Server-side queueing
 # --------------------------------------------------------------------------- #
@@ -151,6 +174,23 @@ def test_cancel_active_job_interrupts(comfy_service, comfy_checkpoint):
     assert handle.poll().status is GenerationStatus.CANCELLED
     with pytest.raises(GenerationError):
         handle.wait(timeout=5)
+
+
+def test_interrupting_a_finished_job_spares_the_running_job(comfy_service, comfy_checkpoint, output_dir):
+    """interrupt(task_id) for a job that already finished does not stop a different running job.
+
+    Fails on ComfyUI versions without targeted interrupts, which ignore the prompt id.
+    """
+    finished = comfy_service.submit_txt2img(_params(comfy_checkpoint, prompt='a small red cube', seed=111))
+    finished.wait(timeout=180)
+    running = comfy_service.submit_txt2img(
+        _params(comfy_checkpoint, prompt='a vast, intricate fantasy landscape', steps=60, size=512, seed=112))
+    _wait_until(lambda: running.poll().status is GenerationStatus.ACTIVE, timeout=60, message='job ACTIVE')
+
+    comfy_service.interrupt(finished.task_id)
+    result = running.wait(timeout=180)
+    assert result.images, 'interrupting a finished job stopped the running one: the server ignored prompt_id'
+    save_output(output_dir, 'comfy_async_targeted_interrupt', result.images[0])
 
 
 def test_cancel_pending_job_leaves_running_job_untouched(comfy_service, comfy_checkpoint, output_dir):

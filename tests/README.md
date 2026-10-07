@@ -187,6 +187,8 @@ are 256x256 at 8 steps.
   subjects mean a handle downloaded another prompt's outputs.
 - [ ] `comfy_async_running_survived_cancel.png`: a fully rendered 512x512 fantasy landscape. A half-finished, noisy
   or missing image means cancelling the queued job interrupted the running one. A red cube is the cancelled job.
+- [ ] `comfy_async_targeted_interrupt.png`: a fully rendered 512x512 fantasy landscape. A half-finished or noisy
+  image means the server ignored the prompt id in `/interrupt` and stopped the wrong job.
 - [ ] `shared_params_comfyui_img2img.png`: a 256x320 portrait watercolor filling the frame without stretching.
   Expect a similar style to the WebUI version, not the same image.
 

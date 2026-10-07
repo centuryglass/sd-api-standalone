@@ -1,0 +1,255 @@
+"""Offline unit tests for ComfyProgressListener: websocket message parsing and the background thread's lifecycle.
+
+Message shapes follow what ComfyUI's server.py sends: JSON text messages with `type` and `data`, and binary preview
+frames that start with a big-endian event type.
+"""
+# pylint: disable=protected-access
+import json
+import struct
+import threading
+from contextlib import contextmanager
+from typing import Any, Iterator
+
+import pytest
+import websocket
+from PIL import Image
+
+from sd_backend_client.api.comfyui.comfyui_progress_listener import ComfyProgressListener, LiveProgress, _JobState
+from sd_backend_client.api.comfyui_webservice import ComfyUiWebservice
+from sd_backend_client.errors import BackendConnectionError
+from sd_backend_client.util.visual.image_utils import image_to_png_bytes
+
+PROMPT_ID = 'prompt-a'
+OTHER_ID = 'prompt-b'
+JOIN_TIMEOUT = 10.0  # Only bounds a hung test; no assertion depends on timing.
+
+
+class FakeClock:
+    """A settable time source."""
+
+    def __init__(self) -> None:
+        self.now = 50.0
+
+    def __call__(self) -> float:
+        return self.now
+
+
+def _text(message_type: str, **data: Any) -> str:
+    return json.dumps({'type': message_type, 'data': data})
+
+
+def _preview_png() -> bytes:
+    return image_to_png_bytes(Image.new('RGB', (3, 2), (255, 0, 0)))
+
+
+def _listener(clock: FakeClock | None = None) -> ComfyProgressListener:
+    def unused_websocket():
+        raise AssertionError('the websocket should not be opened')
+    return ComfyProgressListener(unused_websocket, clock=clock or FakeClock())
+
+
+def _watched(listener: ComfyProgressListener, *prompt_ids: str) -> ComfyProgressListener:
+    """Register jobs as watch() does, without starting the background thread."""
+    for prompt_id in prompt_ids:
+        listener._jobs[prompt_id] = _JobState(LiveProgress())
+    return listener
+
+
+# Text messages
+
+def test_progress_message_sets_fraction_and_eta():
+    """Progress is value/max, and the ETA extrapolates the step rate since the node's first message."""
+    clock = FakeClock()
+    listener = _watched(_listener(clock), PROMPT_ID)
+    listener.handle_message(_text('progress', value=2, max=20, prompt_id=PROMPT_ID, node='3'))
+    first = listener.get_progress(PROMPT_ID)
+    assert first is not None and first.progress == 0.1 and first.eta_seconds is None
+
+    clock.now += 4.0  # 2 steps in 4 s, 12 steps left
+    listener.handle_message(_text('progress', value=4, max=20, prompt_id=PROMPT_ID, node='3'))
+    second = listener.get_progress(PROMPT_ID)
+    assert second is not None
+    assert second.progress == 0.2
+    assert second.eta_seconds == pytest.approx(32.0)
+
+
+def test_new_node_restarts_the_eta():
+    """A second sampler node's steps don't reuse the first node's rate."""
+    clock = FakeClock()
+    listener = _watched(_listener(clock), PROMPT_ID)
+    listener.handle_message(_text('progress', value=1, max=10, prompt_id=PROMPT_ID, node='3'))
+    clock.now += 1.0
+    listener.handle_message(_text('progress', value=10, max=10, prompt_id=PROMPT_ID, node='3'))
+    clock.now += 1.0
+    listener.handle_message(_text('progress', value=1, max=5, prompt_id=PROMPT_ID, node='12'))
+    progress = listener.get_progress(PROMPT_ID)
+    assert progress is not None and progress.progress == 0.2 and progress.eta_seconds is None
+
+
+def test_progress_without_prompt_id_goes_to_the_executing_job():
+    """Older ComfyUI versions omit prompt_id from progress; it belongs to the job named by 'executing'."""
+    listener = _watched(_listener(), PROMPT_ID, OTHER_ID)
+    listener.handle_message(_text('executing', node='3', prompt_id=OTHER_ID))
+    listener.handle_message(_text('progress', value=5, max=10))
+    other = listener.get_progress(OTHER_ID)
+    assert other is not None and other.progress == 0.5
+    own = listener.get_progress(PROMPT_ID)
+    assert own is not None and own.progress is None
+
+
+@pytest.mark.parametrize('message', [
+    _text('progress', value=5, max=10, prompt_id='unwatched'),
+    _text('progress', value=5, max=0, prompt_id=PROMPT_ID),
+    _text('progress', value='5', max=10, prompt_id=PROMPT_ID),
+    _text('status', status={'exec_info': {'queue_remaining': 1}}),
+    '{"type": "progress"}',
+    '[1, 2]',
+    'not json',
+])
+def test_irrelevant_or_malformed_messages_change_nothing(message: str):
+    """Messages for other jobs, unknown types and malformed bodies leave watched jobs untouched."""
+    listener = _watched(_listener(), PROMPT_ID)
+    listener.handle_message(message)
+    progress = listener.get_progress(PROMPT_ID)
+    assert progress is not None and progress.progress is None
+
+
+@pytest.mark.parametrize('message', [
+    _text('executing', node=None, prompt_id=PROMPT_ID),
+    _text('execution_success', prompt_id=PROMPT_ID, timestamp=1),
+    _text('execution_error', prompt_id=PROMPT_ID, node_id='3', exception_message='boom'),
+    _text('execution_interrupted', prompt_id=PROMPT_ID, node_id='3'),
+])
+def test_job_end_messages_stop_watching_the_job(message: str):
+    """A job the server reports ended is no longer watched, even if its handle is never polled again."""
+    listener = _watched(_listener(), PROMPT_ID, OTHER_ID)
+    listener.handle_message(message)
+    assert listener.get_progress(PROMPT_ID) is None
+    assert listener.get_progress(OTHER_ID) is not None
+
+
+# Binary preview frames
+
+def test_preview_frame_goes_to_the_executing_job():
+    """A PREVIEW_IMAGE frame has no prompt id, so it belongs to the job named by 'executing'."""
+    listener = _watched(_listener(), PROMPT_ID)
+    listener.handle_message(_text('executing', node='3', prompt_id=PROMPT_ID))
+    listener.handle_message(struct.pack('>II', 1, 2) + _preview_png())
+    progress = listener.get_progress(PROMPT_ID)
+    assert progress is not None and progress.preview is not None
+    assert progress.preview.size == (3, 2)
+    assert progress.preview.mode == 'RGBA'
+
+
+def test_preview_frame_with_metadata_uses_its_prompt_id():
+    """A PREVIEW_IMAGE_WITH_METADATA frame names its job in a JSON header."""
+    listener = _watched(_listener(), PROMPT_ID, OTHER_ID)
+    listener.handle_message(_text('executing', node='3', prompt_id=PROMPT_ID))
+    metadata = json.dumps({'prompt_id': OTHER_ID, 'node_id': '3', 'image_type': 'image/png'}).encode()
+    listener.handle_message(struct.pack('>II', 4, len(metadata)) + metadata + _preview_png())
+    other = listener.get_progress(OTHER_ID)
+    assert other is not None and other.preview is not None
+    own = listener.get_progress(PROMPT_ID)
+    assert own is not None and own.preview is None
+
+
+@pytest.mark.parametrize('message', [
+    b'\x00\x00',
+    struct.pack('>II', 1, 2) + b'not an image',
+    struct.pack('>II', 4, 5) + b'{bad}' + b'',
+    struct.pack('>II', 3, 0) + b'text frame',
+])
+def test_bad_or_unknown_binary_frames_are_ignored(message: bytes):
+    """Short, undecodable and unknown binary frames set no preview."""
+    listener = _watched(_listener(), PROMPT_ID)
+    listener.handle_message(_text('executing', node='3', prompt_id=PROMPT_ID))
+    listener.handle_message(message)
+    progress = listener.get_progress(PROMPT_ID)
+    assert progress is not None and progress.preview is None
+
+
+# Background thread
+
+class _FakeConnection:
+    """Replays scripted messages, then reports read timeouts until `release` is set."""
+
+    def __init__(self, messages: list[str]) -> None:
+        self.messages = list(messages)
+        self.drained = threading.Event()
+        self.release = threading.Event()
+        self.timeout: float | None = None
+
+    def settimeout(self, timeout: float) -> None:
+        """Record the read timeout."""
+        self.timeout = timeout
+
+    def recv(self) -> str:
+        """Return the next scripted message, or time out once they run out."""
+        if self.messages:
+            return self.messages.pop(0)
+        self.drained.set()
+        self.release.wait(JOIN_TIMEOUT)
+        raise websocket.WebSocketTimeoutException('timed out')
+
+
+def test_thread_reads_messages_and_exits_once_nothing_is_watched():
+    """watch() starts one thread that applies messages and stops after the last job is unwatched."""
+    connection = _FakeConnection([_text('progress', value=3, max=4, prompt_id=PROMPT_ID)])
+    opened: list[int] = []
+
+    @contextmanager
+    def open_websocket() -> Iterator[_FakeConnection]:
+        opened.append(1)
+        yield connection
+
+    listener = ComfyProgressListener(open_websocket, receive_timeout=0.25)
+    listener.watch(PROMPT_ID)
+    thread = listener._thread
+    assert thread is not None
+    listener.watch(OTHER_ID)  # a running thread serves every watched job
+    assert connection.drained.wait(JOIN_TIMEOUT)
+    progress = listener.get_progress(PROMPT_ID)
+    assert progress is not None and progress.progress == 0.75
+    assert connection.timeout == 0.25
+
+    listener.unwatch(PROMPT_ID)
+    listener.unwatch(OTHER_ID)
+    connection.release.set()
+    thread.join(JOIN_TIMEOUT)
+    assert not thread.is_alive()
+    assert listener._thread is None
+    assert opened == [1]
+
+
+def test_failed_connection_waits_for_the_retry_interval():
+    """After the websocket fails to open, watch() doesn't reconnect until retry_interval has passed."""
+    clock = FakeClock()
+    attempts: list[int] = []
+
+    def open_websocket():
+        attempts.append(1)
+        raise BackendConnectionError('refused')
+
+    listener = ComfyProgressListener(open_websocket, clock=clock, retry_interval=5.0)
+    listener.watch(PROMPT_ID)
+    thread = listener._thread
+    assert thread is not None
+    thread.join(JOIN_TIMEOUT)
+    assert attempts == [1] and listener._thread is None
+
+    clock.now += 4.0
+    listener.watch(PROMPT_ID)
+    assert listener._thread is None
+
+    clock.now += 1.0
+    listener.watch(PROMPT_ID)
+    thread = listener._thread
+    assert thread is not None
+    thread.join(JOIN_TIMEOUT)
+    assert attempts == [1, 1]
+
+
+def test_service_creates_a_listener_unless_live_progress_is_off():
+    """ComfyUiWebservice has a progress listener by default, and none with live_progress=False."""
+    assert isinstance(ComfyUiWebservice('http://127.0.0.1:8188').progress_listener, ComfyProgressListener)
+    assert ComfyUiWebservice('http://127.0.0.1:8188', live_progress=False).progress_listener is None

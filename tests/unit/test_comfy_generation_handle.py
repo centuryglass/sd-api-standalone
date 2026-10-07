@@ -7,13 +7,16 @@ using a scripted fake service. They cover the pieces that are easy to get subtly
 - the full PENDING -> ACTIVE -> FINISHED ``wait()`` path, including result download;
 - "cancel wins": once cancelled, a NOT_FOUND / FAILED server state reports CANCELLED;
 - clean PENDING cancel (queue removal) vs. ACTIVE cancel (interrupt), and no-op cancel of a finished job;
-- registration-lag smoothing: a NOT_FOUND seen before the job is ever registered reads as PENDING.
+- registration-lag smoothing: a NOT_FOUND seen before the job is ever registered reads as PENDING, until the
+  registration grace period ends;
+- failure detail and live progress passed through from the service.
 """
 from PIL import Image
 
 import pytest
 
 from sd_backend_client.api.comfyui.comfyui_generation_handle import ComfyGenerationHandle
+from sd_backend_client.api.comfyui.comfyui_progress_listener import LiveProgress
 from sd_backend_client.api.comfyui.comfyui_types import (ImageFileReference, PromptExecOutputs,
                                                       QueueAdditionResponse)
 from sd_backend_client.api.comfyui_webservice import AsyncTaskProgress, AsyncTaskStatus
@@ -24,8 +27,9 @@ from sd_backend_client.errors import BackendTimeoutError, WorkflowValidationErro
 class FakeComfyService:
     """A stand-in for ComfyUiWebservice that replays a scripted sequence of task-progress snapshots."""
 
-    def __init__(self, script: list[AsyncTaskProgress]):
+    def __init__(self, script: list[AsyncTaskProgress], progress_listener=None):
         self._script = list(script)
+        self.progress_listener = progress_listener
         self._calls = 0
         self.removed: list[str] = []       # task_ids passed to remove_from_queue
         self.interrupted: list = []         # task_ids (or None) passed to interrupt
@@ -44,6 +48,36 @@ class FakeComfyService:
 
     def download_images(self, image_refs):
         return [Image.new('RGBA', (4, 4), (i, i, i, 255)) for i, _ in enumerate(image_refs)]
+
+
+class FakeListener:
+    """A stand-in for ComfyProgressListener that records watched jobs and reports fixed progress."""
+
+    def __init__(self, live: LiveProgress):
+        self.live = live
+        self.watched: set[str] = set()
+
+    def watch(self, prompt_id: str) -> None:
+        """Record the job as watched."""
+        self.watched.add(prompt_id)
+
+    def unwatch(self, prompt_id: str) -> None:
+        """Stop recording the job as watched."""
+        self.watched.discard(prompt_id)
+
+    def get_progress(self, prompt_id: str):
+        """Return the fixed progress for a watched job."""
+        return self.live if prompt_id in self.watched else None
+
+
+class FakeClock:
+    """A settable time source."""
+
+    def __init__(self) -> None:
+        self.now = 100.0
+
+    def __call__(self) -> float:
+        return self.now
 
 
 def _outputs(n: int = 1) -> PromptExecOutputs:
@@ -73,11 +107,11 @@ def test_from_queue_response_rejects_missing_prompt_id():
         ComfyGenerationHandle.from_queue_response(FakeComfyService([]), response)
 
 
-def test_from_queue_response_rejects_missing_number():
-    """A response without a queue number is rejected, since check_queue_entry needs it to find a pending job."""
+def test_from_queue_response_accepts_missing_number():
+    """A response without a queue number still gives a handle, since jobs are found by prompt id."""
     response = QueueAdditionResponse(prompt_id='abc', number=None)
-    with pytest.raises(WorkflowValidationError, match='rejected the workflow'):
-        ComfyGenerationHandle.from_queue_response(FakeComfyService([]), response)
+    handle = ComfyGenerationHandle.from_queue_response(FakeComfyService([]), response)
+    assert handle.task_id == 'abc'
 
 
 # --------------------------------------------------------------------------- #
@@ -104,6 +138,15 @@ def test_poll_maps_failed():
                       AsyncTaskProgress(status=AsyncTaskStatus.FAILED)])
     handle.poll()
     assert handle.poll().status is GenerationStatus.FAILED
+
+
+def test_failed_job_wait_raises_with_server_reason():
+    """wait() raises GenerationError carrying the error ComfyUI reported."""
+    reason = 'ComfyUI execution failed in KSampler (node 3): RuntimeError: out of memory'
+    handle = _handle([AsyncTaskProgress(status=AsyncTaskStatus.FAILED, error=reason)])
+    with pytest.raises(GenerationError, match='out of memory') as error:
+        handle.wait(poll_interval=0.0)
+    assert error.value.status is GenerationStatus.FAILED
 
 
 # --------------------------------------------------------------------------- #
@@ -147,7 +190,62 @@ def test_not_found_after_registration_is_terminal():
     handle = _handle([AsyncTaskProgress(status=AsyncTaskStatus.ACTIVE),
                       AsyncTaskProgress(status=AsyncTaskStatus.NOT_FOUND)])
     assert handle.poll().status is GenerationStatus.ACTIVE  # registers the job
-    assert handle.poll().status is GenerationStatus.NOT_FOUND
+    progress = handle.poll()
+    assert progress.status is GenerationStatus.NOT_FOUND
+    assert 'lost track' in progress.text_info
+
+
+def test_not_found_is_terminal_after_registration_grace():
+    """A job the server never lists stops reading as PENDING once the grace period ends."""
+    clock = FakeClock()
+    handle = ComfyGenerationHandle(FakeComfyService([AsyncTaskProgress(status=AsyncTaskStatus.NOT_FOUND)]),
+                                   'prompt-123', registration_grace=5.0, clock=clock)
+    clock.now += 4.9
+    assert handle.poll().status is GenerationStatus.PENDING
+    clock.now += 0.1
+    progress = handle.poll()
+    assert progress.status is GenerationStatus.NOT_FOUND
+    assert 'no record' in progress.text_info
+
+
+def test_wait_on_unknown_job_raises_instead_of_waiting_forever():
+    """wait() with no timeout ends with GenerationError(NOT_FOUND) once the grace period passes."""
+    clock = FakeClock()
+    service = FakeComfyService([AsyncTaskProgress(status=AsyncTaskStatus.NOT_FOUND)])
+    handle = ComfyGenerationHandle(service, 'prompt-123', registration_grace=5.0, clock=clock)
+
+    def advance(_progress) -> None:
+        clock.now += 1.0
+
+    with pytest.raises(GenerationError, match='no record') as error:
+        handle.wait(poll_interval=0.0, on_progress=advance)
+    assert error.value.status is GenerationStatus.NOT_FOUND
+
+
+# --------------------------------------------------------------------------- #
+# Live progress
+# --------------------------------------------------------------------------- #
+
+def test_active_poll_reports_live_progress_and_finish_unwatches():
+    """An ACTIVE poll adds the listener's progress, and a terminal poll stops watching the job."""
+    preview = Image.new('RGBA', (2, 2))
+    listener = FakeListener(LiveProgress(progress=0.25, eta_seconds=3.0, preview=preview))
+    service = FakeComfyService([AsyncTaskProgress(status=AsyncTaskStatus.PENDING, index=0),
+                                AsyncTaskProgress(status=AsyncTaskStatus.ACTIVE),
+                                AsyncTaskProgress(status=AsyncTaskStatus.FINISHED, outputs=_outputs(1))],
+                               progress_listener=listener)
+    handle = ComfyGenerationHandle(service, 'prompt-123')
+
+    pending = handle.poll()
+    assert listener.watched == {'prompt-123'}
+    assert pending.progress is None
+
+    active = handle.poll()
+    assert (active.progress, active.eta_seconds, active.preview) == (0.25, 3.0, preview)
+
+    finished = handle.poll()
+    assert finished.progress == 1.0
+    assert not listener.watched
 
 
 # --------------------------------------------------------------------------- #
@@ -167,7 +265,7 @@ def test_cancel_active_interrupts():
     handle = _handle([AsyncTaskProgress(status=AsyncTaskStatus.ACTIVE),   # cancel() reads this
                       AsyncTaskProgress(status=AsyncTaskStatus.FAILED)])  # interrupted run errors out
     assert handle.cancel() is True
-    assert handle._service.interrupted == [None]       # interrupt the running job (no task_id)
+    assert handle._service.interrupted == ['prompt-123']  # the interrupt names the job
     assert handle._service.removed == []
     assert handle.poll().status is GenerationStatus.CANCELLED  # cancel wins over FAILED
 

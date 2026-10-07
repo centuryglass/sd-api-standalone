@@ -80,6 +80,6 @@ def wait_for_comfy_images(service: ComfyUiWebservice, response, timeout: float =
                 images = progress.outputs.images
             return service.download_images(images)
         if status == AsyncTaskStatus.FAILED:
-            raise RuntimeError(f'ComfyUI task {prompt_id} failed during execution')
+            raise RuntimeError(f'ComfyUI task {prompt_id} failed during execution: {progress.error}')
         time.sleep(poll)
     raise TimeoutError(f'ComfyUI task {prompt_id} did not finish within {timeout}s')

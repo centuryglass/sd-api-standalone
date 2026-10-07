@@ -95,15 +95,15 @@ def _trim_object_info(object_info: dict[str, Any]) -> dict[str, Any]:
 
 
 def _wait_for_finish(service: ComfyUiWebservice, prompt_id: str, number: int) -> None:
-    """Poll until the job finishes. NOT_FOUND keeps polling: a job that finishes between check_queue_entry's
-    /history and /queue reads is briefly in neither."""
+    """Poll until the job finishes, fails or the deadline passes."""
     deadline = time.monotonic() + GENERATION_TIMEOUT
     while time.monotonic() < deadline:
-        status = service.check_queue_entry(prompt_id, number).status
+        progress = service.check_queue_entry(prompt_id, number)
+        status = progress.status
         if status == AsyncTaskStatus.FINISHED:
             return
         if status == AsyncTaskStatus.FAILED:
-            sys.exit(f'ComfyUI job {prompt_id} failed')
+            sys.exit(f'ComfyUI job {prompt_id} failed: {progress.error}')
         time.sleep(1.0)
     sys.exit(f'ComfyUI job {prompt_id} did not finish within {GENERATION_TIMEOUT}s')
 
