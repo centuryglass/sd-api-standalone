@@ -10,8 +10,9 @@ import io
 
 from PIL import Image
 
+from sd_backend_client.api.comfyui.comfyui_diffusion_params import ComfyUIDiffusionParams
 from sd_backend_client.api.shared_data.controlnet.controlnet_unit import ControlNetUnit
-from sd_backend_client.api.shared_data.diffusion_params import DEFAULT_DENOISING_STRENGTH
+from sd_backend_client.api.shared_data.diffusion_params import DEFAULT_DENOISING_STRENGTH, DiffusionParams
 from sd_backend_client.api.webui.diffusion_request_body import DiffusionRequestBody
 from sd_backend_client.util.visual.image_utils import BASE_64_PREFIX, image_from_base64, image_to_base64
 
@@ -168,3 +169,33 @@ def test_to_dict_keeps_caller_checkpoint_override_and_other_settings():
 
 # def test_add_init_image_appends_base64_data_uri():
 # TODO: test to_dict serializes correctly with base64 images
+
+def test_from_params_converts_shared_fields_and_drops_other_backends_fields():
+    """from_params copies every shared field of another DiffusionParams subclass and ignores its own fields."""
+    image = Image.new('RGBA', (4, 4), (1, 2, 3, 255))
+    params = ComfyUIDiffusionParams(prompt='a cat', sampler='dpmpp_2m', seed=5, clip_skip=2, init_images=[image],
+                                    controlnet_units=[ControlNetUnit()])
+    body = DiffusionRequestBody.from_params(params)
+
+    assert type(body) is DiffusionRequestBody  # pylint: disable=unidiomatic-typecheck
+    shared_fields = set(DiffusionParams.model_fields.keys()) - {'init_images', 'controlnet_units'}
+    assert {name: getattr(body, name) for name in shared_fields} == \
+        {name: getattr(params, name) for name in shared_fields}
+    assert not hasattr(body, 'clip_skip')
+    assert body.init_images is not None and body.init_images[0] is not image
+    assert body.init_images[0].tobytes() == image.tobytes()
+    assert body.controlnet_units[0] is not params.controlnet_units[0]
+
+
+def test_from_params_deep_copies_a_request_body():
+    """from_params keeps a DiffusionRequestBody's WebUI-only fields in a copy that shares no state with it."""
+    body = DiffusionRequestBody(n_iter=3, override_settings={'CLIP_stop_at_last_layers': 2})
+    copied = DiffusionRequestBody.from_params(body)
+    assert copied == body
+    copied.override_settings['CLIP_stop_at_last_layers'] = 1  # type: ignore[index]
+    assert body.override_settings == {'CLIP_stop_at_last_layers': 2}
+
+
+def test_from_params_without_params_is_a_default_body():
+    """from_params(None) is a default request body."""
+    assert DiffusionRequestBody.from_params(None) == DiffusionRequestBody()

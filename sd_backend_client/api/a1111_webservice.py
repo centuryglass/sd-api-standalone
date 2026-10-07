@@ -16,7 +16,9 @@ from sd_backend_client.api.shared_data.controlnet.controlnet_category_builder im
 from sd_backend_client.api.shared_data.controlnet.controlnet_preprocessor import ControlNetPreprocessor, \
     PreprocessorParams
 from sd_backend_client.api.shared_data.api_datatypes import DiffusionUpscalingParams, REDRAW_MODES, SEAM_FIX_MODES
+from sd_backend_client.api.shared_data.backend import Backend, require_init_image, require_mask
 from sd_backend_client.api.shared_data.controlnet.controlnet_unit import ControlNetUnit
+from sd_backend_client.api.shared_data.diffusion_params import DiffusionParams
 from sd_backend_client.api.webservice import WebService, DEFAULT_REQUEST_TIMEOUT
 from sd_backend_client.api.webui.controlnet_webui_constants import (ControlNetModelResponse, ControlNetModuleResponse,
                                                       ControlTypeDef, ControlTypeResponse,
@@ -51,9 +53,12 @@ MAX_LOGIN_ATTEMPTS = 3
 SETTINGS_UPDATE_TIMEOUT = 90
 
 
-class A1111Webservice(WebService):
+class A1111Webservice(WebService, Backend):
     """
     A1111Webservice provides access to the a1111/stable-diffusion-webui through the REST API.
+
+    Its `submit_*` methods implement `Backend`. The blocking `txt2img`, `img2img` and `upscale` methods are
+    WebUI-specific.
     """
 
     # noinspection SpellCheckingInspection
@@ -133,36 +138,49 @@ class A1111Webservice(WebService):
             self._dispatcher = WebUIDispatcher(self)
         return self._dispatcher
 
-    def submit_txt2img(self, request_body: Optional[DiffusionRequestBody] = None
-                       ) -> 'WebUIGenerationHandle':
-        """Async counterpart to :meth:`txt2img`: enqueue the job and return a handle immediately.
+    def _submit(self, endpoint: str, task_type: str, snapshot: DiffusionRequestBody) -> 'WebUIGenerationHandle':
+        """Enqueue a POST of `snapshot` to `endpoint` on the client-side dispatcher, returning its handle.
+
+        `snapshot` must be a copy the caller no longer changes. Its `force_task_id` is set to a new task id unless it
+        already has one.
+        """
+        from sd_backend_client.api.webui.webui_generation_handle import create_task_id
+        task_id = snapshot.force_task_id or create_task_id(task_type)
+        snapshot.force_task_id = task_id
+        return self._generation_dispatcher.submit(lambda: self._post_generation(endpoint, snapshot), task_id)
+
+    def submit_txt2img(self, diffusion_params: Optional[DiffusionParams] = None) -> 'WebUIGenerationHandle':
+        """Enqueue a txt2img job and return a handle immediately, implementing `Backend.submit_txt2img`.
 
         The blocking POST is deferred to the client-side dispatcher (see ``webui_generation_handle``), so
         the returned handle starts ``PENDING`` and is cleanly cancellable until it is actually dispatched.
         Call ``handle.wait()`` for the blocking result, or poll ``handle.poll()`` for progress.
-        The request body is copied at submit time, so later changes to the caller's body do not affect the job and
-        the body can be reused for further submissions.
+        Any `DiffusionParams` is accepted and converted with `DiffusionRequestBody.from_params`, so the job uses a
+        copy taken at submit time. None submits a default request body.
         """
-        from sd_backend_client.api.webui.webui_generation_handle import create_task_id
-        snapshot = DiffusionRequestBody() if request_body is None else request_body.model_copy(deep=True)
-        task_id = snapshot.force_task_id or create_task_id('txt2img')
-        snapshot.force_task_id = task_id
-        return self._generation_dispatcher.submit(lambda: self.txt2img(snapshot), task_id)
+        snapshot = DiffusionRequestBody.from_params(diffusion_params)
+        snapshot.init_images = None
+        snapshot.mask = None
+        return self._submit(A1111Webservice.Endpoints.TXT2IMG, 'txt2img', snapshot)
 
-    def submit_img2img(self, image: Image.Image, mask: Optional[Image.Image] = None,
-                       request_body: Optional[DiffusionRequestBody] = None) -> 'WebUIGenerationHandle':
-        """Async counterpart to :meth:`img2img`: enqueue the job and return a handle immediately.
+    def submit_img2img(self, diffusion_params: DiffusionParams) -> 'WebUIGenerationHandle':
+        """Enqueue an img2img job and return a handle immediately, implementing `Backend.submit_img2img`.
 
-        See :meth:`submit_txt2img` for the dispatch/cancel semantics. The image, mask and request body are copied at
-        submit time.
+        See `submit_txt2img` for the dispatch, cancel and copy semantics.
         """
-        from sd_backend_client.api.webui.webui_generation_handle import create_task_id
-        snapshot = DiffusionRequestBody() if request_body is None else request_body.model_copy(deep=True)
-        image_copy = image.copy()
-        mask_copy = None if mask is None else mask.copy()
-        task_id = snapshot.force_task_id or create_task_id('img2img')
-        snapshot.force_task_id = task_id
-        return self._generation_dispatcher.submit(lambda: self.img2img(image_copy, mask_copy, snapshot), task_id)
+        require_init_image(diffusion_params, 'img2img')
+        return self._submit(A1111Webservice.Endpoints.IMG2IMG, 'img2img',
+                            DiffusionRequestBody.from_params(diffusion_params))
+
+    def submit_inpaint(self, diffusion_params: DiffusionParams) -> 'WebUIGenerationHandle':
+        """Enqueue an inpainting job and return a handle immediately, implementing `Backend.submit_inpaint`.
+
+        WebUI inpaints through its img2img endpoint. See `submit_txt2img` for the dispatch, cancel and copy semantics.
+        """
+        require_init_image(diffusion_params, 'inpainting')
+        require_mask(diffusion_params, 'inpainting')
+        return self._submit(A1111Webservice.Endpoints.IMG2IMG, 'img2img',
+                            DiffusionRequestBody.from_params(diffusion_params))
 
     # General utility:
     def login_check(self):
@@ -225,7 +243,7 @@ class A1111Webservice(WebService):
 
     # Image manipulation:
     def img2img(self, image: Image.Image, mask: Optional[Image.Image] = None,
-                request_body: Optional[DiffusionRequestBody] = None) -> ImageResponse:
+                request_body: Optional[DiffusionParams] = None) -> ImageResponse:
         """Sends a request to alter an image section using selected parameters.
 
         Parameters
@@ -235,44 +253,47 @@ class A1111Webservice(WebService):
             ignored.
         mask: Optional[Image.Image] = None
             Optional inpainting mask.  This will also be ignored if request_body is not None, and it already has a mask.
-        request_body : Optional[DiffusionRequestBody] = None
-            Optional initial request body to use. If None, a default DiffusionRequestBody is used.
-            The caller's body is not modified.
+        request_body : Optional[DiffusionParams] = None
+            Optional initial request body to use. If None, a default DiffusionRequestBody is used. Any other
+            `DiffusionParams` is converted with `DiffusionRequestBody.from_params`. The caller's body is not modified.
         Returns
         -------
         ImageResponse
             All generated images, plus accompanying image generation data if available.
         """
-        if request_body is None:
-            request_body = DiffusionRequestBody()
-            request_body.init_images = [image]
-            request_body.mask=mask
-        else:
+        if isinstance(request_body, DiffusionRequestBody):
             request_body = request_body.model_copy()
-            if not request_body.init_images:
-                request_body.init_images = [image]
-            else:
-                request_body.init_images = list(request_body.init_images)
-            if request_body.mask is None and mask is not None:
-                request_body.mask = mask
-        res = self.post(A1111Webservice.Endpoints.IMG2IMG, request_body.to_dict(), timeout=self._generation_timeout)
-        return self._handle_image_response(res)
+        else:
+            request_body = DiffusionRequestBody.from_params(request_body)
+        if not request_body.init_images:
+            request_body.init_images = [image]
+        else:
+            request_body.init_images = list(request_body.init_images)
+        if request_body.mask is None and mask is not None:
+            request_body.mask = mask
+        return self._post_generation(A1111Webservice.Endpoints.IMG2IMG, request_body)
 
-    def txt2img(self, request_body: Optional[DiffusionRequestBody] = None) -> ImageResponse:
+    def txt2img(self, request_body: Optional[DiffusionParams] = None) -> ImageResponse:
         """Sends a request to generate new images using selected parameter.
 
         Parameters
         ----------
-        request_body : Optional[DiffusionRequestBody] = None
+        request_body : Optional[DiffusionParams] = None
             Optional initial request body to use. If None, a new one will be constructed from default parameters.
+            Any `DiffusionParams` other than a `DiffusionRequestBody` is converted with
+            `DiffusionRequestBody.from_params`.
         Returns
         -------
         ImageResponse
             All generated images, plus accompanying image generation data if available.
         """
-        if request_body is None:
-            request_body = DiffusionRequestBody()
-        res = self.post(A1111Webservice.Endpoints.TXT2IMG, request_body.to_dict(), timeout=self._generation_timeout)
+        if not isinstance(request_body, DiffusionRequestBody):
+            request_body = DiffusionRequestBody.from_params(request_body)
+        return self._post_generation(A1111Webservice.Endpoints.TXT2IMG, request_body)
+
+    def _post_generation(self, endpoint: str, request_body: DiffusionRequestBody) -> ImageResponse:
+        """POSTs a generation request body, blocking until its images are ready."""
+        res = self.post(endpoint, request_body.to_dict(), timeout=self._generation_timeout)
         return self._handle_image_response(res)
 
     def controlnet_preprocessor_preview(self, image: Image.Image, mask: Optional[Image.Image],

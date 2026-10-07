@@ -46,7 +46,7 @@ if TYPE_CHECKING:
 
 logger = logging.getLogger(__name__)
 
-# A blocking generation call (e.g. A1111Webservice.txt2img bound to a prepared body) producing images.
+# A blocking generation call (A1111Webservice._post_generation bound to a prepared body) producing images.
 GenerationCall = Callable[[], 'ImageResponse']
 
 # Tuning for WebUIDispatcher._await_server_idle: poll /sdapi/v1/progress with exponential backoff between

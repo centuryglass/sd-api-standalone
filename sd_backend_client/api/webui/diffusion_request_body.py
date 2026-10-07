@@ -231,6 +231,20 @@ class DiffusionRequestBody(DiffusionParams):
     """Deprecated WebUI alias for the `sampler_name` request key. The server ignores it, since `to_dict` always sends
     `sampler_name` from `sampler`."""
 
+    @classmethod
+    def from_params(cls, params: Optional[DiffusionParams] = None) -> 'DiffusionRequestBody':
+        """Return a deep copy of `params` as a request body, or a default body when `params` is None.
+
+        A `DiffusionRequestBody` keeps its WebUI-only fields. Any other `DiffusionParams` subclass keeps only the
+        shared fields, so fields specific to another backend are dropped.
+        """
+        if params is None:
+            return cls()
+        copied = params.model_copy(deep=True)
+        if isinstance(copied, cls):
+            return copied
+        return cls(**{name: getattr(copied, name) for name in DiffusionParams.model_fields.keys()})
+
     def to_dict(self) -> dict[str, Any]:
         """Convert the request body to a dict, removing unused optional parameters."""
         data = super().to_dict()

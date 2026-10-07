@@ -47,7 +47,7 @@ jobs:
       - name: Run tests
         # No backend runs here, so the integration tests skip themselves and only tests/unit/ executes.
         # The --cov-fail-under floor is a ratchet (AGENTS.md, "Testing").
-        run: python -m pytest tests/ --cov=sd_backend_client --cov-branch --cov-report=term-missing --cov-fail-under=91
+        run: python -m pytest tests/ --cov=sd_backend_client --cov-branch --cov-report=term-missing --cov-fail-under=93
 
       - name: Publish coverage summary
         if: ${{ !cancelled() && matrix.python-version == '3.13' && hashFiles('.coverage') != '' }}

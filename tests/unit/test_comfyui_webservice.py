@@ -11,7 +11,6 @@ from urllib.parse import parse_qsl, urlsplit
 from unittest.mock import MagicMock
 
 import pytest
-import requests
 import websocket
 from PIL import Image
 
@@ -24,60 +23,10 @@ from sd_backend_client.errors import BackendConnectionError, BackendTimeoutError
     UnexpectedResponseError, WorkflowValidationError
 from sd_backend_client.util.visual.image_utils import image_to_png_bytes
 
+from .fake_session import FakeSession as _FakeSession, CannedStatus as _Status
+
 PROMPT_ID = '7d4c0f0e-6a3b-4c1e-9f6e-0a1b2c3d4e5f'
 OTHER_ID = '11111111-2222-3333-4444-555555555555'
-
-
-class _Status:
-    """A canned failure response: a status code and a raw text body."""
-
-    def __init__(self, status_code: int, text: str) -> None:
-        self.status_code = status_code
-        self.text = text
-
-
-class _FakeSession:
-    """Routes GET/POST by URL path to canned responses and records each request.
-
-    A route whose value is callable is called for each request, so a test can change the response between calls.
-    """
-
-    def __init__(self, routes: Optional[dict[tuple[str, str], Any]] = None) -> None:
-        self.routes: dict[tuple[str, str], Any] = routes if routes is not None else {}
-        self.requests: list[dict[str, Any]] = []
-        self.auth = None
-
-    def _respond(self, method: str, address: str, kwargs: dict[str, Any]) -> MagicMock:
-        url = urlsplit(requests.Request(method, address, params=kwargs.get('params')).prepare().url)
-        query = dict(parse_qsl(url.query, keep_blank_values=True))
-        self.requests.append({'method': method, 'path': url.path, 'query': query, **kwargs})
-        body = self.routes.get((method, url.path), {})
-        if callable(body):
-            body = body()
-        if isinstance(body, BaseException):
-            raise body
-        response = MagicMock()
-        response.status_code = 200
-        if isinstance(body, _Status):
-            response.status_code = body.status_code
-            response.text = body.text
-        elif isinstance(body, bytes):
-            response.content = body
-        else:
-            response.json.return_value = json.loads(json.dumps(body))
-        return response
-
-    def get(self, address: str, **kwargs: Any) -> MagicMock:
-        """Record a GET and return its canned response."""
-        return self._respond('GET', address, kwargs)
-
-    def post(self, address: str, **kwargs: Any) -> MagicMock:
-        """Record a POST and return its canned response."""
-        return self._respond('POST', address, kwargs)
-
-    def of(self, method: str, path: str) -> list[dict[str, Any]]:
-        """Recorded requests with the given method and path."""
-        return [request for request in self.requests if request['method'] == method and request['path'] == path]
 
 
 def _service(routes: Optional[dict[tuple[str, str], Any]] = None) -> tuple[ComfyUiWebservice, _FakeSession]:

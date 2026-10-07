@@ -32,6 +32,7 @@ from sd_backend_client.api.comfyui.nodes.ksampler_node import KSAMPLER_NAME
 from sd_backend_client.api.comfyui.nodes.ultimate_upscale_node import ULTIMATE_UPSCALE_NODE_NAME
 from sd_backend_client.api.comfyui.preprocessor_preview_workflow_builder import PreprocessorPreviewWorkflowBuilder
 from sd_backend_client.api.shared_data.api_datatypes import DiffusionUpscalingParams
+from sd_backend_client.api.shared_data.backend import Backend, require_init_image, require_mask
 from sd_backend_client.api.shared_data.controlnet.controlnet_category_builder import ControlNetCategoryBuilder
 from sd_backend_client.api.shared_data.controlnet.controlnet_constants import ControlTypeDef
 from sd_backend_client.api.shared_data.controlnet.controlnet_preprocessor import ControlNetPreprocessor
@@ -126,9 +127,12 @@ class AsyncTaskProgress(BaseModel):
     error: Optional[str] = None  # Only used if status is FAILED: why ComfyUI stopped the job, when it said.
 
 
-class ComfyUiWebservice(WebService):
+class ComfyUiWebservice(WebService, Backend):
     """
     ComfyUiWebservice provides access to Stable Diffusion through the ComfyUI REST API.
+
+    Its `submit_*` methods implement `Backend`. The `txt2img`, `img2img` and `inpaint` methods queue the same jobs but
+    return the raw `QueueAdditionResponse`.
     """
 
     def __init__(self, url: str, request_timeout: Optional[float] = DEFAULT_REQUEST_TIMEOUT,
@@ -514,8 +518,7 @@ class ComfyUiWebservice(WebService):
         comfy_type.QueueAdditionResponse
             Information needed to track the async task and download the resulting images once it finishes.
         """
-        if diffusion_params.init_images is None or len(diffusion_params.init_images) == 0:
-            raise ValueError("Must set an init image in diffusion_params for img2img")
+        require_init_image(diffusion_params, 'img2img')
         return self._generate(diffusion_params)
 
     def inpaint(self,  diffusion_params: DiffusionParams) -> QueueAdditionResponse:
@@ -530,11 +533,8 @@ class ComfyUiWebservice(WebService):
         comfy_type.QueueAdditionResponse
             Information needed to track the async task and download the resulting images once it finishes.
         """
-
-        if diffusion_params.init_images is None or len(diffusion_params.init_images) == 0:
-            raise ValueError("Must set an init image in diffusion_params for inpainting")
-        if diffusion_params.mask is None:
-            raise ValueError("Must set a mask in diffusion_params for inpainting.")
+        require_init_image(diffusion_params, 'inpainting')
+        require_mask(diffusion_params, 'inpainting')
         return self._generate(diffusion_params)
 
 
@@ -701,17 +701,17 @@ class ComfyUiWebservice(WebService):
         self.post(ComfyEndpoints.QUEUE, body=queue_removal_body.model_dump())
 
     def submit_txt2img(self, diffusion_params: DiffusionParams) -> 'ComfyGenerationHandle':
-        """Queue a txt2img job and return a backend-agnostic handle to poll / wait / cancel it."""
+        """Queue a txt2img job and return its handle, implementing `Backend.submit_txt2img`."""
         from sd_backend_client.api.comfyui.comfyui_generation_handle import ComfyGenerationHandle
         return ComfyGenerationHandle.from_queue_response(self, self.txt2img(diffusion_params))
 
     def submit_img2img(self, diffusion_params: DiffusionParams) -> 'ComfyGenerationHandle':
-        """Queue an img2img job and return a backend-agnostic handle to poll / wait / cancel it."""
+        """Queue an img2img job and return its handle, implementing `Backend.submit_img2img`."""
         from sd_backend_client.api.comfyui.comfyui_generation_handle import ComfyGenerationHandle
         return ComfyGenerationHandle.from_queue_response(self, self.img2img(diffusion_params))
 
     def submit_inpaint(self, diffusion_params: DiffusionParams) -> 'ComfyGenerationHandle':
-        """Queue an inpaint job and return a backend-agnostic handle to poll / wait / cancel it."""
+        """Queue an inpaint job and return its handle, implementing `Backend.submit_inpaint`."""
         from sd_backend_client.api.comfyui.comfyui_generation_handle import ComfyGenerationHandle
         return ComfyGenerationHandle.from_queue_response(self, self.inpaint(diffusion_params))
 

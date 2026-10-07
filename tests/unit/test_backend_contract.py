@@ -1,0 +1,183 @@
+"""Contract test for `Backend`: both clients run the same submit-and-wait lifecycle through the shared interface.
+
+Each client gets a `FakeSession` that answers the endpoints one generation touches, so the tests run
+offline. Every test is parametrized over both backends; a test that needs a backend-specific branch is a gap in the
+interface.
+"""
+# pylint: disable=protected-access
+from typing import Any, Callable
+
+import pytest
+from PIL import Image
+
+from sd_backend_client.api.a1111_webservice import A1111Webservice
+from sd_backend_client.api.comfyui.comfyui_diffusion_params import ComfyUIDiffusionParams
+from sd_backend_client.api.comfyui_webservice import ComfyEndpoints, ComfyUiWebservice
+from sd_backend_client.api.shared_data.backend import Backend
+from sd_backend_client.api.shared_data.diffusion_params import DiffusionParams
+from sd_backend_client.api.shared_data.generation_handle import GenerationHandle, GenerationStatus
+from sd_backend_client.api.webui.diffusion_request_body import DiffusionRequestBody
+from sd_backend_client.util.visual.image_utils import image_to_base64, image_to_png_bytes
+
+from .fake_session import FakeSession
+
+PROMPT_ID = '7d4c0f0e-6a3b-4c1e-9f6e-0a1b2c3d4e5f'
+RESULT_PIXEL = (12, 34, 56, 255)
+WAIT_TIMEOUT_S = 5.0
+
+
+def _result_image() -> Image.Image:
+    return Image.new('RGBA', (8, 8), RESULT_PIXEL)
+
+
+class _Harness:
+    """A client on a fake session, plus how to read the prompt and image count out of what it sent."""
+
+    def __init__(self, service: Backend, session: FakeSession,
+                 generation_requests: Callable[[FakeSession], list[dict[str, Any]]],
+                 sent_prompts: Callable[[dict[str, Any]], list[str]],
+                 sent_image_count: Callable[[FakeSession], int]) -> None:
+        self.service = service
+        self.session = session
+        self.generation_requests = lambda: generation_requests(session)
+        self.sent_prompts = sent_prompts
+        self.sent_image_count = lambda: sent_image_count(session)
+
+
+def _webui() -> _Harness:
+    service = A1111Webservice('http://webui.invalid')
+    image_response = {'images': [image_to_base64(_result_image())]}
+    session = FakeSession({
+        ('POST', A1111Webservice.Endpoints.TXT2IMG): image_response,
+        ('POST', A1111Webservice.Endpoints.IMG2IMG): image_response,
+        ('GET', A1111Webservice.Endpoints.PROGRESS): {
+            'progress': 0.5, 'eta_relative': 1.0, 'current_image': None, 'textinfo': None,
+            'state': {'skipped': False, 'interrupted': False, 'stopping_generation': False, 'job': '',
+                      'job_count': 0, 'job_timestamp': '0', 'job_no': 0, 'sampling_step': 0,
+                      'sampling_steps': 0}},
+    })
+    service._session = session  # type: ignore[assignment]
+
+    def generation_requests(fake: FakeSession) -> list[dict[str, Any]]:
+        return fake.of('POST', A1111Webservice.Endpoints.TXT2IMG) + fake.of('POST', A1111Webservice.Endpoints.IMG2IMG)
+
+    def sent_image_count(fake: FakeSession) -> int:
+        body = generation_requests(fake)[0]['json']
+        return len(body.get('init_images', [])) + ('mask' in body)
+
+    return _Harness(service, session, generation_requests, lambda request: [request['json']['prompt']],
+                    sent_image_count)
+
+
+def _comfyui() -> _Harness:
+    service = ComfyUiWebservice('http://comfyui.invalid', live_progress=False)
+    upload = {'name': 'uploaded.png', 'subfolder': 'sd_backend_client', 'type': 'input'}
+    history = {PROMPT_ID: {
+        'prompt': [1, PROMPT_ID, {}, {}, ['9']],
+        'outputs': {'9': {'images': [{'filename': 'out.png', 'subfolder': '', 'type': 'output'}]}},
+        'status': {'status_str': 'success', 'completed': True, 'messages': []},
+    }}
+    session = FakeSession({
+        ('GET', '/models/configs'): [],
+        ('POST', ComfyEndpoints.IMG_UPLOAD): upload,
+        ('POST', ComfyEndpoints.MASK_UPLOAD): upload,
+        ('POST', ComfyEndpoints.PROMPT): {'prompt_id': PROMPT_ID, 'number': 1, 'node_errors': {}},
+        ('GET', f'{ComfyEndpoints.HISTORY}/{PROMPT_ID}'): history,
+        ('GET', ComfyEndpoints.VIEW_IMAGE): image_to_png_bytes(_result_image()),
+    })
+    service._session = session  # type: ignore[assignment]
+
+    def sent_prompts(request: dict[str, Any]) -> list[str]:
+        nodes = request['json']['prompt'].values()
+        return [node['inputs']['text'] for node in nodes if node['class_type'] == 'CLIPTextEncode']
+
+    def sent_image_count(fake: FakeSession) -> int:
+        return len(fake.of('POST', ComfyEndpoints.IMG_UPLOAD)) + len(fake.of('POST', ComfyEndpoints.MASK_UPLOAD))
+
+    return _Harness(service, session, lambda fake: fake.of('POST', ComfyEndpoints.PROMPT), sent_prompts,
+                    sent_image_count)
+
+
+BACKENDS = {'webui': _webui, 'comfyui': _comfyui}
+
+
+@pytest.fixture(name='harness', params=sorted(BACKENDS))
+def _harness_fixture(request) -> _Harness:
+    """Each backend's client on a fake session."""
+    return BACKENDS[request.param]()
+
+
+def _params(params_type: type[DiffusionParams] = DiffusionParams, init_image: bool = False, mask: bool = False,
+            **fields: Any) -> DiffusionParams:
+    return params_type(prompt='a red apple', sd_model_name='model.safetensors', seed=1234,
+                       init_images=[Image.new('RGBA', (8, 8), (200, 0, 0, 255))] if init_image else None,
+                       mask=Image.new('L', (8, 8), 255) if mask else None, **fields)
+
+
+OPERATIONS: dict[str, tuple[Callable[[Backend, DiffusionParams], GenerationHandle], int]] = {
+    'txt2img': (lambda service, params: service.submit_txt2img(params), 0),
+    'img2img': (lambda service, params: service.submit_img2img(params), 1),
+    'inpaint': (lambda service, params: service.submit_inpaint(params), 2),
+}
+
+
+def test_both_clients_implement_backend(harness: _Harness):
+    """Each client is a `Backend`."""
+    assert isinstance(harness.service, Backend)
+
+
+@pytest.mark.parametrize('operation', sorted(OPERATIONS))
+@pytest.mark.parametrize('params_type', [DiffusionParams, DiffusionRequestBody, ComfyUIDiffusionParams])
+def test_submit_then_wait_returns_the_generated_images(harness: _Harness, operation: str,
+                                                       params_type: type[DiffusionParams]):
+    """Every submit method accepts any `DiffusionParams` subclass and yields a handle that finishes with the images.
+
+    txt2img sends no source image, img2img sends one and inpainting sends the image and its mask.
+    """
+    submit, expected_image_count = OPERATIONS[operation]
+    params = _params(params_type, init_image=True, mask=operation == 'inpaint')
+
+    handle = submit(harness.service, params)
+    statuses: list[GenerationStatus] = []
+    result = handle.wait(timeout=WAIT_TIMEOUT_S, poll_interval=0.01,
+                         on_progress=lambda progress: statuses.append(progress.status))
+
+    assert isinstance(handle, GenerationHandle)
+    assert handle.task_id is not None and result.task_id == handle.task_id
+    assert statuses[-1] is GenerationStatus.FINISHED
+    assert [image.getpixel((0, 0)) for image in result.images] == [RESULT_PIXEL]
+    [request] = harness.generation_requests()
+    assert 'a red apple' in harness.sent_prompts(request)
+    assert harness.sent_image_count() == expected_image_count
+
+
+@pytest.mark.parametrize('operation', sorted(OPERATIONS))
+def test_job_uses_params_as_they_were_at_submit_time(harness: _Harness, operation: str):
+    """Changing the caller's params after submit changes neither the job nor leaves job state on the params."""
+    submit, _ = OPERATIONS[operation]
+    params = _params(init_image=True, mask=True)
+    original = params.model_copy()
+
+    handle = submit(harness.service, params)
+    params.prompt = 'changed after submit'
+    handle.wait(timeout=WAIT_TIMEOUT_S, poll_interval=0.01)
+
+    [request] = harness.generation_requests()
+    assert 'a red apple' in harness.sent_prompts(request)
+    assert 'changed after submit' not in harness.sent_prompts(request)
+    params.prompt = original.prompt
+    assert params == original
+
+
+@pytest.mark.parametrize('operation, params, message', [
+    ('img2img', _params(), 'init image'),
+    ('inpaint', _params(mask=True), 'init image'),
+    ('inpaint', _params(init_image=True), 'mask'),
+])
+def test_missing_inputs_raise_before_contacting_the_server(harness: _Harness, operation: str,
+                                                           params: DiffusionParams, message: str):
+    """A missing init image or mask raises ValueError from the submit call, without any request."""
+    submit, _ = OPERATIONS[operation]
+    with pytest.raises(ValueError, match=message):
+        submit(harness.service, params)
+    assert not harness.session.requests

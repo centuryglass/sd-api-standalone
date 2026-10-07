@@ -7,7 +7,10 @@ from PIL import Image
 
 from sd_backend_client.api.a1111_webservice import A1111Webservice, DEFAULT_GENERATION_TIMEOUT
 from sd_backend_client.api.shared_data.api_datatypes import DiffusionUpscalingParams
+from sd_backend_client.api.shared_data.controlnet.controlnet_model import ControlNetModel
 from sd_backend_client.api.shared_data.controlnet.controlnet_preprocessor import ControlNetPreprocessor
+from sd_backend_client.api.shared_data.controlnet.controlnet_unit import ControlNetUnit
+from sd_backend_client.api.shared_data.diffusion_params import DiffusionParams
 from sd_backend_client.api.webui.diffusion_request_body import DiffusionRequestBody
 from sd_backend_client.api.webservice import DEFAULT_REQUEST_TIMEOUT
 from sd_backend_client.errors import SDBackendError, ServerError, UnexpectedResponseError
@@ -83,14 +86,16 @@ def test_submit_txt2img_snapshots_body_at_submit_time(monkeypatch):
 
 
 def test_submit_img2img_reuse_with_different_images(monkeypatch):
-    """Reusing one body for several img2img submissions sends each call's own image and leaves the body unchanged."""
+    """Reusing one body for several img2img submissions sends the image each call had and leaves the body unchanged."""
     service, sent = _service_with_stubbed_post(monkeypatch)
     body = DiffusionRequestBody()
     colors = [(255, 0, 0, 255), (0, 255, 0, 255)]
-    handles = [service.submit_img2img(Image.new('RGBA', (2, 2), color), None, body) for color in colors]
+    handles = []
+    for color in colors:
+        body.init_images = [Image.new('RGBA', (2, 2), color)]
+        handles.append(service.submit_img2img(body))
     for handle in handles:
         handle.wait()
-    assert body.init_images is None
     assert body.mask is None
     assert body.force_task_id is None
     emitted = sorted(image_from_base64(sent_body['init_images'][0]).getpixel((0, 0)) for _, sent_body in sent)
@@ -299,3 +304,25 @@ def test_preprocessor_preview_without_images_raises(monkeypatch):
     preprocessor = ControlNetPreprocessor(name='canny')
     with pytest.raises(UnexpectedResponseError, match='no preview image'):
         service.controlnet_preprocessor_preview(Image.new('RGBA', (1, 1)), None, preprocessor)
+
+
+def test_txt2img_sends_controlnet_units_of_plain_params_as_alwayson_script(monkeypatch):
+    """Blocking txt2img converts a plain DiffusionParams, so its ControlNet units go into alwayson_scripts."""
+    service, sent = _service_with_stubbed_post(monkeypatch)
+    unit = ControlNetUnit(model=ControlNetModel('control_canny.safetensors'))
+    service.txt2img(DiffusionParams(prompt='x', controlnet_units=[unit]))
+
+    body = sent[0][1]
+    assert 'controlnet_units' not in body
+    [unit_args] = body['alwayson_scripts']['controlNet']['args']
+    assert unit_args['model'] == 'control_canny.safetensors'
+
+
+def test_submit_txt2img_sends_no_source_image_or_mask(monkeypatch):
+    """submit_txt2img leaves out init images and the mask, which only image-to-image requests use."""
+    service, sent = _service_with_stubbed_post(monkeypatch)
+    params = DiffusionParams(init_images=[Image.new('RGBA', (2, 2))], mask=Image.new('L', (2, 2)))
+    service.submit_txt2img(params).wait()
+    assert 'init_images' not in sent[0][1]
+    assert 'mask' not in sent[0][1]
+    assert params.init_images is not None and params.mask is not None
