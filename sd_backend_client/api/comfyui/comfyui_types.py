@@ -227,10 +227,18 @@ class QueueDeletionRequest(BaseModel):
 
 
 class PromptStatusMessageData(BaseModel):
-    """Extra data bundled with queued task messages."""
+    """Extra data bundled with queued task messages.
+
+    Fields past `timestamp` are set only by the message types that carry them: `nodes` by `execution_cached`, the
+    node fields by `execution_error` and `execution_interrupted`, and the exception fields by `execution_error`.
+    """
     prompt_id: str  # UUID
     timestamp: int
     nodes: Optional[list[str]] = None
+    node_id: Optional[str] = None
+    node_type: Optional[str] = None
+    exception_type: Optional[str] = None
+    exception_message: Optional[str] = None
 
 
 PromptStatusMessage: TypeAlias = tuple[str, PromptStatusMessageData]
@@ -244,8 +252,11 @@ class PromptExecStatus(BaseModel):
 
 
 class PromptExecOutputs(BaseModel):
-    """Returns generated file info for a completed task."""
-    images: list[ImageFileReference]
+    """Returns generated file info for a completed task.
+
+    `images` is empty for output nodes that save no images, such as text or custom output nodes.
+    """
+    images: list[ImageFileReference] = []
     # TODO: track down format for other possible output types
 
 

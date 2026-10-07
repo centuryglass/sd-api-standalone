@@ -111,8 +111,9 @@ injected into `alwayson_scripts`.
 ### ComfyUI client: `api/comfyui_webservice.py` + `api/comfyui/` (asynchronous, node graphs)
 
 ComfyUI is a queue: `ComfyUiWebservice.txt2img(params)` returns immediately with a `prompt_id`; callers poll
-`check_queue_entry(prompt_id, number)` until FINISHED, then call `download_images(...)`. Progress is also streamed over
-a websocket (`websocket-client`).
+`check_queue_entry(prompt_id)` until FINISHED, then call `download_images(...)`. `submit_*` wraps this in a
+`ComfyGenerationHandle`, which reads step progress and previews from the server websocket through the service's one
+`ComfyProgressListener` (`comfyui/comfyui_progress_listener.py`).
 
 The request body is a **node graph**, not JSON fields. This is the most involved part of the repo:
 

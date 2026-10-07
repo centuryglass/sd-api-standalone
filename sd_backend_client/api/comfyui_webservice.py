@@ -23,6 +23,7 @@ from sd_backend_client.api.comfyui.comfyui_types import QueueAdditionRequest, Qu
     QueueDeletionRequest, ImageFileReference, PromptExecOutputs, NodeInfoResponse, SystemStatResponse, ImageUploadParams, \
     MaskUploadParams, IMAGE_UPLOAD_FILE_NAME, ImageUploadResponse, QueueInfoResponse, ACTIVE_QUEUE_KEY, \
     PENDING_QUEUE_KEY, QueueHistoryResponse, PromptHistory, FreeMemoryRequest
+from sd_backend_client.api.comfyui.comfyui_progress_listener import ComfyProgressListener
 from sd_backend_client.api.comfyui.controlnet_comfyui_utils import get_all_preprocessors
 from sd_backend_client.api.comfyui.diffusion_workflow_builder import DiffusionWorkflowBuilder, \
     EXTENSION_MODEL_PATTERN
@@ -122,6 +123,7 @@ class AsyncTaskProgress(BaseModel):
     status: AsyncTaskStatus
     index: Optional[int] = None  # Only used if status is PENDING
     outputs: Optional[PromptExecOutputs] = None  # Only used if status is FINISHED
+    error: Optional[str] = None  # Only used if status is FAILED: why ComfyUI stopped the job, when it said.
 
 
 class ComfyUiWebservice(WebService):
@@ -129,7 +131,8 @@ class ComfyUiWebservice(WebService):
     ComfyUiWebservice provides access to Stable Diffusion through the ComfyUI REST API.
     """
 
-    def __init__(self, url: str, request_timeout: Optional[float] = DEFAULT_REQUEST_TIMEOUT) -> None:
+    def __init__(self, url: str, request_timeout: Optional[float] = DEFAULT_REQUEST_TIMEOUT,
+                 live_progress: bool = True) -> None:
         """Create the webservice client.
 
         Parameters
@@ -139,11 +142,16 @@ class ComfyUiWebservice(WebService):
         request_timeout: float, optional, default=DEFAULT_REQUEST_TIMEOUT
             Timeout in seconds for requests that don't set their own. Generation is queued, so no request waits for
             it to finish. None waits indefinitely.
+        live_progress: bool, default=True
+            Whether generation handles report step progress, ETA and preview frames. These come from the server's
+            websocket, which a background thread reads while any handle's job is unfinished.
         """
         super().__init__(url, request_timeout)
         self._preprocessor_cache: Optional[list[ControlNetPreprocessor]] = None
         self._ksampler_info: Optional[NodeInfoResponse] = None
         self._client_id = str(uuid.uuid4())
+        self.progress_listener: Optional[ComfyProgressListener] = \
+            ComfyProgressListener(self.open_websocket) if live_progress else None
 
     # Loading available options and settings:
 
@@ -629,43 +637,59 @@ class ComfyUiWebservice(WebService):
             res_body[queue_key] = [tuple(queue_entry) for queue_entry in queue_list]
         return QueueInfoResponse.model_validate(res_body)
 
-    def check_queue_entry(self, entry_uuid: str, task_number: int) -> AsyncTaskProgress:
-        """Returns the status of a queued task, along with associated data when relevant."""
-        endpoint = f'{ComfyEndpoints.HISTORY}/{entry_uuid}'
-        history_response = self.get(endpoint).json()
-        if entry_uuid in history_response:
-            entry_history = PromptHistory.model_validate(history_response[entry_uuid])
-            if entry_history.status.status_str == 'error':
-                return AsyncTaskProgress(status=AsyncTaskStatus.FAILED)
-            if entry_history.status.completed:
-                images = []
-                for output_data in entry_history.outputs.values():
-                    if output_data.images is not None:
-                        for reference in output_data.images:
-                            images.append(cast(ImageFileReference, reference))
-                progress = AsyncTaskProgress(status=AsyncTaskStatus.FINISHED, outputs=PromptExecOutputs(images=images))
-                return progress
+    # pylint: disable-next=unused-argument
+    def check_queue_entry(self, entry_uuid: str, task_number: Optional[int] = None) -> AsyncTaskProgress:
+        """Returns the status of a queued task, along with associated data when relevant.
+
+        The task is found by its prompt id. `task_number` is accepted for compatibility and unused.
+        Raises UnexpectedResponseError if the task's /history entry is not in the expected format.
+        """
+        progress = self._check_history(entry_uuid)
+        if progress is not None:
+            return progress
         queue_info = self.get_queue_info()
         for running_task in queue_info.queue_running:
             if running_task[1] == entry_uuid:
                 return AsyncTaskProgress(status=AsyncTaskStatus.ACTIVE)
-        queue_index = 0
-        task_found = False
-        for pending_task in queue_info.queue_pending:
-            if pending_task[0] < task_number:
-                queue_index += 1
-            elif pending_task[0] == task_number:
-                task_found = True
-        if task_found:
+        pending = next((task for task in queue_info.queue_pending if task[1] == entry_uuid), None)
+        if pending is not None:
+            queue_index = sum(1 for task in queue_info.queue_pending if task[0] < pending[0])
             return AsyncTaskProgress(status=AsyncTaskStatus.PENDING, index=queue_index)
-        return AsyncTaskProgress(status=AsyncTaskStatus.NOT_FOUND)
+        # ComfyUI moves a finished task from the running queue to the history in one step, so a task that finished
+        # after the first /history read is in the history now.
+        progress = self._check_history(entry_uuid)
+        return progress if progress is not None else AsyncTaskProgress(status=AsyncTaskStatus.NOT_FOUND)
+
+    def _check_history(self, entry_uuid: str) -> Optional[AsyncTaskProgress]:
+        """Returns the FINISHED or FAILED status of a task in /history, or None if it has no completed entry."""
+        endpoint = f'{ComfyEndpoints.HISTORY}/{entry_uuid}'
+        history_response = self.get(endpoint).json()
+        if not isinstance(history_response, dict) or entry_uuid not in history_response:
+            return None
+        try:
+            entry_history = PromptHistory.model_validate(history_response[entry_uuid])
+        except ValidationError as err:
+            raise UnexpectedResponseError(f'{endpoint} returned an entry in an unexpected format: {err}') from err
+        if entry_history.status.status_str == 'error':
+            return AsyncTaskProgress(status=AsyncTaskStatus.FAILED, error=_describe_failure(entry_history))
+        if not entry_history.status.completed:
+            return None
+        images = [reference for output_data in entry_history.outputs.values() for reference in output_data.images]
+        return AsyncTaskProgress(status=AsyncTaskStatus.FINISHED, outputs=PromptExecOutputs(images=images))
 
     def interrupt(self, task_id: Optional[str] = None) -> None:
-        """Stops the active workflow, and removes a task from the queue if task_id is not None."""
-        if task_id is not None:
-            queue_removal_body = QueueDeletionRequest(delete=[task_id])
-            self.post(ComfyEndpoints.QUEUE, body=queue_removal_body.model_dump())
-        self.post(ComfyEndpoints.INTERRUPT, body=None)
+        """Stops a task, or the running task if task_id is None.
+
+        With a task_id, the task is removed from the queue, and the interrupt names it so ComfyUI stops it only if
+        it is the running task. ComfyUI versions without targeted interrupts ignore the name and stop whatever is
+        running.
+        """
+        if task_id is None:
+            self.post(ComfyEndpoints.INTERRUPT, body=None)
+            return
+        queue_removal_body = QueueDeletionRequest(delete=[task_id])
+        self.post(ComfyEndpoints.QUEUE, body=queue_removal_body.model_dump())
+        self.post(ComfyEndpoints.INTERRUPT, body={'prompt_id': task_id})
 
     def remove_from_queue(self, task_id: str) -> None:
         """Drop a still-queued (pending) task *without* interrupting the running job.
@@ -731,3 +755,15 @@ class ComfyUiWebservice(WebService):
         """Clear cached data to free GPU memory."""
         body = FreeMemoryRequest(unload_models=True, free_memory=True)
         self.post(ComfyEndpoints.FREE, body.model_dump())
+
+
+def _describe_failure(entry_history: PromptHistory) -> Optional[str]:
+    """Builds a failure message from a failed task's history status messages, or None if they hold no reason."""
+    for message_type, data in entry_history.status.messages:
+        node = f'{data.node_type} (node {data.node_id})' if data.node_type else f'node {data.node_id}'
+        if message_type == 'execution_error':
+            exception = ': '.join(part for part in (data.exception_type, data.exception_message) if part)
+            return f'ComfyUI execution failed in {node}: ' + (exception or 'no error message returned')
+        if message_type == 'execution_interrupted':
+            return f'ComfyUI execution was interrupted in {node}'
+    return None
