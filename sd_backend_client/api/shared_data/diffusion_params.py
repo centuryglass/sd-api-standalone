@@ -25,7 +25,9 @@ class DiffusionParams(BaseModel):
     # use_enum_values: store/serialize enum fields (e.g. WebUI ResizeMode, InpaintFillOption) as their underlying
     # values, so model_dump() produces the JSON-serializable ints the APIs expect. validate_default ensures enum
     # *defaults* (e.g. inpainting_fill=InpaintFillOption.ORIGINAL) are converted too, not just explicitly-set values.
-    model_config = ConfigDict(arbitrary_types_allowed=True, use_enum_values=True, validate_default=True)
+    # validate_assignment applies the field constraints to attribute assignment too, so `params.steps = 0` raises.
+    model_config = ConfigDict(arbitrary_types_allowed=True, use_enum_values=True, validate_default=True,
+                              validate_assignment=True)
 
     ### Basic image generation:
     sd_model_name: str = ''
@@ -47,31 +49,34 @@ class DiffusionParams(BaseModel):
     the WebUI versions that accept them.
     """
 
-    batch_size: int = 1
+    batch_size: int = Field(default=1, ge=1)
     """Number of images generated in parallel by one request.
 
     ComfyUI accepts 1 to `diffusion_workflow_builder.MAX_BATCH_SIZE`. WebUI can also repeat the batch with
     `DiffusionRequestBody.n_iter`.
     """
 
-    steps: int = 30
+    steps: int = Field(default=30, ge=1)
     """Number of denoising steps per image generation."""
 
-    cfg_scale: float = 7.0  # guidance scale
+    cfg_scale: float = Field(default=7.0, ge=0.0)  # guidance scale
     """
     How strongly generation follows the text prompt. Typical useful range is model-specific, usually 6-10 for typical
     models, 1-2 for LCM and Turbo models.
     """
 
-    width: int = 512
+    width: int = Field(default=512, gt=0)
     """Generated image width in pixels.
+
+    Stable Diffusion works on a latent grid 1/8 the image size, so pass a multiple of 8 for a predictable output size.
+    Other sizes are accepted, and each backend rounds them its own way.
 
     For img2img and inpainting, the source image and mask are resized to `width` x `height` before generation. On WebUI
     `DiffusionRequestBody.resize_mode` chooses how; ComfyUI always stretches, like WebUI's default `JUST_RESIZE`.
     """
 
-    height: int = 512
-    """Generated image height in pixels. See `width` for how img2img sources are resized."""
+    height: int = Field(default=512, gt=0)
+    """Generated image height in pixels. See `width` for size rounding and how img2img sources are resized."""
 
 
     ### Prompt:
@@ -91,7 +96,7 @@ class DiffusionParams(BaseModel):
     List of Pil images for inpainting or image to image.
     """
 
-    denoising_strength: Optional[float] = None
+    denoising_strength: Optional[float] = Field(default=None, ge=0.0, le=1.0)
     """Amount the source image changes in img2img and inpainting, from 0.0 (no change) to 1.0 (complete replacement).
 
     None selects `DEFAULT_DENOISING_STRENGTH`. Text-to-image generation ignores it on ComfyUI and uses it only for

@@ -3,6 +3,8 @@ import logging
 from enum import Enum
 from typing import Any, Optional
 
+from pydantic import Field
+
 from sd_backend_client.api.shared_data.diffusion_params import DEFAULT_DENOISING_STRENGTH, DiffusionParams
 from sd_backend_client.api.shared_data.sampler_names import webui_sampler_name, webui_scheduler_name
 from sd_backend_client.api.webui.controlnet_webui_constants import CONTROLNET_SCRIPT_KEY, ControlNetUnitDict
@@ -30,7 +32,7 @@ class DiffusionRequestBody(DiffusionParams):
     """Request body format for WebUI image generation (all types)"""
 
     ### Basic image generation:
-    n_iter: int = 1  # number of batches
+    n_iter: int = Field(default=1, ge=1)  # number of batches
     """Number of image batches to generate."""
 
 
