@@ -28,7 +28,7 @@ from sd_backend_client.api.comfyui.nodes.latent_mask_node import LatentMaskNode
 from sd_backend_client.api.comfyui.nodes.model_extensions.hypernet_loader_node import HypernetLoaderNode
 from sd_backend_client.api.comfyui.nodes.model_extensions.lora_loader_node import LoraLoaderNode
 from sd_backend_client.api.comfyui.nodes.repeat_latent_node import RepeatLatentNode
-from sd_backend_client.api.comfyui.nodes.save_image_node import SaveImageNode
+from sd_backend_client.api.comfyui.nodes.save_image_node import DEFAULT_FILENAME_PREFIX, SaveImageNode
 from sd_backend_client.api.comfyui.nodes.vae.vae_decode_node import VAEDecodeNode
 from sd_backend_client.api.comfyui.nodes.vae.vae_decode_tiled_node import VAEDecodeTiledNode
 from sd_backend_client.api.comfyui.nodes.vae.vae_encode_node import VAEEncodeNode
@@ -81,7 +81,7 @@ class DiffusionWorkflowBuilder:
         self._sampler: str = DEFAULT_SAMPLER
         self._scheduler: str = DEFAULT_SCHEDULER
         self._seed = random_seed()
-        self._filename_prefix = ''
+        self._filename_prefix = DEFAULT_FILENAME_PREFIX
 
         # Optional params that can be set to alter diffusion behavior:
         self._load_as_inpainting_model = False

@@ -77,6 +77,16 @@ def test_basic_workflow_without_size_skips_resize():
     assert source_class(workflow, save['inputs']['images']) == 'ImageUpscaleWithModel'
 
 
+@pytest.mark.parametrize('workflow', [
+    build_basic_upscaling_workflow(SOURCE, 'esrgan.pth').get_workflow_dict(),
+    build_latent_workflow(True, 'esrgan.pth'),
+    build_latent_workflow(False, None),
+], ids=['basic', 'latent_ultimate', 'latent_plain'])
+def test_upscale_workflows_save_with_visible_prefix(workflow: dict):
+    """An empty prefix makes ComfyUI save hidden `._00001_.png` files."""
+    assert single_node(workflow, 'SaveImage')['inputs']['filename_prefix'] == 'sd_backend_client'
+
+
 def test_latent_workflow_without_ultimate_applies_upscale_model_then_resizes():
     """Without Ultimate SD Upscale, the upscale model runs before the resize and VAE encode."""
     workflow = build_latent_workflow(False, 'esrgan.pth')

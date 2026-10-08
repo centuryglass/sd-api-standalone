@@ -63,6 +63,12 @@ def test_txt2img_graph_has_expected_backbone():
     single_node(workflow, 'SaveImage')
 
 
+def test_save_image_prefix_is_visible_by_default():
+    """An empty prefix makes ComfyUI save hidden `._00001_.png` files."""
+    workflow = make_txt2img_builder().build_workflow().get_workflow_dict()
+    assert single_node(workflow, 'SaveImage')['inputs']['filename_prefix'] == 'sd_backend_client'
+
+
 def test_txt2img_encodes_both_prompts():
     workflow = make_txt2img_builder().build_workflow().get_workflow_dict()
     encoded = {node['inputs']['text'] for node in nodes_of_type(workflow, 'CLIPTextEncode')}

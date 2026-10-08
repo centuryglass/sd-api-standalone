@@ -35,6 +35,6 @@ def build_basic_upscaling_workflow(source_image: ImageFileReference, upscale_mod
         workflow.connect_nodes(resize_node, ImageScaleNode.IMAGE, output_node, output_idx)
         output_node = resize_node
         output_idx = ImageScaleNode.IDX_IMAGE
-    save_image_node = SaveImageNode('')
+    save_image_node = SaveImageNode()
     workflow.connect_nodes(save_image_node, SaveImageNode.IMAGES, output_node, output_idx)
     return workflow
