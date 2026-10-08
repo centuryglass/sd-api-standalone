@@ -42,8 +42,9 @@ backends; the ComfyUI node classes' pydantic migration and tiled upscaling are s
 In priority order:
 
 1. **Library users.** People who install `sd_backend_client` into their own projects. They see the package only through
-   its public API, the README and its errors. Keep the README's usage examples working, mark any change that breaks
-   the public API (see "Working with GitHub"), and make errors say what went wrong and what to do.
+   its public API, the README, the docs site and its errors. Keep the usage examples in the README and `docs/` working,
+   mark any change that breaks the public API (see "Working with GitHub"), and make errors say what went wrong and what
+   to do.
 2. **The maintainer.** The package is the maintainer's backend client for IntraPaint and other projects. A change that
    makes it harder to drive either backend from those projects needs a strong reason.
 3. **The portfolio.** The repo shows a library extracted from a larger hand-built project and brought up to

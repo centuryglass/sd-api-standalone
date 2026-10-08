@@ -28,8 +28,8 @@ checkpoint = backend.list_checkpoints()[0].name
 params = ComfyUIDiffusionParams(sd_model_name=checkpoint, prompt='a corgi astronaut, detailed',
                                 sampler='euler', scheduler='karras', steps=20, batch_size=2, clip_skip=2)
 result = backend.submit_txt2img(params).wait()
-for image in result.images:
-    image.show()
+for index, image in enumerate(result.images):
+    image.save(f'corgi-{index}.png')
 ```
 
 LoRA and hypernetwork tags in the prompt (`<lora:name:0.8>`) work as they do on the WebUI, with the names that
