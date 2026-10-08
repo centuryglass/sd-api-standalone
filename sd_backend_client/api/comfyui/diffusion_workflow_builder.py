@@ -10,7 +10,7 @@ from typing import Optional
 from sd_backend_client.api.comfyui.comfyui_diffusion_params import ComfyUIDiffusionParams
 from sd_backend_client.api.comfyui.comfyui_types import ImageFileReference
 from sd_backend_client.api.comfyui.nodes.clip_skip_node import CLIPSkipNode
-from sd_backend_client.api.comfyui.nodes.comfy_node import ComfyNode
+from sd_backend_client.api.comfyui.nodes.comfy_node import NodeOutput
 from sd_backend_client.api.comfyui.nodes.comfy_node_graph import ComfyNodeGraph
 from sd_backend_client.api.comfyui.nodes.controlnet.apply_controlnet_node import ApplyControlNetNode
 from sd_backend_client.api.comfyui.nodes.controlnet.dynamic_preprocessor_node import DynamicPreprocessorNode
@@ -293,9 +293,11 @@ class DiffusionWorkflowBuilder:
                             model_type: ExtensionModelType) -> None:
         """Adds a LoRA or Hypernetwork model to the workflow. Models are applied in the order that they're added."""
         if model_type == ExtensionModelType.LORA:
-            self._extension_model_nodes.append(LoraLoaderNode(model_name, model_strength, clip_strength))
+            self._extension_model_nodes.append(LoraLoaderNode(lora_name=model_name, strength_model=model_strength,
+                                                              strength_clip=clip_strength))
         else:
-            self._extension_model_nodes.append(HypernetLoaderNode(model_name, model_strength))
+            self._extension_model_nodes.append(HypernetLoaderNode(hypernetwork_name=model_name,
+                                                                  strength=model_strength))
 
     @property
     def extension_model_nodes(self) -> list[LoraLoaderNode | HypernetLoaderNode]:
@@ -323,140 +325,67 @@ class DiffusionWorkflowBuilder:
             if control_unit_data.preprocessor == preprocessor \
                     and control_unit_data.control_image == control_image_str:
                 preprocessor_node = control_unit_data.preprocessor_node
-            if control_unit_data.model_node is not None and control_unit_data.model_node.model_name == model_name:
+            if control_unit_data.model_node is not None and control_unit_data.model_node.control_net_name == model_name:
                 model_node = control_unit_data.model_node
         if model_node is None and model_name is not None:
-            model_node = LoadControlNetNode(model_name)
+            model_node = LoadControlNetNode(control_net_name=model_name)
         if preprocessor_node is None and preprocessor is not None:
             control_inputs = dict(preprocessor.parameter_values)
-            preprocessor_node = DynamicPreprocessorNode(preprocessor.typedef.name, control_inputs,
-                                                        preprocessor.typedef.has_image_input,
-                                                        preprocessor.typedef.has_mask_input)
-        control_apply_node = ApplyControlNetNode(strength, start_step, end_step)
+            preprocessor_node = DynamicPreprocessorNode(node_name=preprocessor.typedef.name, parameters=control_inputs,
+                                                        has_image_input=preprocessor.typedef.has_image_input,
+                                                        has_mask_input=preprocessor.typedef.has_mask_input)
+        control_apply_node = ApplyControlNetNode(strength=strength, start_percent=start_step, end_percent=end_step)
         new_control_unit = ControlNetNodeData(model_node, preprocessor_node, control_apply_node, preprocessor,
                                                control_image_str)
         self._controlnet_units.append(new_control_unit)
 
     def build_workflow(self) -> ComfyNodeGraph:
         """Use the provided parameters to build a complete workflow graph."""
-        workflow = ComfyNodeGraph()
-
         # Load model(s):
-        if self.model_config_path is None:
-            model_loading_node: ComfyNode = SimpleCheckpointLoaderNode(self.sd_model)
-            model_out_index = SimpleCheckpointLoaderNode.IDX_MODEL
-            vae_out_index = SimpleCheckpointLoaderNode.IDX_VAE
-            clip_out_index = SimpleCheckpointLoaderNode.IDX_CLIP
-        else:
-            config_path = self.model_config_path
-            assert config_path is not None
-            model_loading_node = CheckpointLoaderNode(self.sd_model, config_path)
-            model_out_index = CheckpointLoaderNode.IDX_MODEL
-            vae_out_index = CheckpointLoaderNode.IDX_VAE
-            clip_out_index = CheckpointLoaderNode.IDX_CLIP
-        sd_model_node = model_loading_node
-        vae_model_node = model_loading_node
-        clip_model_node = model_loading_node
+        sd_model, clip, vae = self._load_checkpoint()
 
         if self.clip_skip > 1:
-            clip_skip_node = CLIPSkipNode(self.clip_skip)
-            workflow.connect_nodes(clip_skip_node, CLIPSkipNode.CLIP,
-                                   clip_model_node, clip_out_index)
-            clip_model_node = clip_skip_node
-            clip_out_index = CLIPSkipNode.IDX_CLIP
+            clip = CLIPSkipNode(stop_at_clip_layer=self.clip_skip, clip=clip).clip_out
 
-        for extension_node in self._extension_model_nodes:
-            if isinstance(extension_node, LoraLoaderNode):
-                workflow.connect_nodes(extension_node, LoraLoaderNode.CLIP,
-                                       clip_model_node, clip_out_index)
-                workflow.connect_nodes(extension_node, LoraLoaderNode.MODEL,
-                                       sd_model_node, model_out_index)
-                clip_model_node = extension_node
-                clip_out_index = LoraLoaderNode.IDX_CLIP
-                sd_model_node = extension_node
-                model_out_index = LoraLoaderNode.IDX_MODEL
-            else:
-                assert isinstance(extension_node, HypernetLoaderNode)
-                workflow.connect_nodes(extension_node, HypernetLoaderNode.MODEL,
-                                       sd_model_node, model_out_index)
-                sd_model_node = extension_node
-                model_out_index = HypernetLoaderNode.IDX_MODEL
+        sd_model, clip = self._apply_extension_models(sd_model, clip)
 
         # Load prompt conditioning:
-        prompt_node = ClipTextEncodeNode(self.prompt)
-        negative_prompt_node = ClipTextEncodeNode(self.negative_prompt)
-        for text_encoding_node in (prompt_node, negative_prompt_node):
-            workflow.connect_nodes(text_encoding_node, ClipTextEncodeNode.CLIP,
-                                   clip_model_node, clip_out_index)
-        positive_node: ComfyNode = prompt_node
-        positive_out_idx = ClipTextEncodeNode.IDX_CONDITIONING
-        negative_node: ComfyNode = negative_prompt_node
-        negative_out_idx = ClipTextEncodeNode.IDX_CONDITIONING
+        positive = ClipTextEncodeNode(text=self.prompt, clip=clip).conditioning_out
+        negative = ClipTextEncodeNode(text=self.negative_prompt, clip=clip).conditioning_out
 
         # Load image source:
         mask_load_node: Optional[LoadImageMaskNode] = None
         mask = self.mask
         if mask is not None:
-            mask_load_node = LoadImageMaskNode(mask)
+            mask_load_node = LoadImageMaskNode(image=mask)
 
         source_image = self.source_image
         if source_image is None:
             image_loading_node: Optional[LoadImageNode] = None
-            latent_source_node: ComfyNode = EmptyLatentNode(self.batch_size, self.image_size)
-            latent_out_idx = EmptyLatentNode.IDX_LATENT
+            latent = EmptyLatentNode(batch_size=self.batch_size, width=self.image_size.width(),
+                                     height=self.image_size.height()).latent_out
         else:
-            image_loading_node = LoadImageNode(source_image)
+            image_loading_node = LoadImageNode(image=source_image)
             # Stretch the source to the requested size, matching WebUI's default resize mode:
-            scale_node = ImageScaleNode(self.image_size.width(), self.image_size.height())
-            workflow.connect_nodes(scale_node, ImageScaleNode.IMAGE, image_loading_node, LoadImageNode.IDX_IMAGE)
+            scaled_image = ImageScaleNode(width=self.image_size.width(), height=self.image_size.height(),
+                                          image=image_loading_node.image_out).image_out
 
             if mask_load_node is not None and self.load_as_inpainting_model:
-                inpaint_conditioning_node = InpaintModelConditioningNode()
-                workflow.connect_nodes(inpaint_conditioning_node, InpaintModelConditioningNode.POSITIVE,
-                                       positive_node, positive_out_idx)
-                workflow.connect_nodes(inpaint_conditioning_node, InpaintModelConditioningNode.NEGATIVE,
-                                       negative_node, negative_out_idx)
-                workflow.connect_nodes(inpaint_conditioning_node, InpaintModelConditioningNode.VAE,
-                                       vae_model_node, vae_out_index)
-                workflow.connect_nodes(inpaint_conditioning_node, InpaintModelConditioningNode.PIXELS,
-                                       scale_node, ImageScaleNode.IDX_IMAGE)
-                workflow.connect_nodes(inpaint_conditioning_node, InpaintModelConditioningNode.MASK,
-                                       mask_load_node, LoadImageMaskNode.IDX_MASK)
-                positive_node = inpaint_conditioning_node
-                positive_out_idx = InpaintModelConditioningNode.IDX_POSITIVE
-                negative_node = inpaint_conditioning_node
-                negative_out_idx = InpaintModelConditioningNode.IDX_NEGATIVE
-                latent_source_node = inpaint_conditioning_node
-                latent_out_idx = InpaintModelConditioningNode.IDX_LATENT
+                inpaint_conditioning_node = InpaintModelConditioningNode(positive=positive, negative=negative, vae=vae,
+                                                                         pixels=scaled_image,
+                                                                         mask=mask_load_node.mask_out)
+                positive = inpaint_conditioning_node.positive_out
+                negative = inpaint_conditioning_node.negative_out
+                latent = inpaint_conditioning_node.latent_out
             else:
                 if self.vae_tiling_enabled:
-                    latent_image_node: ComfyNode = VAEEncodeTiledNode(self._vae_tile_size)
-                    workflow.connect_nodes(latent_image_node, VAEEncodeTiledNode.PIXELS,
-                                           scale_node, ImageScaleNode.IDX_IMAGE)
-                    workflow.connect_nodes(latent_image_node, VAEEncodeTiledNode.VAE,
-                                           vae_model_node, vae_out_index)
-                    latent_out_idx = VAEEncodeTiledNode.IDX_LATENT
+                    latent = VAEEncodeTiledNode(tile_size=self._vae_tile_size, pixels=scaled_image,
+                                                vae=vae).latent_out
                 else:
-                    latent_image_node = VAEEncodeNode()
-                    workflow.connect_nodes(latent_image_node, VAEEncodeNode.PIXELS,
-                                           scale_node, ImageScaleNode.IDX_IMAGE)
-                    workflow.connect_nodes(latent_image_node, VAEEncodeNode.VAE,
-                                           vae_model_node, vae_out_index)
-                    latent_out_idx = VAEEncodeNode.IDX_LATENT
-
-                latent_source_node = RepeatLatentNode(self.batch_size)
+                    latent = VAEEncodeNode(pixels=scaled_image, vae=vae).latent_out
                 if mask_load_node is not None:
-                    mask_apply_node = LatentMaskNode()
-                    workflow.connect_nodes(mask_apply_node, LatentMaskNode.SAMPLES,
-                                           latent_image_node, latent_out_idx)
-                    workflow.connect_nodes(mask_apply_node, LatentMaskNode.MASK,
-                                           mask_load_node, LoadImageMaskNode.IDX_MASK)
-                    workflow.connect_nodes(latent_source_node, RepeatLatentNode.SAMPLES,
-                                           mask_apply_node, LatentMaskNode.IDX_LATENT)
-                else:
-                    workflow.connect_nodes(latent_source_node, RepeatLatentNode.SAMPLES,
-                                           latent_image_node, latent_out_idx)
-                latent_out_idx = RepeatLatentNode.IDX_LATENT
+                    latent = LatentMaskNode(samples=latent, mask=mask_load_node.mask_out).latent_out
+                latent = RepeatLatentNode(amount=self.batch_size, samples=latent).latent_out
 
         # Load ControlNet Units:
         loaded_images: dict[str, LoadImageNode] = {}
@@ -469,7 +398,7 @@ class DiffusionWorkflowBuilder:
             if control_img_str == '':
                 # No control image: reuse the source image, as the WebUI ControlNet extension does.
                 if image_loading_node is None:
-                    unit_name = controlnet_unit.model_node.model_name if controlnet_unit.model_node is not None \
+                    unit_name = controlnet_unit.model_node.control_net_name if controlnet_unit.model_node is not None \
                         else controlnet_unit.preprocessor.typedef.name if controlnet_unit.preprocessor is not None \
                         else 'unnamed'
                     raise ValueError(f'ControlNet unit "{unit_name}" has no control image and there is no source'
@@ -478,70 +407,65 @@ class DiffusionWorkflowBuilder:
             elif control_img_str in loaded_images:
                 control_image_node = loaded_images[control_img_str]
             else:
-                control_image_node = LoadImageNode(control_img_str)
+                control_image_node = LoadImageNode(image=control_img_str)
                 loaded_images[control_img_str] = control_image_node
-            if controlnet_unit.preprocessor_node is not None:
-                if controlnet_unit.preprocessor_node.has_image_input:
-                    workflow.connect_nodes(controlnet_unit.preprocessor_node, DynamicPreprocessorNode.IMAGE,
-                                           control_image_node, LoadImageNode.IDX_IMAGE)
-                if controlnet_unit.preprocessor_node.has_mask_input and mask_load_node is not None:
-                    workflow.connect_nodes(controlnet_unit.preprocessor_node, DynamicPreprocessorNode.MASK,
-                                           mask_load_node, LoadImageMaskNode.IDX_MASK)
             control_apply_node = controlnet_unit.control_apply_node
-            workflow.connect_nodes(control_apply_node, ApplyControlNetNode.POSITIVE,
-                                   positive_node, positive_out_idx)
-            workflow.connect_nodes(control_apply_node, ApplyControlNetNode.NEGATIVE,
-                                   negative_node, negative_out_idx)
+            control_apply_node.image = control_image_node.image_out
+            preprocessor_node = controlnet_unit.preprocessor_node
+            if preprocessor_node is not None:
+                if preprocessor_node.has_image_input:
+                    preprocessor_node.image = control_image_node.image_out
+                if preprocessor_node.has_mask_input and mask_load_node is not None:
+                    preprocessor_node.mask = mask_load_node.mask_out
+                control_apply_node.image = preprocessor_node.image_out
+            control_apply_node.positive = positive
+            control_apply_node.negative = negative
             if controlnet_unit.model_node is not None:
-                workflow.connect_nodes(control_apply_node, ApplyControlNetNode.CONTROLNET,
-                                       controlnet_unit.model_node, LoadControlNetNode.IDX_CONTROLNET)
-            if controlnet_unit.preprocessor_node is not None:
-                workflow.connect_nodes(control_apply_node, ApplyControlNetNode.IMAGE,
-                                       controlnet_unit.preprocessor_node, DynamicPreprocessorNode.IDX_IMAGE)
-            elif control_image_node is not None:
-                workflow.connect_nodes(control_apply_node, ApplyControlNetNode.IMAGE,
-                                       control_image_node, LoadImageNode.IDX_IMAGE)
-            workflow.connect_nodes(control_apply_node, ApplyControlNetNode.VAE,
-                                   vae_model_node, vae_out_index)
-            positive_node = control_apply_node
-            positive_out_idx = ApplyControlNetNode.IDX_POSITIVE
-            negative_node = control_apply_node
-            negative_out_idx = ApplyControlNetNode.IDX_NEGATIVE
+                control_apply_node.control_net = controlnet_unit.model_node.controlnet_out
+            control_apply_node.vae = vae
+            positive = control_apply_node.positive_out
+            negative = control_apply_node.negative_out
 
         # Core diffusion process in KSamplerNode:
-        sampling_node = KSamplerNode(self.cfg_scale, self.steps, self.sampler, self.denoising_strength, self.scheduler,
-                                     self.seed)
-        workflow.connect_nodes(sampling_node, KSamplerNode.MODEL,
-                               sd_model_node, model_out_index)
-        workflow.connect_nodes(sampling_node, KSamplerNode.POSITIVE,
-                               positive_node, positive_out_idx)
-        workflow.connect_nodes(sampling_node, KSamplerNode.NEGATIVE,
-                               negative_node, negative_out_idx)
-        workflow.connect_nodes(sampling_node, KSamplerNode.LATENT_IMAGE,
-                               latent_source_node, latent_out_idx)
+        sampling_node = KSamplerNode(cfg=self.cfg_scale, steps=self.steps, sampler_name=self.sampler,
+                                     denoise=self.denoising_strength, scheduler=self.scheduler, seed=self.seed,
+                                     model=sd_model, positive=positive, negative=negative, latent_image=latent)
 
         # Decode and save images:
         if self.vae_tiling_enabled:
-            latent_decode_node: ComfyNode = VAEDecodeTiledNode(self._vae_tile_size)
-            workflow.connect_nodes(latent_decode_node, VAEDecodeTiledNode.VAE,
-                                   vae_model_node, vae_out_index)
-            workflow.connect_nodes(latent_decode_node, VAEDecodeTiledNode.SAMPLES,
-                                   sampling_node, KSamplerNode.IDX_LATENT)
+            image = VAEDecodeTiledNode(tile_size=self._vae_tile_size, vae=vae,
+                                       samples=sampling_node.latent_out).image_out
         else:
-            latent_decode_node = VAEDecodeNode()
-            workflow.connect_nodes(latent_decode_node, VAEDecodeNode.VAE,
-                                   vae_model_node, vae_out_index)
-            workflow.connect_nodes(latent_decode_node, VAEDecodeNode.SAMPLES,
-                                   sampling_node, KSamplerNode.IDX_LATENT)
+            image = VAEDecodeNode(vae=vae, samples=sampling_node.latent_out).image_out
 
-        save_image_node = SaveImageNode(self.filename_prefix)
-        workflow.connect_nodes(save_image_node, SaveImageNode.IMAGES,
-                               latent_decode_node, VAEDecodeNode.IDX_IMAGE)
+        workflow = ComfyNodeGraph()
+        workflow.add_node(SaveImageNode(filename_prefix=self.filename_prefix, images=image))
         # Changes to the returned graph shouldn't affect the workflow builder, so create a deep copy to return:
         final_workflow = deepcopy(workflow)
+        self._clear_saved_node_connections()
+        return final_workflow
 
-        # Before returning the copy, clear all connections in saved nodes to prevent potential issues if the workflow
-        # is built more than once:
+    def _load_checkpoint(self) -> tuple[NodeOutput, NodeOutput, NodeOutput]:
+        """Returns the model, CLIP and VAE outputs of a new loader node for `sd_model`."""
+        model_loading_node: SimpleCheckpointLoaderNode | CheckpointLoaderNode
+        if self.model_config_path is None:
+            model_loading_node = SimpleCheckpointLoaderNode(ckpt_name=self.sd_model)
+        else:
+            model_loading_node = CheckpointLoaderNode(ckpt_name=self.sd_model, config_name=self.model_config_path)
+        return model_loading_node.model_out, model_loading_node.clip_out, model_loading_node.vae_out
+
+    def _apply_extension_models(self, sd_model: NodeOutput, clip: NodeOutput) -> tuple[NodeOutput, NodeOutput]:
+        """Chains the extension model nodes onto the model and CLIP outputs, and returns the final outputs."""
+        for extension_node in self._extension_model_nodes:
+            extension_node.model = sd_model
+            sd_model = extension_node.model_out
+            if isinstance(extension_node, LoraLoaderNode):
+                extension_node.clip = clip
+                clip = extension_node.clip_out
+        return sd_model, clip
+
+    def _clear_saved_node_connections(self) -> None:
+        """Disconnects the nodes the builder keeps between builds, so one build's wiring can't leak into the next."""
         for node in self._extension_model_nodes:
             node.clear_connections()
         for controlnet_unit in self._controlnet_units:
@@ -550,7 +474,6 @@ class DiffusionWorkflowBuilder:
             if controlnet_unit.model_node is not None:
                 controlnet_unit.model_node.clear_connections()
             controlnet_unit.control_apply_node.clear_connections()
-        return final_workflow
 
     def _load_extension_models(self, available_loras: Sequence[str], available_hypernetworks: Sequence[str]) -> None:
         """Replaces `<lora:name:weight>`, `<lyco:...>` and `<hypernet:...>` prompt tags with extension model nodes.

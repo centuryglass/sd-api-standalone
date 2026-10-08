@@ -1,42 +1,21 @@
 """A ComfyUI node used to encode latent image data in tiled blocks."""
-from typing import NotRequired, cast, Any
-from typing_extensions import TypedDict
+from typing import ClassVar
 
-from sd_backend_client.api.comfyui.nodes.comfy_node import NodeConnection, ComfyNode
+from pydantic import Field
 
-NODE_NAME = 'VAEEncodeTiled'
+from sd_backend_client.api.comfyui.nodes.comfy_node import ComfyNode, Connection, Output
+
 TILE_MIN = 320
 TILE_MAX = 4096
 TILE_STEP = 64
 
 
-class VAEEncodeTiledInputs(TypedDict):
-    """Latent image tiled decoding input parameter object definition."""
-    pixels: NotRequired[NodeConnection]  # raw image data, e.g. from LoadImage.
-    vae: NotRequired[NodeConnection]  # VAE model used for decoding. May be baked-in to a regular SD model.
-    tile_size: int
-
-
 class VAEEncodeTiledNode(ComfyNode):
     """A ComfyUI node used to encode latent image data in tiled blocks."""
+    CLASS_TYPE: ClassVar[str] = 'VAEEncodeTiled'
 
-    # Connection keys:
-    PIXELS = 'pixels'
-    VAE = 'vae'
+    tile_size: int = Field(ge=TILE_MIN, le=TILE_MAX, multiple_of=TILE_STEP)
+    pixels: Connection = None  # raw image data, e.g. from LoadImage.
+    vae: Connection = None  # VAE model used for encoding. May be baked-in to a regular SD model.
 
-    # Output indexes:
-    IDX_LATENT = 0
-
-    def __init__(self, tile_size: int) -> None:
-        if tile_size < TILE_MIN:
-            raise ValueError(f'Tile size {tile_size} is below minimum {TILE_MIN}')
-        if tile_size > TILE_MAX:
-            raise ValueError(f'Tile size {tile_size} is above maximum {TILE_MAX}')
-        if (tile_size % TILE_STEP) != 0:
-            raise ValueError(f'Tile size {tile_size} is not a multiple of {TILE_STEP}')
-        connection_params = {
-            VAEEncodeTiledNode.PIXELS,
-            VAEEncodeTiledNode.VAE
-        }
-        data: VAEEncodeTiledInputs = {'tile_size': tile_size}
-        super().__init__(NODE_NAME, cast(dict[str, Any], data), connection_params, 1)
+    latent_out = Output(0)

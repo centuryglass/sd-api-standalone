@@ -1,27 +1,14 @@
 """A ComfyUI node used to load image data."""
-from typing import Literal, cast, Any
-from typing_extensions import TypedDict
+from typing import ClassVar, Literal
 
-from sd_backend_client.api.comfyui.nodes.comfy_node import ComfyNode
-
-NODE_NAME = 'LoadImage'
-
-
-class LoadImageInputs(TypedDict):
-    """LoadImage input parameters."""
-    image: str
-    upload: Literal['image']
+from sd_backend_client.api.comfyui.nodes.comfy_node import ComfyNode, Output
 
 
 class LoadImageNode(ComfyNode):
     """A ComfyUI node used to load image data."""
+    CLASS_TYPE: ClassVar[str] = 'LoadImage'
 
-    # Output indexes:
-    IDX_IMAGE = 0
+    image: str  # Uploaded image name
+    upload: Literal['image'] = 'image'
 
-    def __init__(self, image_name: str) -> None:
-        data: LoadImageInputs = {
-            'image': image_name,
-            'upload': 'image'
-        }
-        super().__init__(NODE_NAME, cast(dict[str, Any], data), set(), 1)
+    image_out = Output(0)

@@ -131,11 +131,13 @@ The request body is a **node graph**, not JSON fields. This is the most involved
   `build_workflow()` returns a `ComfyNodeGraph`. It decides checkpoint/KSampler wiring, prompt encoding,
   txt2img-vs-img2img latent source, CLIP-skip insertion, batching, etc. Its graph structure is pinned by
   `tests/unit/test_comfy_workflow_builder.py`.
-- `comfyui/nodes/`: one class per ComfyUI node type (`ComfyNode` subclasses), grouped into `input/`, `vae/`,
-  `model_extensions/`, `controlnet/`. Each node declares its valid input keys and output count.
-  `nodes/comfy_node_graph.py` (`ComfyNodeGraph`) assigns integer string keys, wires connections as
-  `(node_key, output_slot)` tuples, and emits the final `{key: {class_type, inputs}}` workflow dict. Node keys start
-  at 3, and both `ComfyNode` and `ComfyNodeGraph` implement `__deepcopy__` because builders clone partial graphs.
+- `comfyui/nodes/`: one pydantic model per ComfyUI node type (`ComfyNode` subclasses), grouped into `input/`, `vae/`,
+  `model_extensions/`, `controlnet/`. Fields are the node's inputs under their ComfyUI names, and `Output` attributes
+  such as `KSamplerNode.latent_out` name its output slots. A connection input holds the upstream node's `NodeOutput`,
+  so wiring a node is assigning to its field. `nodes/comfy_node_graph.py` (`ComfyNodeGraph`) collects every node
+  reachable from the ones added, assigns integer string keys starting at 3, and emits the final
+  `{key: {class_type, inputs}}` workflow dict with connections as `(node_key, output_slot)` tuples. Builders that keep
+  nodes between builds must clear those nodes' connections after each build.
 - Separate builders exist for upscaling and preprocessor-preview workflows (`basic_upscale_workflow_builder.py`,
   `latent_upscale_workflow_builder.py`, `preprocessor_preview_workflow_builder.py`).
 

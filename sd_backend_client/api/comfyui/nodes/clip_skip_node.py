@@ -1,32 +1,23 @@
 """A ComfyUI node used to apply the 'CLIP skip' option to prompt conditioning."""
-from typing import NotRequired, cast
-from typing_extensions import TypedDict
+from typing import ClassVar
 
-from sd_backend_client.api.comfyui.nodes.comfy_node import NodeConnection, ComfyNode
+from pydantic import field_validator
 
-NODE_NAME = 'CLIPSetLastLayer'
-
-
-class CLIPSkipInputs(TypedDict):
-    """CLIP skip parameters."""
-    clip: NotRequired[NodeConnection]
-    stop_at_clip_layer: int
+from sd_backend_client.api.comfyui.nodes.comfy_node import ComfyNode, Connection, Output
 
 
 class CLIPSkipNode(ComfyNode):
     """A ComfyUI node used to apply the 'CLIP skip' option to prompt conditioning."""
+    CLASS_TYPE: ClassVar[str] = 'CLIPSetLastLayer'
 
-    # Connection keys:
-    CLIP = 'clip'
+    stop_at_clip_layer: int
+    """Last CLIP layer to use, as a negative index. A positive CLIP skip value is negated."""
 
-    # Output indexes:
-    IDX_CLIP = 0
+    clip: Connection = None
 
-    def __init__(self, stop_layer: int) -> None:
-        if stop_layer > 0:
-            stop_layer *= -1  # CLIP skip is positive elsewhere, but this node expects a negative index.
-        connection_params = {CLIPSkipNode.CLIP}
-        data: CLIPSkipInputs = {
-            'stop_at_clip_layer': stop_layer
-        }
-        super().__init__(NODE_NAME, cast(dict[str, str], data), connection_params, 1)
+    clip_out = Output(0)
+
+    @field_validator('stop_at_clip_layer')
+    @classmethod
+    def _negate_clip_skip(cls, stop_layer: int) -> int:
+        return -stop_layer if stop_layer > 0 else stop_layer

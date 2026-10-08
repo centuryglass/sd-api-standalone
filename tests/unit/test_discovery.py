@@ -11,7 +11,7 @@ from PIL import Image
 
 from sd_backend_client.api import detect
 from sd_backend_client.api.a1111_webservice import A1111Webservice
-from sd_backend_client.api.comfyui.nodes.controlnet.apply_controlnet_node import NODE_NAME as APPLY_CONTROLNET_NODE
+from sd_backend_client.api.comfyui.nodes.controlnet.apply_controlnet_node import ApplyControlNetNode
 from sd_backend_client.api.comfyui.nodes.ultimate_upscale_node import ULTIMATE_UPSCALE_NODE_NAME
 from sd_backend_client.api.comfyui_webservice import ComfyEndpoints, ComfyUiWebservice
 from sd_backend_client.api.detect import connect_to_backend
@@ -80,7 +80,7 @@ def _comfyui_routes(full: bool) -> dict[tuple[str, str], Any]:
             'output': ['LATENT'], 'output_is_list': [False], 'output_name': ['LATENT'], 'name': 'KSampler',
             'display_name': 'KSampler', 'description': '', 'python_module': 'nodes', 'category': 'sampling',
             'output_node': False}},
-        ('GET', f'{info}/{APPLY_CONTROLNET_NODE}'): {APPLY_CONTROLNET_NODE: {}},
+        ('GET', f'{info}/{ApplyControlNetNode.CLASS_TYPE}'): {ApplyControlNetNode.CLASS_TYPE: {}},
         ('GET', f'{info}/{ULTIMATE_UPSCALE_NODE_NAME}'): {ULTIMATE_UPSCALE_NODE_NAME: {}} if full else {},
         ('POST', ComfyEndpoints.PROMPT): {'prompt_id': PROMPT_ID, 'number': 1, 'node_errors': {}},
     }

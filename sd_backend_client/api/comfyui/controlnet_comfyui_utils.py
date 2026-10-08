@@ -5,7 +5,6 @@ from typing import Any, Optional, TypeAlias
 from sd_backend_client.api.comfyui.comfyui_types import (NodeInfoResponse, CONTROLNET_PREPROCESSOR_CATEGORY,
                                                          IntParamDef, BoolParamDef, FloatParamDef, StrParamDef,
                                                          ParamDef)
-from sd_backend_client.api.comfyui.nodes.controlnet.dynamic_preprocessor_node import DynamicPreprocessorNode
 from sd_backend_client.api.shared_data.controlnet.controlnet_preprocessor import ControlNetPreprocessor, ParameterDef
 
 # Type name newer ComfyUI versions use for combo inputs, with the choices in the param-def dict's "options".
@@ -88,11 +87,12 @@ def get_all_preprocessors(node_data: dict[str, NodeInfoResponse]) -> list[Contro
                 continue
             inputs = input_lists[input_category]
 
+            # Image and mask inputs become DynamicPreprocessorNode connections, which use the same input names.
             for input_name in inputs:
-                if input_name == DynamicPreprocessorNode.IMAGE:
+                if input_name == 'image':
                     has_image_input = True
                     continue
-                if input_name == DynamicPreprocessorNode.MASK:
+                if input_name == 'mask':
                     has_mask_input = True
                     continue
                 input_tuple = input_dict[input_name]

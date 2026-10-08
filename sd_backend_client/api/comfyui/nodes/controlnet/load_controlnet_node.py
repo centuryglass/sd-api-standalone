@@ -1,31 +1,13 @@
 """A ComfyUI node used to load a ControlNet model."""
-from typing import cast, Any
-from typing_extensions import TypedDict
+from typing import ClassVar
 
-from sd_backend_client.api.comfyui.nodes.comfy_node import ComfyNode
-
-NODE_NAME = 'ControlNetLoader'
-
-
-class LoadControlNetInputs(TypedDict):
-    """ControlNet loader input parameters."""
-    control_net_name: str  # model name
+from sd_backend_client.api.comfyui.nodes.comfy_node import ComfyNode, Output
 
 
 class LoadControlNetNode(ComfyNode):
     """A ComfyUI node used to load a ControlNet Model"""
+    CLASS_TYPE: ClassVar[str] = 'ControlNetLoader'
 
-    # Output indexes:
-    IDX_CONTROLNET = 0
+    control_net_name: str  # model name
 
-    def __init__(self, model_name: str) -> None:
-        data: LoadControlNetInputs = {
-            'control_net_name': model_name
-        }
-        self._model_name = model_name
-        super().__init__(NODE_NAME, cast(dict[str, Any], data), set(), 1)
-
-    @property
-    def model_name(self) -> str:
-        """Returns the ControlNet model name."""
-        return self._model_name
+    controlnet_out = Output(0)

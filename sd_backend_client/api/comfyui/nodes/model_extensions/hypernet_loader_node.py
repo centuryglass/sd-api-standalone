@@ -1,34 +1,15 @@
 """A ComfyUI node used to load a hypernetwork model extension."""
-from typing import NotRequired, cast, Any
-from typing_extensions import TypedDict
+from typing import ClassVar
 
-from sd_backend_client.api.comfyui.nodes.comfy_node import NodeConnection, ComfyNode
-
-NODE_NAME = 'HypernetworkLoader'
-
-
-class HypernetLoaderInputs(TypedDict):
-    """Inputs for hypernetwork model loading."""
-    hypernetwork_name: str
-    strength: float
-    model: NotRequired[NodeConnection]
+from sd_backend_client.api.comfyui.nodes.comfy_node import ComfyNode, Connection, Output
 
 
 class HypernetLoaderNode(ComfyNode):
     """A ComfyUI node used to load a hypernetwork model extension."""
+    CLASS_TYPE: ClassVar[str] = 'HypernetworkLoader'
 
-    # Connection keys:
-    MODEL = 'model'
+    hypernetwork_name: str
+    strength: float
+    model: Connection = None
 
-    # Output indexes:
-    IDX_MODEL = 0
-
-    def __init__(self, hypernetwork_name: str, strength: float) -> None:
-        connection_params = {
-            HypernetLoaderNode.MODEL
-        }
-        data: HypernetLoaderInputs = {
-            'hypernetwork_name': hypernetwork_name,
-            'strength': strength
-        }
-        super().__init__(NODE_NAME, cast(dict[str, Any], data), connection_params, 1)
+    model_out = Output(0)

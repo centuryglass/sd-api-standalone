@@ -1,30 +1,14 @@
 """A ComfyUI node used to copy latent image data for batch operations."""
-from typing import NotRequired, cast, Any
-from typing_extensions import TypedDict
+from typing import ClassVar
 
-from sd_backend_client.api.comfyui.nodes.comfy_node import NodeConnection, ComfyNode
-
-NODE_NAME = 'RepeatLatentBatch'
-
-
-class RepeatLatentInputs(TypedDict):
-    """Latent image batch creation parameters."""
-    samples: NotRequired[NodeConnection]  # latent image data, e.g. from VAEEncodeNode.
-    amount: int  # Number of repeated copies.
+from sd_backend_client.api.comfyui.nodes.comfy_node import ComfyNode, Connection, Output
 
 
 class RepeatLatentNode(ComfyNode):
     """A ComfyUI node used to copy latent image data for batch operations."""
+    CLASS_TYPE: ClassVar[str] = 'RepeatLatentBatch'
 
-    # Connection keys:
-    SAMPLES = 'samples'
+    amount: int  # Number of repeated copies.
+    samples: Connection = None  # latent image data, e.g. from VAEEncodeNode.
 
-    # Output indexes:
-    IDX_LATENT = 0
-
-    def __init__(self, batch_size: int) -> None:
-        connection_params = {RepeatLatentNode.SAMPLES}
-        data: RepeatLatentInputs = {
-            'amount': batch_size
-        }
-        super().__init__(NODE_NAME, cast(dict[str, Any], data), connection_params, 1)
+    latent_out = Output(0)

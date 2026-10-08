@@ -1,53 +1,21 @@
 """A ComfyUI node used to apply a ControlNet model to diffusion conditioning data."""
-from typing import NotRequired, cast, Any
-from typing_extensions import TypedDict
+from typing import ClassVar
 
-from sd_backend_client.api.comfyui.nodes.comfy_node import NodeConnection, ComfyNode
-
-NODE_NAME = 'ControlNetApplyAdvanced'
-
-CONTROLNET_COMFYUI_CONTROL_WEIGHT_KEY = 'strength'
-CONTROLNET_COMFYUI_START_STEP_KEY = 'start_percent'
-CONTROLNET_COMFYUI_END_STEP_KEY = 'end_percent'
-
-
-class ApplyControlNetInputs(TypedDict):
-    """ControlNet loader input parameters."""
-    positive: NotRequired[NodeConnection]  # Usually CLIPTextEncode
-    negative: NotRequired[NodeConnection]  # Usually CLIPTextEncode
-    control_net: NotRequired[NodeConnection]
-    image: NotRequired[NodeConnection]
-    vae: NotRequired[NodeConnection]
-    strength: float
-    start_percent: float
-    end_percent: float
+from sd_backend_client.api.comfyui.nodes.comfy_node import ComfyNode, Connection, Output
 
 
 class ApplyControlNetNode(ComfyNode):
     """A ComfyUI node used to apply a ControlNet model to diffusion conditioning data."""
+    CLASS_TYPE: ClassVar[str] = 'ControlNetApplyAdvanced'
 
-    # Connection keys:
-    POSITIVE = 'positive'
-    NEGATIVE = 'negative'
-    CONTROLNET = 'control_net'
-    IMAGE = 'image'
-    VAE = 'vae'
+    strength: float
+    start_percent: float
+    end_percent: float
+    positive: Connection = None  # Usually CLIPTextEncode
+    negative: Connection = None  # Usually CLIPTextEncode
+    control_net: Connection = None
+    image: Connection = None
+    vae: Connection = None
 
-    # Output indexes:
-    IDX_POSITIVE = 0
-    IDX_NEGATIVE = 1
-
-    def __init__(self, strength: float, start_percent: float, end_percent: float) -> None:
-        data: ApplyControlNetInputs = {
-            'strength': strength,
-            'start_percent': start_percent,
-            'end_percent': end_percent
-        }
-        connections = {
-            ApplyControlNetNode.POSITIVE,
-            ApplyControlNetNode.NEGATIVE,
-            ApplyControlNetNode.CONTROLNET,
-            ApplyControlNetNode.IMAGE,
-            ApplyControlNetNode.VAE,
-        }
-        super().__init__(NODE_NAME, cast(dict[str, Any], data), connections, 2)
+    positive_out = Output(0)
+    negative_out = Output(1)

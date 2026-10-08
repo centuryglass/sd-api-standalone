@@ -3,6 +3,7 @@
 from copy import deepcopy
 from typing import Optional
 
+from sd_backend_client.api.shared_data.api_datatypes import RedrawMode, SeamFixMode
 from sd_backend_client.api.shared_data.controlnet.controlnet_unit import ControlNetUnit
 from sd_backend_client.util.geometry import Size
 
@@ -10,23 +11,14 @@ from sd_backend_client.api.comfyui.comfyui_types import ImageFileReference
 from sd_backend_client.api.comfyui.diffusion_workflow_builder import DiffusionWorkflowBuilder
 from sd_backend_client.api.comfyui.nodes.apply_upscaler_node import ApplyUpscalerNode
 from sd_backend_client.api.comfyui.nodes.basic_scaling_node import BasicScalingNode
-from sd_backend_client.api.comfyui.nodes.comfy_node import ComfyNode
 from sd_backend_client.api.comfyui.nodes.comfy_node_graph import ComfyNodeGraph
-from sd_backend_client.api.comfyui.nodes.controlnet.apply_controlnet_node import ApplyControlNetNode
-from sd_backend_client.api.comfyui.nodes.controlnet.dynamic_preprocessor_node import DynamicPreprocessorNode
-from sd_backend_client.api.comfyui.nodes.controlnet.load_controlnet_node import LoadControlNetNode
 from sd_backend_client.api.comfyui.nodes.image_scale_node import ImageScaleNode
-from sd_backend_client.api.comfyui.nodes.input.checkpoint_loader_node import CheckpointLoaderNode
 from sd_backend_client.api.comfyui.nodes.input.clip_text_encode_node import ClipTextEncodeNode
 from sd_backend_client.api.comfyui.nodes.input.load_image_node import LoadImageNode
 from sd_backend_client.api.comfyui.nodes.input.load_upscaler_node import LoadUpscalerNode
-from sd_backend_client.api.comfyui.nodes.input.simple_checkpoint_loader_node import SimpleCheckpointLoaderNode
 from sd_backend_client.api.comfyui.nodes.ksampler_node import KSamplerNode
-from sd_backend_client.api.comfyui.nodes.model_extensions.hypernet_loader_node import HypernetLoaderNode
-from sd_backend_client.api.comfyui.nodes.model_extensions.lora_loader_node import LoraLoaderNode
 from sd_backend_client.api.comfyui.nodes.save_image_node import SaveImageNode
-from sd_backend_client.api.comfyui.nodes.ultimate_upscale_node import UltimateUpscaleNode, UltimateUpscaleCoreInputs, \
-    SeamFixInputs
+from sd_backend_client.api.comfyui.nodes.ultimate_upscale_node import UltimateUpscaleNode
 from sd_backend_client.api.comfyui.nodes.upscale_latent_node import UpscaleLatentNode
 from sd_backend_client.api.comfyui.nodes.vae.vae_decode_tiled_node import VAEDecodeTiledNode
 from sd_backend_client.api.comfyui.nodes.vae.vae_encode_tiled_node import (TILE_MIN, TILE_STEP, TILE_MAX,
@@ -57,10 +49,10 @@ class LatentUpscaleWorkflowBuilder(DiffusionWorkflowBuilder):
         # these directly before building; defaults match the node's own sensible defaults.
         self.mask_blur = 8
         self.tile_padding = 32
-        self.redraw_mode: str = 'Linear'
+        self.redraw_mode: RedrawMode = 'Linear'
         self.force_uniform_tiles = False
         self.tiled_decode = True
-        self.seam_fix_mode: str = 'None'
+        self.seam_fix_mode: SeamFixMode = 'None'
         self.seam_fix_denoise = 0.35
         self.seam_fix_width = 64
         self.seam_fix_mask_blur = 8
@@ -92,59 +84,19 @@ class LatentUpscaleWorkflowBuilder(DiffusionWorkflowBuilder):
         """
         # TODO: lots of code duplication here, and no opportunity to specify particular values for a lot of the
         #       upscaler options.  Both of those things should be fixed.
-        workflow = ComfyNodeGraph()
-
         # Load model(s):
-        config_path = self.model_config_path
-        if config_path is None:
-            model_loading_node: ComfyNode = SimpleCheckpointLoaderNode(self.sd_model)
-            model_out_index = SimpleCheckpointLoaderNode.IDX_MODEL
-            vae_out_index = SimpleCheckpointLoaderNode.IDX_VAE
-            clip_out_index = SimpleCheckpointLoaderNode.IDX_CLIP
-        else:
-            assert isinstance(self.model_config_path, str)
-            model_loading_node = CheckpointLoaderNode(self.sd_model, config_path)
-            model_out_index = CheckpointLoaderNode.IDX_MODEL
-            vae_out_index = CheckpointLoaderNode.IDX_VAE
-            clip_out_index = CheckpointLoaderNode.IDX_CLIP
-        sd_model_node = model_loading_node
-        vae_model_node = model_loading_node
-        clip_model_node = model_loading_node
-
-        for extension_node in self._extension_model_nodes:
-            if isinstance(extension_node, LoraLoaderNode):
-                workflow.connect_nodes(extension_node, LoraLoaderNode.CLIP,
-                                       clip_model_node, clip_out_index)
-                workflow.connect_nodes(extension_node, LoraLoaderNode.MODEL,
-                                       sd_model_node, model_out_index)
-                clip_model_node = extension_node
-                clip_out_index = LoraLoaderNode.IDX_CLIP
-                sd_model_node = extension_node
-                model_out_index = LoraLoaderNode.IDX_MODEL
-            else:
-                assert isinstance(extension_node, HypernetLoaderNode)
-                workflow.connect_nodes(extension_node, HypernetLoaderNode.MODEL,
-                                       sd_model_node, model_out_index)
-                sd_model_node = extension_node
-                model_out_index = HypernetLoaderNode.IDX_MODEL
+        sd_model, clip, vae = self._load_checkpoint()
+        sd_model, clip = self._apply_extension_models(sd_model, clip)
 
         # Load starting image:
         source_image_str = self.source_image
         if source_image_str is None:
             raise ValueError('No image provided for upscaling')
-        image_node: ComfyNode = LoadImageNode(source_image_str)
-        image_out_index = LoadImageNode.IDX_IMAGE
+        image = LoadImageNode(image=source_image_str).image_out
 
         # Load prompt conditioning:
-        prompt_node = ClipTextEncodeNode(self.prompt)
-        negative_prompt_node = ClipTextEncodeNode(self.negative_prompt)
-        for text_encoding_node in (prompt_node, negative_prompt_node):
-            workflow.connect_nodes(text_encoding_node, ClipTextEncodeNode.CLIP,
-                                   clip_model_node, clip_out_index)
-        positive_node: ComfyNode = prompt_node
-        positive_out_idx = ClipTextEncodeNode.IDX_CONDITIONING
-        negative_node: ComfyNode = negative_prompt_node
-        negative_out_idx = ClipTextEncodeNode.IDX_CONDITIONING
+        positive = ClipTextEncodeNode(text=self.prompt, clip=clip).conditioning_out
+        negative = ClipTextEncodeNode(text=self.negative_prompt, clip=clip).conditioning_out
 
         # Load tile ControlNet unit, if available:
         controlnet_units = self.controlnet_unit_nodes
@@ -158,93 +110,60 @@ class LatentUpscaleWorkflowBuilder(DiffusionWorkflowBuilder):
             assert tile_preprocessor_node.has_image_input
             assert tile_model_node is not None
 
-            workflow.connect_nodes(tile_preprocessor_node, DynamicPreprocessorNode.IMAGE,
-                                   image_node, image_out_index)
-
-            workflow.connect_nodes(tile_control_apply_node, ApplyControlNetNode.IMAGE,
-                                   tile_preprocessor_node, DynamicPreprocessorNode.IDX_IMAGE)
-            workflow.connect_nodes(tile_control_apply_node, ApplyControlNetNode.CONTROLNET,
-                                   tile_model_node, LoadControlNetNode.IDX_CONTROLNET)
-            workflow.connect_nodes(tile_control_apply_node, ApplyControlNetNode.VAE,
-                                   vae_model_node, vae_out_index)
-            workflow.connect_nodes(tile_control_apply_node, ApplyControlNetNode.POSITIVE,
-                                   positive_node, positive_out_idx)
-            workflow.connect_nodes(tile_control_apply_node, ApplyControlNetNode.NEGATIVE,
-                                   negative_node, negative_out_idx)
-            positive_node = tile_control_apply_node
-            positive_out_idx = ApplyControlNetNode.IDX_POSITIVE
-            negative_node = tile_control_apply_node
-            negative_out_idx = ApplyControlNetNode.IDX_NEGATIVE
+            tile_preprocessor_node.image = image
+            tile_control_apply_node.image = tile_preprocessor_node.image_out
+            tile_control_apply_node.control_net = tile_model_node.controlnet_out
+            tile_control_apply_node.vae = vae
+            tile_control_apply_node.positive = positive
+            tile_control_apply_node.negative = negative
+            positive = tile_control_apply_node.positive_out
+            negative = tile_control_apply_node.negative_out
 
         # Load upscale model node, if available:
         upscale_model_node: Optional[LoadUpscalerNode] = None
         if self._upscale_model_name is not None and self._upscale_model_name != '':
-            upscale_model_node = LoadUpscalerNode(self._upscale_model_name)
+            upscale_model_node = LoadUpscalerNode(model_name=self._upscale_model_name)
         elif self._ultimate_sd_upscale:
             # Use a basic scaling node to get the image to the right size instead.  If we're not using the
             # "Ultimate SD Upscale" script this can be skipped, since we'll end up using latent image scaling anyway.
-            basic_scaling_node = BasicScalingNode(self._upscale_multiplier)
-            workflow.connect_nodes(basic_scaling_node, BasicScalingNode.IMAGE,
-                                   image_node, image_out_index)
-            image_node = basic_scaling_node
-            image_out_index = BasicScalingNode.IDX_IMAGE
+            image = BasicScalingNode(scale_by=self._upscale_multiplier, image=image).image_out
 
         # Set up ultimate upscale script, if available:
         if self._ultimate_sd_upscale:
-            upscale_node_params = UltimateUpscaleCoreInputs()
-            upscale_node_params.seed = self.seed
-            upscale_node_params.steps = self.steps
-            upscale_node_params.cfg = self.cfg_scale
-            upscale_node_params.sampler_name = self.sampler
-            upscale_node_params.scheduler = self.scheduler
-            upscale_node_params.denoise = self.denoising_strength
-            upscale_node_params.mode_type = self.redraw_mode  # type: ignore[assignment]
-            upscale_node_params.tile_width = self.tile_size.width()
-            upscale_node_params.tile_height = self.tile_size.height()
-            upscale_node_params.mask_blur = self.mask_blur
-            upscale_node_params.tile_padding = self.tile_padding
-            upscale_node_params.force_uniform_tiles = self.force_uniform_tiles
-            upscale_node_params.tiled_decode = self.tiled_decode
-            if upscale_model_node is not None:
-                upscale_node_params.upscale_by = self._upscale_multiplier
-
-            seam_fix_params = SeamFixInputs()
-            seam_fix_params.seam_fix_mode = self.seam_fix_mode  # type: ignore[assignment]
-            seam_fix_params.seam_fix_denoise = self.seam_fix_denoise
-            seam_fix_params.seam_fix_width = self.seam_fix_width
-            seam_fix_params.seam_fix_mask_blur = self.seam_fix_mask_blur
-            seam_fix_params.seam_fix_padding = self.seam_fix_padding
-
-            ultimate_upscale_node = UltimateUpscaleNode(upscale_node_params, upscale_model_node is not None,
-                                                        seam_fix_params)
-            workflow.connect_nodes(ultimate_upscale_node, UltimateUpscaleNode.IMAGE,
-                                   image_node, image_out_index)
-            workflow.connect_nodes(ultimate_upscale_node, UltimateUpscaleNode.MODEL,
-                                   sd_model_node, model_out_index)
-            workflow.connect_nodes(ultimate_upscale_node, UltimateUpscaleNode.POSITIVE,
-                                   positive_node, positive_out_idx)
-            workflow.connect_nodes(ultimate_upscale_node, UltimateUpscaleNode.NEGATIVE,
-                                   negative_node, negative_out_idx)
-            workflow.connect_nodes(ultimate_upscale_node, UltimateUpscaleNode.VAE,
-                                   vae_model_node, vae_out_index)
-            if upscale_model_node is not None:
-                workflow.connect_nodes(ultimate_upscale_node, UltimateUpscaleNode.UPSCALE_MODEL,
-                                       upscale_model_node, LoadUpscalerNode.IDX_UPSCALE_MODEL)
-            image_node = ultimate_upscale_node
-            image_out_index = UltimateUpscaleNode.IDX_IMAGE
+            ultimate_upscale_node = UltimateUpscaleNode(
+                use_upscaler=upscale_model_node is not None,
+                upscale_by=self._upscale_multiplier if upscale_model_node is not None else None,
+                seed=self.seed,
+                steps=self.steps,
+                cfg=self.cfg_scale,
+                sampler_name=self.sampler,
+                scheduler=self.scheduler,
+                denoise=self.denoising_strength,
+                mode_type=self.redraw_mode,
+                tile_width=self.tile_size.width(),
+                tile_height=self.tile_size.height(),
+                mask_blur=self.mask_blur,
+                tile_padding=self.tile_padding,
+                force_uniform_tiles=self.force_uniform_tiles,
+                tiled_decode=self.tiled_decode,
+                seam_fix_mode=self.seam_fix_mode,
+                seam_fix_denoise=self.seam_fix_denoise,
+                seam_fix_width=self.seam_fix_width,
+                seam_fix_mask_blur=self.seam_fix_mask_blur,
+                seam_fix_padding=self.seam_fix_padding,
+                image=image,
+                model=sd_model,
+                positive=positive,
+                negative=negative,
+                vae=vae,
+                upscale_model=upscale_model_node.upscale_model_out if upscale_model_node is not None else None)
+            image = ultimate_upscale_node.image_out
 
         else:  # No ultimate SD upscale, we'll try to get by with img2img with tiled VAE encoding/decoding.
             if upscale_model_node is not None:
-                apply_upscaler_node = ApplyUpscalerNode()
-                workflow.connect_nodes(apply_upscaler_node, ApplyUpscalerNode.UPSCALE_MODEL,
-                                       upscale_model_node, LoadUpscalerNode.IDX_UPSCALE_MODEL)
-                workflow.connect_nodes(apply_upscaler_node, ApplyUpscalerNode.IMAGE,
-                                       image_node, image_out_index)
-                resize_node = ImageScaleNode(self._final_image_size.width(), self._final_image_size.height())
-                workflow.connect_nodes(resize_node, ImageScaleNode.IMAGE,
-                                       apply_upscaler_node, ApplyUpscalerNode.IDX_IMAGE)
-                image_node = resize_node
-                image_out_index = ImageScaleNode.IDX_IMAGE
+                image = ApplyUpscalerNode(upscale_model=upscale_model_node.upscale_model_out, image=image).image_out
+                image = ImageScaleNode(width=self._final_image_size.width(), height=self._final_image_size.height(),
+                                       image=image).image_out
 
             vae_tile_size = self.vae_tile_size
             vae_tile_size -= (vae_tile_size % TILE_STEP)
@@ -252,49 +171,17 @@ class LatentUpscaleWorkflowBuilder(DiffusionWorkflowBuilder):
                 vae_tile_size = TILE_MIN
             elif vae_tile_size > TILE_MAX:
                 vae_tile_size = TILE_MAX
-            vae_encode_node = VAEEncodeTiledNode(vae_tile_size)
-            workflow.connect_nodes(vae_encode_node, VAEEncodeTiledNode.PIXELS,
-                                   image_node, image_out_index)
-            workflow.connect_nodes(vae_encode_node, VAEEncodeTiledNode.VAE,
-                                   vae_model_node, vae_out_index)
+            latent = VAEEncodeTiledNode(tile_size=vae_tile_size, pixels=image, vae=vae).latent_out
+            latent = UpscaleLatentNode(width=self._final_image_size.width(), height=self._final_image_size.height(),
+                                       samples=latent).latent_out
+            sampler_node = KSamplerNode(cfg=self.cfg_scale, steps=self.steps, sampler_name=self.sampler,
+                                        denoise=self.denoising_strength, scheduler=self.scheduler, seed=self.seed,
+                                        latent_image=latent, model=sd_model, positive=positive, negative=negative)
+            image = VAEDecodeTiledNode(tile_size=vae_tile_size, vae=vae, samples=sampler_node.latent_out).image_out
 
-            latent_scaling_node = UpscaleLatentNode(self._final_image_size.width(), self._final_image_size.height())
-            workflow.connect_nodes(latent_scaling_node, UpscaleLatentNode.SAMPLES,
-                                   vae_encode_node, VAEEncodeTiledNode.IDX_LATENT)
-
-            denoising = self.denoising_strength
-            sampler_node = KSamplerNode(self.cfg_scale, self.steps, self.sampler, denoising, self.scheduler, self.seed)
-            workflow.connect_nodes(sampler_node, KSamplerNode.LATENT_IMAGE,
-                                   latent_scaling_node, UpscaleLatentNode.IDX_LATENT)
-            workflow.connect_nodes(sampler_node, KSamplerNode.MODEL,
-                                   sd_model_node, model_out_index)
-            workflow.connect_nodes(sampler_node, KSamplerNode.POSITIVE,
-                                   positive_node, positive_out_idx)
-            workflow.connect_nodes(sampler_node, KSamplerNode.NEGATIVE,
-                                   negative_node, negative_out_idx)
-
-            vae_decode_node = VAEDecodeTiledNode(vae_tile_size)
-            workflow.connect_nodes(vae_decode_node, VAEDecodeTiledNode.VAE,
-                                   vae_model_node, vae_out_index)
-            workflow.connect_nodes(vae_decode_node, VAEDecodeTiledNode.SAMPLES,
-                                   sampler_node, KSamplerNode.IDX_LATENT)
-            image_node = vae_decode_node
-            image_out_index = VAEDecodeTiledNode.IDX_IMAGE
-
-        save_image_node = SaveImageNode(self.filename_prefix)
-        workflow.connect_nodes(save_image_node, SaveImageNode.IMAGES,
-                               image_node, image_out_index)
+        workflow = ComfyNodeGraph()
+        workflow.add_node(SaveImageNode(filename_prefix=self.filename_prefix, images=image))
         # Changes to the returned graph shouldn't affect the workflow builder, so create a deep copy to return:
         final_workflow = deepcopy(workflow)
-
-        # Before returning the copy, clear all connections in saved nodes to prevent potential issues if the
-        # workflow is built more than once:
-        for node in self._extension_model_nodes:
-            node.clear_connections()
-        for controlnet_unit in self._controlnet_units:
-            if controlnet_unit.preprocessor_node is not None:
-                controlnet_unit.preprocessor_node.clear_connections()
-            if controlnet_unit.model_node is not None:
-                controlnet_unit.model_node.clear_connections()
-            controlnet_unit.control_apply_node.clear_connections()
+        self._clear_saved_node_connections()
         return final_workflow

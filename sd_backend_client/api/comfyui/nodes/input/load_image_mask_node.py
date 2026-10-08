@@ -1,29 +1,15 @@
 """A ComfyUI node used to load image mask data."""
-from typing import Literal, cast, Any
-from typing_extensions import TypedDict
+from typing import ClassVar, Literal
 
-from sd_backend_client.api.comfyui.nodes.comfy_node import ComfyNode
-
-NODE_NAME = 'LoadImageMask'
-
-
-class LoadImageMaskInputs(TypedDict):
-    """LoadImageMask input parameters."""
-    image: str
-    channel: Literal['alpha', 'red', 'green', 'blue']
-    upload: Literal['image']
+from sd_backend_client.api.comfyui.nodes.comfy_node import ComfyNode, Output
 
 
 class LoadImageMaskNode(ComfyNode):
-    """A ComfyUI node used to load image data."""
+    """A ComfyUI node used to load one channel of an uploaded image as a mask."""
+    CLASS_TYPE: ClassVar[str] = 'LoadImageMask'
 
-    # Output indexes:
-    IDX_MASK = 0
+    image: str  # Uploaded image name
+    channel: Literal['alpha', 'red', 'green', 'blue'] = 'alpha'
+    upload: Literal['image'] = 'image'
 
-    def __init__(self, image_name: str) -> None:
-        data: LoadImageMaskInputs = {
-            'image': image_name,
-            'channel': 'alpha',
-            'upload': 'image'
-        }
-        super().__init__(NODE_NAME, cast(dict[str, Any], data), set(), 1)
+    mask_out = Output(0)

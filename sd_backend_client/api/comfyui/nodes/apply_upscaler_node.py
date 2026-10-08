@@ -1,28 +1,14 @@
 """A ComfyUI node used to apply an upscaling model."""
-from typing import NotRequired
-from typing_extensions import TypedDict
+from typing import ClassVar
 
-from sd_backend_client.api.comfyui.nodes.comfy_node import NodeConnection, ComfyNode
-
-NODE_NAME = 'ImageUpscaleWithModel'
-
-
-class ImageUpscaleInputs(TypedDict):
-    """Upscaling parameters."""
-    upscale_model: NotRequired[NodeConnection]
-    image: NotRequired[NodeConnection]
+from sd_backend_client.api.comfyui.nodes.comfy_node import ComfyNode, Connection, Output
 
 
 class ApplyUpscalerNode(ComfyNode):
     """A ComfyUI node used to apply an upscaling model."""
+    CLASS_TYPE: ClassVar[str] = 'ImageUpscaleWithModel'
 
-    # Connection keys:
-    UPSCALE_MODEL = 'upscale_model'
-    IMAGE = 'image'
+    upscale_model: Connection = None
+    image: Connection = None
 
-    # Output indexes:
-    IDX_IMAGE = 0
-
-    def __init__(self) -> None:
-        connection_params = {ApplyUpscalerNode.UPSCALE_MODEL, ApplyUpscalerNode.IMAGE}
-        super().__init__(NODE_NAME, {}, connection_params, 1)
+    image_out = Output(0)

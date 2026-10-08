@@ -14,7 +14,6 @@ from pydantic import ValidationError
 from sd_backend_client.api.a1111_webservice import A1111Webservice
 from sd_backend_client.api.comfyui.comfyui_types import CONTROLNET_PREPROCESSOR_CATEGORY, NodeInfoResponse
 from sd_backend_client.api.comfyui.controlnet_comfyui_utils import COMBO_INPUT_TYPE, INVALID_PREPROCESSOR_NODES
-from sd_backend_client.api.comfyui.nodes.controlnet.dynamic_preprocessor_node import DynamicPreprocessorNode
 from sd_backend_client.api.comfyui_webservice import AsyncTaskStatus, ComfyEndpoints, ComfyUiWebservice
 from sd_backend_client.api.shared_data.controlnet.controlnet_preprocessor import ControlNetPreprocessor
 
@@ -90,7 +89,7 @@ def _requires_other_connection(node: NodeInfoResponse) -> bool:
 
     get_all_preprocessors skips such nodes, since DynamicPreprocessorNode wires only the image and mask."""
     for input_name, input_tuple in node.input.required.items():
-        if input_name in (DynamicPreprocessorNode.IMAGE, DynamicPreprocessorNode.MASK):
+        if input_name in ('image', 'mask'):
             continue
         input_type = input_tuple[0]
         if isinstance(input_type, str) and input_type not in PARAMETER_INPUT_TYPES:
