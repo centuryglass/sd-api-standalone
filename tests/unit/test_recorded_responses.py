@@ -6,10 +6,7 @@ fails here rather than only against a live server. When a test fails after a cli
 recording lacks, re-run the capture script and commit the new recording.
 """
 # pylint: disable=protected-access
-import json
-from pathlib import Path
-from typing import Any, Optional
-from urllib.parse import urlencode
+from typing import Any
 
 import pytest
 from pydantic import ValidationError
@@ -20,65 +17,14 @@ from sd_backend_client.api.comfyui.controlnet_comfyui_utils import COMBO_INPUT_T
 from sd_backend_client.api.comfyui.nodes.controlnet.dynamic_preprocessor_node import DynamicPreprocessorNode
 from sd_backend_client.api.comfyui_webservice import AsyncTaskStatus, ComfyEndpoints, ComfyUiWebservice
 from sd_backend_client.api.shared_data.controlnet.controlnet_preprocessor import ControlNetPreprocessor
-from sd_backend_client.api.webservice import WebService
-from sd_backend_client.errors import ServerError
 
-RECORDED_DIR = Path(__file__).parent / 'fixtures' / 'recorded'
+from .recorded_replay import RECORDED_DIR, recordings, replay
+
 # ComfyUI input types get_all_preprocessors reads as parameters; any other type name is a node connection.
 PARAMETER_INPUT_TYPES = {'INT', 'FLOAT', 'BOOLEAN', 'STRING', COMBO_INPUT_TYPE}
 
-
-def _recordings(backend: str) -> list[Any]:
-    """pytest params for every recording of one backend, with the file name as the test id."""
-    params = []
-    for path in sorted(RECORDED_DIR.glob('*.json')):
-        recording = json.loads(path.read_text(encoding='utf-8'))
-        if recording['meta']['backend'] == backend:
-            params.append(pytest.param(recording, id=path.stem))
-    return params
-
-
-COMFYUI_RECORDINGS = _recordings('comfyui')
-WEBUI_RECORDINGS = _recordings('webui')
-
-
-def _endpoint_key(endpoint: str, url_params: Optional[dict[str, str]] = None) -> str:
-    """The key a response is recorded under. Must match `endpoint_key` in scripts/capture_fixtures.py."""
-    if not url_params:
-        return endpoint
-    return f'{endpoint}?{urlencode(sorted(url_params.items()))}'
-
-
-class _RecordedResponse:
-    """Stand-in for a successful `requests.Response` carrying one recorded JSON body."""
-    status_code = 200
-    ok = True
-
-    def __init__(self, body: Any) -> None:
-        self._body = body
-
-    def json(self) -> Any:
-        """Return a fresh copy of the recorded body, as each `Response.json()` call parses anew."""
-        return json.loads(json.dumps(self._body))
-
-
-def _replay(service: WebService, recording: dict[str, Any]) -> WebService:
-    """Replace service.get with a lookup into the recording; an unrecorded endpoint fails the test."""
-    responses: dict[str, Any] = recording['responses']
-    errors: dict[str, int] = recording.get('errors', {})
-
-    def recorded_get(endpoint: str, timeout: Optional[float] = None, url_params: Optional[dict[str, str]] = None,
-                     **_kwargs: Any) -> _RecordedResponse:
-        del timeout
-        key = _endpoint_key(endpoint, url_params)
-        if key in errors:
-            raise ServerError(errors[key], '', endpoint, 'GET')
-        if key not in responses:
-            pytest.fail(f'{key} is not in the recording; re-run scripts/capture_fixtures.py')
-        return _RecordedResponse(responses[key])
-
-    service.get = recorded_get  # type: ignore[method-assign, assignment]
-    return service
+COMFYUI_RECORDINGS = recordings('comfyui')
+WEBUI_RECORDINGS = recordings('webui')
 
 
 def _assert_parameters_consistent(preprocessor: ControlNetPreprocessor) -> None:
@@ -119,7 +65,7 @@ def test_capabilities_match_the_live_server(recording):
 
 def _comfy(recording: dict[str, Any]) -> ComfyUiWebservice:
     service = ComfyUiWebservice('http://127.0.0.1:8188')
-    _replay(service, recording)
+    replay(service, recording)
     return service
 
 
@@ -207,7 +153,7 @@ def test_comfyui_queue_info_parses(recording):
 
 def _webui(recording: dict[str, Any]) -> A1111Webservice:
     service = A1111Webservice('http://127.0.0.1:7860')
-    _replay(service, recording)
+    replay(service, recording)
     return service
 
 

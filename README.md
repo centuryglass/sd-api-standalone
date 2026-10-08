@@ -4,151 +4,262 @@
 [![Python 3.11 | 3.12 | 3.13 | 3.14](https://img.shields.io/badge/python-3.11%20%7C%203.12%20%7C%203.13%20%7C%203.14-blue)](.github/workflows/ci.yml)
 [![License: Unlicense](https://img.shields.io/badge/license-Unlicense-blue)](LICENSE)
 
-A standalone, self-contained copy of IntraPaint's Stable Diffusion backend client
-(`src/api`). It talks to **ComfyUI**, **Forge/Automatic1111 WebUI**, and their
-**ControlNet** extensions, and builds the request bodies / node graphs those backends expect.
+A headless Python client for Stable Diffusion servers. It drives **ComfyUI** and **Forge / Automatic1111 WebUI**
+(with their **ControlNet** extensions) through one interface: build a `DiffusionParams`, submit it, and get
+`PIL.Image` results back, without caring which backend is running.
 
-This package was extracted from [IntraPaint](https://github.com/centuryglass/IntraPaint) so it can
-be dropped into other projects without pulling in the rest of the editor. Everything lives under the
-`sd_backend_client` package and imports only from within it (plus third-party libraries).
-
-**No Qt / PySide6 dependency.** Images are plain [Pillow](https://python-pillow.org/) `PIL.Image`
-objects and the package has no GUI requirements — it runs headless.
+The package was extracted from [IntraPaint](https://github.com/centuryglass/IntraPaint)'s `src/api` so other projects
+can use it without the rest of the editor. It has no Qt or GUI dependency.
 
 ## Status
 
-This package is under active refactoring. The core txt2img / img2img / inpainting / ControlNet paths
-work end-to-end against both backends (covered by the integration tests), but some areas — notably the
-ComfyUI node classes' migration to pydantic and the tiled-upscaling workflow — are still in progress.
-
-My eventual goal is to provide an API-agnostic interface, allowing complex image generation requests
-to pass to either ComfyUI or Stable-Diffusion-WebUI without needing to care which interface is
-actually available. To accomplish this, response data formats still need to be unified, and work
-towards queued vs. blocking request handling still needs to be fully completed and tested.
+Under active refactoring, and the API may still change between minor versions. txt2img, img2img, inpainting,
+upscaling and ControlNet work end-to-end on both backends. Still in progress: moving the ComfyUI node classes to
+pydantic, and tiled upscaling.
 
 ## Installation
 
-```
-pip install -e .
-```
-
-This installs the package (and its dependencies) in editable mode, so `sd_backend_client` is importable
-from anywhere without manually managing `sys.path`.
-
-Requires **Python 3.11+** (uses `match` statements and PEP 604 / `X | Y` type aliases).
-Runtime dependencies: `pillow`, `requests`, `websocket-client`, `pydantic`, `typing-extensions`.
-
-## Layout
-
-```
-sd_backend_client/
-  api/
-    webservice.py            # base HTTP/session helper
-    a1111_webservice.py      # Forge / A1111 WebUI client (synchronous)
-    comfyui_webservice.py    # ComfyUI client (async queue + polling)
-    shared_data/             # backend-agnostic pydantic models
-      diffusion_params.py        # DiffusionParams: shared generation parameters
-      api_datatypes.py           # DiffusionUpscalingParams and friends
-      controlnet/                # ControlNetUnit / PreprocessorParams / ControlNet model
-    comfyui/                 # ComfyUI node-graph + workflow builders (+ ComfyUIDiffusionParams)
-    webui/                   # WebUI request/response formats (+ DiffusionRequestBody)
-  util/                    # shared constants, Size, PIL image helpers
+```bash
+pip install sd-backend-client
 ```
 
-## Usage
+To install the latest unreleased code instead:
 
-Generation parameters are passed explicitly as [pydantic](https://docs.pydantic.dev/) models — there
-is no hidden config/cache layer. Images passed in and returned are `PIL.Image` objects; no
-`QApplication` or event loop is needed.
+```bash
+pip install git+https://github.com/centuryglass/sd-backend-client
+```
 
-`DiffusionParams` (in `shared_data`) holds the parameters common to both backends. Each backend
-extends it: `DiffusionRequestBody` (WebUI) and `ComfyUIDiffusionParams` (ComfyUI) add
-backend-specific fields.
+Requires Python 3.11 or newer. Runtime dependencies: `pillow`, `requests`, `websocket-client`, `pydantic` and
+`typing-extensions`.
 
-### Forge / A1111 WebUI (synchronous)
+## Quick start
 
 ```python
-from sd_backend_client.api.a1111_webservice import A1111Webservice
-from sd_backend_client.api.webui.diffusion_request_body import DiffusionRequestBody
+from sd_backend_client import DiffusionParams, connect_to_backend
 
-service = A1111Webservice('http://localhost:7860')
-body = DiffusionRequestBody(prompt='a corgi astronaut, detailed',
-                            steps=30, cfg_scale=7.0, width=512, height=512)
-result = service.txt2img(body)     # blocks until the image is generated
-images = result['images']          # list[PIL.Image]
+backend = connect_to_backend('http://127.0.0.1:7860')  # a ComfyUI or WebUI server
+params = DiffusionParams(prompt='a corgi astronaut, detailed', steps=20, width=512, height=512, seed=42)
+result = backend.submit_txt2img(params).wait(timeout=300)
+result.images[0].save('corgi.png')
 ```
 
-For img2img / inpainting, pass the source image (and, for inpainting, a mask) to
-`service.img2img(image, mask, body)`.
+`connect_to_backend` probes the URL and returns an `A1111Webservice` or a `ComfyUiWebservice`. Both implement
+`Backend`, so the rest of this README works the same on either. To skip the probe, construct the client directly:
+`ComfyUiWebservice('http://127.0.0.1:8188')` or `A1111Webservice('http://127.0.0.1:7860')`.
 
-### ComfyUI (asynchronous)
+Import everything from the package root. The names in `sd_backend_client.__all__` are the supported API. Modules
+under `sd_backend_client.api` are internal and may change in any release.
 
-ComfyUI generation is queued: the call returns immediately with a prompt id, and you poll for
-completion, then download the results.
+## Generation jobs
+
+Every `submit_*` method queues a job and returns a `GenerationHandle` at once. The job uses its arguments as they were
+at submit time, so you can change and reuse a params object afterwards.
+
+| Method | Job |
+|---|---|
+| `submit_txt2img(params)` | Text to image. |
+| `submit_img2img(params)` | Image to image on `params.init_images[0]`. |
+| `submit_inpaint(params)` | Inpaint the region of `params.init_images[0]` that `params.mask` marks. |
+| `submit_upscale(image, width, height, upscale_params=None)` | Upscale one image. |
+| `submit_preprocessor_preview(image, preprocessor, mask=None)` | Run a ControlNet preprocessor and return its control image. |
+
+A handle offers:
+
+- `wait(timeout=None, poll_interval=0.5, on_progress=None)` blocks until the job ends and returns a `GenerationResult`.
+  It raises `GenerationError` if the job failed or was cancelled, and `BackendTimeoutError` if `timeout` passes first.
+- `poll()` returns a `GenerationProgress` snapshot without blocking: `status` (a `GenerationStatus`), and where the
+  backend reports them, `progress` (0 to 1), `queue_index`, `eta_seconds`, a `preview` image and `text_info`.
+- `cancel()` tries to stop the job and returns whether the server accepted.
+- `done` reports whether the job has ended, and `task_id` holds the server's id for it.
+
+A `GenerationResult` holds `images`, the `seeds` each one used, any ControlNet `control_maps` the server returned,
+the base `seed`, and the backend's own metadata in `raw_info`.
+
+Poll a handle to drive a progress bar:
 
 ```python
-from sd_backend_client.api.comfyui_webservice import ComfyUiWebservice
-from sd_backend_client.api.comfyui.comfyui_diffusion_params import ComfyUIDiffusionParams
+from sd_backend_client import DiffusionParams, GenerationProgress, connect_to_backend
 
-service = ComfyUiWebservice('http://localhost:8188')
-params = ComfyUIDiffusionParams(sd_model_name='deliberate_v3.safetensors',
-                                prompt='a corgi astronaut, detailed',
-                                steps=20, sampler='euler', scheduler='karras')
-response = service.txt2img(params)                 # queues a job
-# poll service.check_queue_entry(response.prompt_id, response.number) until it reports FINISHED,
-# then service.download_images(progress.outputs.images) to get the PIL images.
+def show_progress(progress: GenerationProgress) -> None:
+    if progress.progress is not None:
+        print(f'{progress.status.value}: {progress.progress:.0%}')
+
+backend = connect_to_backend('http://127.0.0.1:8188')
+handle = backend.submit_txt2img(DiffusionParams(prompt='a lighthouse at dusk', batch_size=2))
+result = handle.wait(on_progress=show_progress)
+for image, seed in zip(result.images, result.seeds):
+    image.save(f'lighthouse_{seed}.png')
 ```
 
-Set `init_images` (and `mask`) on the params for img2img / inpainting.
+**How each backend queues jobs.** ComfyUI queues jobs on the server: `cancel()` removes a queued job or interrupts the
+running one. The WebUI API has no queue, so `A1111Webservice` keeps one on the client. It sends one job at a time,
+once the server has finished whatever it is running. Until a job is sent, `cancel()` drops it without contacting the
+server. After that, `cancel()` interrupts the server's current job. This queue assumes your client is the server's
+only user: it does not coordinate with other clients, or with other `A1111Webservice` objects for the same server.
 
-### ControlNet
+## Images and inpainting
 
-ControlNet units are backend-agnostic: build a `ControlNetUnit` (with an optional `ControlNetModel`
-and a `PreprocessorParams`) and add it to `diffusion_params.controlnet_units`. Each backend serializes
-them into the form it expects — WebUI's `alwayson_scripts` ControlNet args, or ComfyUI ControlNet
-nodes.
+Images in and out are `PIL.Image` objects. For img2img and inpainting, set `init_images` and, for inpainting,
+`mask`. The source image and mask are resized to `width` x `height`.
 
-### Authentication (A1111 / Forge)
-
-IntraPaint prompted for credentials with a Qt login dialog. The standalone client instead accepts a
-`credentials_provider` callback, invoked when the server requires auth; it returns a
-`(username, password)` pair to try, or `None` to abort:
+The mask means the same on both backends: **white or opaque pixels mark the region to change.** Either a grayscale
+mask or an alpha mask works.
 
 ```python
-from sd_backend_client.api.a1111_webservice import A1111Webservice
+from PIL import Image, ImageDraw
 
-service = A1111Webservice('http://localhost:7860',
-                          credentials_provider=lambda: ('user', 'password'))
+from sd_backend_client import DiffusionParams, connect_to_backend
+
+source = Image.open('photo.png')
+mask = Image.new('L', source.size, 0)                           # black: keep
+ImageDraw.Draw(mask).rectangle((128, 128, 384, 384), fill=255)  # white: repaint
+
+backend = connect_to_backend('http://127.0.0.1:7860')
+params = DiffusionParams(prompt='a bowl of fruit on a table', init_images=[source], mask=mask,
+                         denoising_strength=0.8, width=source.width, height=source.height)
+backend.submit_inpaint(params).wait().images[0].save('inpainted.png')
 ```
 
-## Design notes
+## ControlNet
 
-Extracted from IntraPaint's `src/api` and then decoupled in two ways:
+A `ControlNetUnit` pairs a control image with a preprocessor, a ControlNet model, or both. Add units to
+`params.controlnet_units`, and each backend converts them into its own request format. Preprocessor and model names
+differ between backends, so look them up from the server. `get_controlnet_type_categories()` groups them by control
+type:
 
-- **No Qt.** `QImage` → `PIL.Image` (via the small helpers in `util/visual/image_utils.py`; decoded
-  images are normalized to RGBA), `QSize` → the minimal `Size` value class in `util/geometry.py`, and
-  the UI strings and `_tr()` translation helpers are removed.
-  Dropping Qt also dropped `cv2` / `numpy`, which were only used by the old image helpers.
-- **No config layer.** The original client read generation parameters out of JSON-backed `Cache` /
-  `AppConfig` singletons. That whole system (and the `resources/config/*.json` definitions behind it)
-  has been removed; parameters are now passed explicitly as the pydantic models described above.
-  Moving to pydantic also replaced the hand-rolled request/response typing with validated models.
+```python
+from PIL import Image
 
-## Verifying against a live backend
+from sd_backend_client import ControlNetModel, ControlNetUnit, DiffusionParams, PreprocessorParams, \
+    connect_to_backend
 
-The client's wire behavior is exercised by an integration test suite under `tests/` that runs against
-real ComfyUI and A1111/Forge servers (see `tests/README.md`). If you rely on img2img / inpainting /
-ControlNet, a real round-trip is worth more than trusting imports alone.
+backend = connect_to_backend('http://127.0.0.1:7860')
+canny = backend.get_controlnet_type_categories()['Canny']
+preprocessor_name = next(name for name in canny['module_list'] if name.lower() != 'none')
+model_name = next(name for name in canny['model_list'] if name.lower() != 'none')
+preprocessor = next(p for p in backend.get_controlnet_preprocessors() if p.name == preprocessor_name)
+
+unit = ControlNetUnit(image=Image.open('reference.png'),
+                      preprocessor=PreprocessorParams(typedef=preprocessor, parameter_values={}),
+                      model=ControlNetModel(model_name),
+                      control_strength=0.8)
+params = DiffusionParams(prompt='a robot with the same outline', controlnet_units=[unit])
+backend.submit_txt2img(params).wait().images[0].save('controlled.png')
+```
+
+`PreprocessorParams` fills in the preprocessor's required parameters from their defaults. Set others by key in
+`parameter_values`; `preprocessor.parameters` lists each key with its type, default and range.
+[`examples/canny_preprocessor_preview.py`](examples/canny_preprocessor_preview.py) shows a complete script.
+
+## Discovering what a server offers
+
+```python
+from sd_backend_client import DiffusionParams, connect_to_backend
+
+backend = connect_to_backend('http://127.0.0.1:8188')
+checkpoints = [option.name for option in backend.list_checkpoints()]
+samplers = [option.name for option in backend.list_samplers()]
+capabilities = backend.get_capabilities()
+print(checkpoints, samplers, capabilities.controlnet, capabilities.ultimate_upscale)
+
+params = DiffusionParams(sd_model_name=checkpoints[0], sampler='dpmpp_2m', scheduler='karras', prompt='a fox')
+```
+
+The `list_*` methods return `BackendOption`s whose `name` goes straight into the matching parameter field. Sampler
+and scheduler names are ComfyUI's (`'euler_ancestral'`, `'dpmpp_2m'`, `'karras'`) on both backends; WebUI names
+such as `'Euler a'` are also accepted. `get_capabilities()` reports optional features such as ControlNet, Ultimate SD
+Upscale and scheduler support.
+
+## Backend-specific parameters
+
+`DiffusionParams` holds the parameters both backends support. Each backend has a subclass with extra fields, and the
+other backend ignores those fields:
+
+- `DiffusionRequestBody` (WebUI): batch repeats (`n_iter`), `resize_mode`, inpainting fill and blur, styles,
+  high-res fix, refiner and `override_settings`.
+- `ComfyUIDiffusionParams` (ComfyUI): `clip_skip`, VAE tiling, an explicit model config, and loading the checkpoint
+  as an inpainting model.
+
+```python
+from sd_backend_client import DiffusionRequestBody, connect_to_backend
+
+backend = connect_to_backend('http://127.0.0.1:7860')
+params = DiffusionRequestBody(prompt='a castle on a hill', batch_size=2, n_iter=3, enable_hr=True, hr_scale=1.5)
+images = backend.submit_txt2img(params).wait().images  # six images on WebUI, two on ComfyUI
+```
+
+## Authentication (WebUI)
+
+For a WebUI started with `--api-auth`, pass a `credentials_provider` callback. The client calls it when the server
+asks for credentials; it returns a `(username, password)` pair, or `None` to give up.
+
+```python
+from sd_backend_client import connect_to_backend
+
+backend = connect_to_backend('http://127.0.0.1:7860', credentials_provider=lambda: ('user', 'password'))
+```
+
+ComfyUI has no authentication and ignores the callback.
+
+## Errors
+
+Every failure talking to a server raises a subclass of `SDBackendError`, so you can catch them as one group:
+
+| Exception | Raised when |
+|---|---|
+| `BackendConnectionError` | The server can't be reached. Also a `ConnectionError`. |
+| `BackendTimeoutError` | A request or `wait()` ran out of time. Also a `TimeoutError`. |
+| `AuthError` | The WebUI rejected authentication. |
+| `ServerError` | The server answered with an error status; `status_code` and `body` hold its reply. |
+| `UnexpectedResponseError` | The response was not in the expected format, usually an unsupported server version. |
+| `WorkflowValidationError` | ComfyUI rejected the generated workflow; `node_errors` holds per-node detail. |
+| `GenerationError` | A job ended failed, cancelled or unknown to the server; `status` holds its final state. |
+
+Invalid input, such as inpainting without a mask, raises `ValueError` before anything is sent.
+
+```python
+from sd_backend_client import DiffusionParams, GenerationError, SDBackendError, connect_to_backend
+
+try:
+    backend = connect_to_backend('http://127.0.0.1:8188')
+    result = backend.submit_txt2img(DiffusionParams(prompt='a teapot')).wait(timeout=120)
+except GenerationError as err:
+    print(f'Generation ended with status {err.status.value}: {err}')
+except SDBackendError as err:
+    print(f'Backend error: {err}')
+```
+
+## Compatibility
+
+Responses from these servers, recorded in October 2026, are replayed by the unit tests
+(`tests/unit/fixtures/recorded/`):
+
+- ComfyUI 0.39.0, with [comfyui_controlnet_aux](https://github.com/Fannovel16/comfyui_controlnet_aux) and
+  [Ultimate SD Upscale](https://github.com/ssitu/ComfyUI_UltimateSDUpscale).
+- Automatic1111 WebUI with [sd-webui-controlnet](https://github.com/Mikubill/sd-webui-controlnet) (API version 3).
+- Forge, reForge and Forge Neo, each with its built-in ControlNet.
+
+Other versions may work but haven't been checked. The integration tests in `tests/` run the full generation paths
+against a live server; [`tests/README.md`](tests/README.md) explains how to point them at yours.
+
+## Differences from IntraPaint's client
+
+- **No Qt.** Images are `PIL.Image` (decoded images are normalized to RGBA) and sizes use a small `Size` class.
+  There are no UI strings, and no `cv2` or `numpy`.
+- **No config layer.** IntraPaint read generation parameters from its `Cache` / `AppConfig` settings. Here they are
+  passed explicitly as pydantic models, which validate them.
+- **Authentication** uses the `credentials_provider` callback in place of IntraPaint's login dialog.
 
 ## Development
 
-`pip install -r requirements-dev.txt` adds the test, lint and type-check tools. CI (`.github/workflows/ci.yml`) runs
-the unit tests on Python 3.11-3.14, a pylint check and a mypy check on every pull request into `main`. Releases are
-cut by [release-please](https://github.com/googleapis/release-please) from Conventional Commits pull request titles;
-see `CHANGELOG.md` once the first release lands. Rules for coding agents are in `AGENTS.md`.
+[`CONTRIBUTING.md`](CONTRIBUTING.md) covers setup, checks and pull requests. CI (`.github/workflows/ci.yml`) runs
+`pytest tests/` on Python 3.11-3.14 and with the oldest allowed dependencies, plus pylint, mypy and a packaging check,
+on every pull request into `main`. No backend runs in CI, so the integration tests skip themselves there and only the
+offline unit tests run. Releases are cut by [release-please](https://github.com/googleapis/release-please) from
+Conventional Commits pull request titles; see [`CHANGELOG.md`](CHANGELOG.md). Rules for coding agents are in
+[`AGENTS.md`](AGENTS.md).
 
 ## License
 
-Public domain, dedicated under [The Unlicense](https://unlicense.org) — see `LICENSE`. Use it for
-anything, with no attribution or other obligations.
-
+Public domain, dedicated under [The Unlicense](https://unlicense.org); see [`LICENSE`](LICENSE). Use it for anything,
+with no attribution or other obligations.
