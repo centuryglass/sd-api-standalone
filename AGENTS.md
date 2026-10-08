@@ -86,6 +86,10 @@ The package is a **functional core / imperative shell**: pure builders turn pyda
 thin HTTP clients send them. The two backends' APIs are shaped very differently, which is the main thing to
 understand.
 
+**The public API is the package root's `__all__`** (`sd_backend_client/__init__.py`); every other module is internal.
+A new class that `Backend`, `GenerationHandle` or an exported model uses gets added there, or
+`tests/unit/test_public_api.py` fails.
+
 ### Shared, backend-agnostic layer: `api/shared_data/`
 
 - `diffusion_params.py`: `DiffusionParams`, the pydantic base holding parameters common to both backends. Each backend

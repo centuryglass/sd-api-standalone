@@ -1,1 +1,70 @@
-"""IntraPaint standalone API package."""
+"""A headless client for the ComfyUI and Forge/A1111 WebUI Stable Diffusion APIs.
+
+The names in `__all__` are the supported public API: import them from `sd_backend_client` itself. Every other module
+and name, including the ComfyUI node graph and workflow builders, the HTTP layer and the wire formats under
+`sd_backend_client.api`, stays importable but is internal and may change or move in any release.
+
+A package class that a `Backend` or `GenerationHandle` method takes or returns, or that a field of an exported model
+holds, belongs in `__all__` too; `tests/unit/test_public_api.py` enforces this. The clients' backend-specific methods
+outside `Backend` may use internal types.
+"""
+from sd_backend_client.api.a1111_webservice import A1111Webservice
+from sd_backend_client.api.comfyui.comfyui_diffusion_params import ComfyUIDiffusionParams
+from sd_backend_client.api.comfyui_webservice import ComfyUiWebservice
+from sd_backend_client.api.detect import connect_to_backend
+from sd_backend_client.api.shared_data.api_datatypes import DiffusionUpscalingParams
+from sd_backend_client.api.shared_data.backend import Backend
+from sd_backend_client.api.shared_data.backend_options import BackendCapabilities, BackendOption
+from sd_backend_client.api.shared_data.controlnet.controlnet_constants import ControlTypeDef
+from sd_backend_client.api.shared_data.controlnet.controlnet_model import ControlNetModel
+from sd_backend_client.api.shared_data.controlnet.controlnet_preprocessor import ControlNetPreprocessor, \
+    ParameterDef, PreprocessorParams
+from sd_backend_client.api.shared_data.controlnet.controlnet_unit import ControlNetUnit
+from sd_backend_client.api.shared_data.diffusion_params import DiffusionParams
+from sd_backend_client.api.shared_data.generation_handle import GenerationHandle, GenerationProgress, \
+    GenerationResult, GenerationStatus, ProgressCallback
+from sd_backend_client.api.webui.diffusion_request_body import DiffusionRequestBody, InpaintFillOption, ResizeMode
+from sd_backend_client.api.webui.script_info_types import ScriptRequestData
+from sd_backend_client.errors import AuthError, BackendConnectionError, BackendTimeoutError, GenerationError, \
+    SDBackendError, ServerError, UnexpectedResponseError, WorkflowValidationError
+
+__all__ = [
+    # Clients
+    'Backend',
+    'connect_to_backend',
+    'A1111Webservice',
+    'ComfyUiWebservice',
+    # Generation parameters
+    'DiffusionParams',
+    'DiffusionRequestBody',
+    'ResizeMode',
+    'InpaintFillOption',
+    'ScriptRequestData',
+    'ComfyUIDiffusionParams',
+    'DiffusionUpscalingParams',
+    # ControlNet
+    'ControlNetUnit',
+    'ControlNetModel',
+    'ControlNetPreprocessor',
+    'PreprocessorParams',
+    'ParameterDef',
+    'ControlTypeDef',
+    # Discovery
+    'BackendOption',
+    'BackendCapabilities',
+    # Generation handles
+    'GenerationHandle',
+    'GenerationStatus',
+    'GenerationProgress',
+    'GenerationResult',
+    'ProgressCallback',
+    # Errors
+    'SDBackendError',
+    'BackendConnectionError',
+    'BackendTimeoutError',
+    'AuthError',
+    'ServerError',
+    'UnexpectedResponseError',
+    'WorkflowValidationError',
+    'GenerationError',
+]
