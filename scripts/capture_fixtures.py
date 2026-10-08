@@ -49,7 +49,7 @@ MAX_INVALID_NODES_KEPT = 5
 def endpoint_key(endpoint: str, url_params: Optional[dict[str, str]] = None) -> str:
     """The key a recorded response is stored under: the endpoint, plus its sorted query string when it has one.
 
-    tests/unit/test_recorded_responses.py replays responses under the same keys."""
+    tests/unit/recorded_replay.py replays responses under the same keys."""
     if not url_params:
         return endpoint
     return f'{endpoint}?{urlencode(sorted(url_params.items()))}'

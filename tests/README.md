@@ -60,16 +60,19 @@ attributes directly.
 - **`test_image_and_geometry.py`** — base64/PNG round-trips, RGBA normalization, `Size`.
 - **`test_param_parity.py`** - the same `DiffusionParams` serialized for both backends asks for the same
   generation: sampler and scheduler names, size, batch size, denoising strength and checkpoint.
+- **`test_readme_examples.py`** - runs every Python example in the top-level `README.md` and
+  the scripts in `examples/` against each recorded server (see below), with job submission
+  stubbed out, and checks they import only the public API.
 
-These pin behavior ahead of the planned config-decoupling refactor: they cover exactly the
-logic that survives it, so a regression that silently changes an emitted request will fail
-here (fast, offline) rather than only showing up in a live generation.
+A regression that silently changes an emitted request fails here (fast, offline) rather than
+only showing up in a live generation.
 
 ### Recorded responses (`tests/unit/fixtures/recorded/`)
 
 `test_recorded_responses.py` replays real server responses through the clients' public
 methods: ComfyUI's `/object_info`, `/history`, `/queue` and `/system_stats`, and the WebUI's
-ControlNet and option-list endpoints. Each `<label>.json` there is written by
+ControlNet and option-list endpoints. `recorded_replay.py` holds the replay helper it shares
+with `test_readme_examples.py`. Each `<label>.json` there is written by
 `scripts/capture_fixtures.py`, which runs the clients against live servers (the same
 `COMFYUI_API_URL`, `SD_API_URL`, `SD_UNAME`/`SD_PASS` variables as the integration tests) and
 records every response they read:
