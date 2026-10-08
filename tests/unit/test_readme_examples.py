@@ -1,9 +1,9 @@
-"""The README's Python examples and the scripts in `examples/` run against every recorded server, offline.
+"""The Python examples in the README and the docs site, and the scripts in `examples/`, run against recorded servers.
 
-Each example runs with `connect_to_backend` patched to return a real client whose `get` replays a recording (see
-`recorded_replay`), so discovery calls parse real responses. The `submit_*` methods are replaced by autospecced
-stand-ins that check the call signature and return an already-finished handle. A renamed export, method or parameter
-fails here.
+Each example runs offline with `connect_to_backend` and the client constructors patched to return a real client whose
+`get` replays a recording (see `recorded_replay`), so discovery calls parse real responses. The `submit_*` methods are
+replaced by autospecced stand-ins that check the call signature and return an already-finished handle. A renamed
+export, method or parameter fails here.
 """
 import ast
 import importlib.util
@@ -25,18 +25,34 @@ from .recorded_replay import recordings, replay
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
 README = REPO_ROOT / 'README.md'
+DOCS = REPO_ROOT / 'docs'
 EXAMPLE_SCRIPTS = sorted((REPO_ROOT / 'examples').glob('*.py'))
 SUBMIT_METHODS = ('submit_txt2img', 'submit_img2img', 'submit_inpaint', 'submit_upscale',
                   'submit_preprocessor_preview')
 RECORDINGS = recordings('comfyui') + recordings('webui')
 
 
-def _python_blocks() -> list[str]:
-    """Every fenced ```python block in the README, in order."""
-    return re.findall(r'^```python\n(.*?)^```', README.read_text(encoding='utf-8'), re.MULTILINE | re.DOTALL)
+def _python_blocks(path: Path) -> list[str]:
+    """Every fenced ```python block in a markdown file, in order."""
+    return re.findall(r'^```python\n(.*?)^```', path.read_text(encoding='utf-8'), re.MULTILINE | re.DOTALL)
 
 
-README_BLOCKS = _python_blocks()
+README_BLOCKS = _python_blocks(README)
+
+# Docs pages whose examples are written for one backend; the others run against every recording.
+DOC_PAGE_BACKENDS = {'quickstart/webui.md': 'webui', 'quickstart/comfyui.md': 'comfyui'}
+DOC_PAGES = [page for page in sorted(DOCS.rglob('*.md')) if _python_blocks(page)]
+
+
+def _doc_page_cases() -> list[Any]:
+    """pytest params pairing each docs page that has examples with each recording its examples target."""
+    cases = []
+    for page in DOC_PAGES:
+        name = page.relative_to(DOCS).as_posix()
+        backend = DOC_PAGE_BACKENDS.get(name)
+        page_recordings = recordings(backend) if backend else RECORDINGS
+        cases += [pytest.param(page, param.values[0], id=f'{name}-{param.id}') for param in page_recordings]
+    return cases
 
 
 class _FinishedHandle(GenerationHandle):
@@ -73,13 +89,19 @@ def _offline_backend(recording: dict[str, Any]) -> Backend:
 
 @pytest.fixture(name='connect_offline')
 def fixture_connect_offline(monkeypatch: pytest.MonkeyPatch, tmp_path: Path):
-    """Run in an empty directory, and return a function that points `connect_to_backend` at a recording."""
+    """Run in an empty directory, and return a function that points the package's clients at a recording.
+
+    `connect_to_backend` and the constructor of the recording's client class return the offline client.
+    """
     monkeypatch.chdir(tmp_path)
 
     def connect(recording: dict[str, Any]) -> Backend:
         backend = _offline_backend(recording)
         connect_stand_in = create_autospec(sd_backend_client.connect_to_backend, return_value=backend)
         monkeypatch.setattr(sd_backend_client, 'connect_to_backend', connect_stand_in)
+        client_class = type(backend)
+        monkeypatch.setattr(sd_backend_client, client_class.__name__,
+                            create_autospec(client_class, return_value=backend))
         return backend
 
     return connect
@@ -116,11 +138,15 @@ def test_readme_has_python_examples():
     assert len(README_BLOCKS) >= 5
 
 
-@pytest.mark.parametrize('path', [README, *EXAMPLE_SCRIPTS], ids=lambda path: path.name)
+def test_docs_have_python_examples():
+    """The block extraction still finds the docs site's examples, so the docs tests below never silently run none."""
+    assert {page.relative_to(DOCS).as_posix() for page in DOC_PAGES} >= {'index.md', *DOC_PAGE_BACKENDS}
+
+
+@pytest.mark.parametrize('path', [README, *DOC_PAGES, *EXAMPLE_SCRIPTS], ids=lambda path: path.name)
 def test_examples_import_only_the_public_api(path: Path):
     """Examples import from the package root, and only names in `__all__`, so they show the supported API."""
-    source = path.read_text(encoding='utf-8')
-    sources = README_BLOCKS if path == README else [source]
+    sources = _python_blocks(path) if path.suffix == '.md' else [path.read_text(encoding='utf-8')]
     imports = [found for code in sources for found in _package_imports(code)]
     assert imports, f'{path.name} imports nothing from sd_backend_client'
     for module, names in imports:
@@ -141,6 +167,23 @@ def test_readme_example_runs(block_index: int, recording: dict[str, Any], connec
     exec(compile(source, f'README.md block {block_index}', 'exec'), {'__name__': '__readme__'})  # pylint: disable=exec-used
     if 'submit_' in source and 'connect_to_backend' in source:
         assert any(getattr(backend, name).called for name in SUBMIT_METHODS), 'the example submitted no job'
+
+
+@pytest.mark.parametrize(('page', 'recording'), _doc_page_cases())
+def test_docs_page_examples_run(page: Path, recording: dict[str, Any], connect_offline, tmp_path: Path,
+                                capsys: pytest.CaptureFixture[str]):
+    """Each docs page's examples run to completion, in order and sharing names, against each recorded server.
+
+    A page's later examples build on its earlier ones, such as the `backend` and `params` they define.
+    """
+    del capsys  # Silences the examples' prints.
+    backend = connect_offline(recording)
+    namespace: dict[str, Any] = {'__name__': '__docs__'}
+    for index, source in enumerate(_python_blocks(page)):
+        _create_opened_images(source, tmp_path)
+        exec(compile(source, f'{page.relative_to(DOCS)} block {index}', 'exec'), namespace)  # pylint: disable=exec-used
+    if 'submit_' in page.read_text(encoding='utf-8'):
+        assert any(getattr(backend, name).called for name in SUBMIT_METHODS), 'the page submitted no job'
 
 
 @pytest.mark.parametrize('recording', RECORDINGS)
