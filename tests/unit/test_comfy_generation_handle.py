@@ -165,8 +165,10 @@ def test_wait_runs_through_lifecycle_and_downloads(tmp_path):
             if s in seen] == [GenerationStatus.PENDING, GenerationStatus.ACTIVE, GenerationStatus.FINISHED]
     assert len(result.images) == 2
     assert result.seed == 42
+    assert result.seeds == [42, 42]  # a ComfyUI batch shares one seed
+    assert not result.control_maps
     assert result.task_id == 'prompt-123'
-    assert isinstance(result.info, PromptExecOutputs)
+    assert isinstance(result.raw_info, PromptExecOutputs)
 
 
 def test_build_result_uses_cached_outputs_from_finished_poll():
@@ -174,6 +176,7 @@ def test_build_result_uses_cached_outputs_from_finished_poll():
     handle.poll()  # caches outputs
     result = handle._build_result()
     assert len(result.images) == 1
+    assert not result.seeds and result.seed is None  # no seed, as for a basic upscale or a preview
 
 
 # --------------------------------------------------------------------------- #

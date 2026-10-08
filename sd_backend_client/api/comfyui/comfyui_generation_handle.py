@@ -171,7 +171,9 @@ class ComfyGenerationHandle(GenerationHandle):
             outputs = self._service.check_queue_entry(self._task_id, self._number).outputs
         image_refs = outputs.images if (outputs is not None and outputs.images is not None) else []
         images = self._service.download_images(image_refs)
-        return GenerationResult(images=images, info=outputs, seed=self._seed, task_id=self._task_id)
+        # A ComfyUI batch samples every image from one seed, so each image reports the job's seed.
+        seeds = [] if self._seed is None else [self._seed] * len(images)
+        return GenerationResult(images=images, seeds=seeds, seed=self._seed, task_id=self._task_id, raw_info=outputs)
 
     def cancel(self) -> bool:
         """Cancel the job: drop it from the queue if still PENDING, else interrupt the running job.

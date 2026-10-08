@@ -23,9 +23,12 @@ from sd_backend_client.api.webui.diffusion_request_body import DiffusionRequestB
 from sd_backend_client.util.visual.image_utils import image_to_base64, image_to_png_bytes
 
 from .fake_session import FakeSession
+from .webui_responses import generation_info, generation_response
 
 PROMPT_ID = '7d4c0f0e-6a3b-4c1e-9f6e-0a1b2c3d4e5f'
 RESULT_PIXEL = (12, 34, 56, 255)
+DETECT_MAP_PIXEL = (255, 255, 255, 255)
+SEED = 1234
 UPSCALER_NAME = 'upscaler.pth'
 WAIT_TIMEOUT_S = 5.0
 
@@ -51,9 +54,13 @@ class _Harness:
 def _webui() -> _Harness:
     service = A1111Webservice('http://webui.invalid')
     image_response = {'images': [image_to_base64(_result_image())]}
+    # The WebUI's ControlNet extension appends its detect map after the generated image.
+    generation = generation_response([image_to_base64(_result_image()),
+                                      image_to_base64(Image.new('RGBA', (8, 8), DETECT_MAP_PIXEL))],
+                                     generation_info([SEED]))
     session = FakeSession({
-        ('POST', A1111Webservice.Endpoints.TXT2IMG): image_response,
-        ('POST', A1111Webservice.Endpoints.IMG2IMG): image_response,
+        ('POST', A1111Webservice.Endpoints.TXT2IMG): generation,
+        ('POST', A1111Webservice.Endpoints.IMG2IMG): generation,
         ('POST', A1111Webservice.Endpoints.UPSCALE): {'image': image_to_base64(_result_image())},
         ('POST', A1111Webservice.Endpoints.CONTROLNET_PREVIEW): image_response,
         ('GET', A1111Webservice.Endpoints.UPSCALERS): [
@@ -119,7 +126,7 @@ def _harness_fixture(request) -> _Harness:
 
 def _params(params_type: type[DiffusionParams] = DiffusionParams, init_image: bool = False, mask: bool = False,
             **fields: Any) -> DiffusionParams:
-    return params_type(prompt='a red apple', sd_model_name='model.safetensors', seed=1234,
+    return params_type(prompt='a red apple', sd_model_name='model.safetensors', seed=SEED,
                        init_images=[Image.new('RGBA', (8, 8), (200, 0, 0, 255))] if init_image else None,
                        mask=Image.new('L', (8, 8), 255) if mask else None, **fields)
 
@@ -156,6 +163,8 @@ def test_submit_then_wait_returns_the_generated_images(harness: _Harness, operat
     assert handle.task_id is not None and result.task_id == handle.task_id
     assert statuses[-1] is GenerationStatus.FINISHED
     assert [image.getpixel((0, 0)) for image in result.images] == [RESULT_PIXEL]
+    assert result.seeds == [SEED] and result.seed == SEED
+    assert result.raw_info is not None
     [request] = harness.generation_requests()
     assert 'a red apple' in harness.sent_prompts(request)
     assert harness.sent_image_count() == expected_image_count
@@ -206,6 +215,7 @@ def test_submit_upscale_then_wait_returns_the_upscaled_image(harness: _Harness,
     assert isinstance(handle, GenerationHandle)
     assert handle.task_id is not None and result.task_id == handle.task_id
     assert [image.getpixel((0, 0)) for image in result.images] == [RESULT_PIXEL]
+    assert not result.seeds and not result.control_maps
 
 
 @pytest.mark.parametrize('size', [(8, 8), (4, 8), (0, 16)])
@@ -230,3 +240,4 @@ def test_submit_preprocessor_preview_then_wait_returns_the_control_image(
     assert isinstance(handle, GenerationHandle)
     assert handle.task_id is not None and result.task_id == handle.task_id
     assert [image.getpixel((0, 0)) for image in result.images] == [RESULT_PIXEL]
+    assert not result.seeds and not result.control_maps

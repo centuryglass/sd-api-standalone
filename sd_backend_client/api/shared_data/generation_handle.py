@@ -75,15 +75,36 @@ class GenerationProgress:
 
 @dataclass
 class GenerationResult:
-    """The final output of a finished generation job.
+    """The final output of a finished generation job. Every field except `raw_info` means the same on both backends.
 
-    Mirrors the two backends' existing return shapes (``ImageResponse`` / downloaded ComfyUI outputs)
-    behind one type: the decoded images plus whatever generation metadata the backend surfaced.
+    Attributes
+    ----------
+    images: list[Image.Image]
+        The images the job generated, in order. Never includes ControlNet detect maps or a WebUI batch grid.
+    seeds: list[int]
+        The seed each image was generated with, parallel to `images`, or empty when the job used no seed (basic
+        upscaling, preprocessor previews) or the backend did not report one per image. A WebUI batch uses
+        consecutive seeds. A ComfyUI batch shares one seed, and each image's batch position also shapes its noise.
+    control_maps: list[Image.Image]
+        Images the backend returned after the generated ones: ControlNet detect maps, and inpainting masks when the
+        WebUI's return-mask settings are on. Only the WebUI returns these, and only when its ControlNet extension's
+        "do not append detectmap" setting is off.
+    seed: int, optional
+        The job's base seed: the first entry of `seeds`, or the seed used when no images came back.
+    task_id: str, optional
+        The server-side id of the job.
+    raw_info: object, optional
+        The backend's own metadata, whose type depends on the backend: `GenerationInfoData` on the WebUI,
+        `PromptExecOutputs` on ComfyUI. Code that reads it is backend-specific.
+    extra: dict
+        Backend-specific extras. Holds the WebUI's batch grid image under ``'grid'`` when the server returned one.
     """
     images: list[Image.Image]
-    info: Optional[object] = None          # Backend-specific info blob (GenerationInfoData, ComfyUI outputs, ...).
+    seeds: list[int] = field(default_factory=list)
+    control_maps: list[Image.Image] = field(default_factory=list)
     seed: Optional[int] = None
     task_id: Optional[str] = None
+    raw_info: Optional[object] = None
     extra: dict = field(default_factory=dict)
 
 
