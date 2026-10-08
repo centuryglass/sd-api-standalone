@@ -26,7 +26,7 @@ class DiffusionUpscalingParams(BaseModel):
     the same name) plus the optional ControlNet tile pass. The diffusion pass itself (prompt, seed, cfg, sampler, model,
     ...) is carried by `diffusion_params`; the fields here are the upscale-specific tunables layered on top of it.
     """
-    model_config = ConfigDict(arbitrary_types_allowed=True, validate_assignment=True)
+    model_config = ConfigDict(arbitrary_types_allowed=True, validate_assignment=True, extra='forbid')
 
     upscaling_mode: str = ""
     """Optional basic upscaler to use for basic upscaling or preprocessing before enhancing details via diffusion."""

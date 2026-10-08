@@ -13,7 +13,7 @@ class ControlNetUnit(BaseModel):
     """Represents everything needed to define a ControlNet layer, including a preprocessor module and/or a ControlNet
        model (usually both, but not always), and all associated settings. Values can be serialized and deserialized in
        both WebUI and ComfyUI formats."""
-    model_config = ConfigDict(arbitrary_types_allowed=True, validate_assignment=True)
+    model_config = ConfigDict(arbitrary_types_allowed=True, validate_assignment=True, extra='forbid')
 
     image: Optional[Image.Image] = None
 

@@ -26,8 +26,10 @@ class DiffusionParams(BaseModel):
     # values, so model_dump() produces the JSON-serializable ints the APIs expect. validate_default ensures enum
     # *defaults* (e.g. inpainting_fill=InpaintFillOption.ORIGINAL) are converted too, not just explicitly-set values.
     # validate_assignment applies the field constraints to attribute assignment too, so `params.steps = 0` raises.
+    # extra='forbid' makes a misspelled field raise instead of being dropped. Converting between subclasses must pass
+    # only fields the target defines (see `DiffusionRequestBody.from_params`).
     model_config = ConfigDict(arbitrary_types_allowed=True, use_enum_values=True, validate_default=True,
-                              validate_assignment=True)
+                              validate_assignment=True, extra='forbid')
 
     ### Basic image generation:
     sd_model_name: str = ''
