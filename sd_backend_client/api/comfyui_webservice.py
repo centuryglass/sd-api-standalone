@@ -28,18 +28,22 @@ from sd_backend_client.api.comfyui.controlnet_comfyui_utils import get_all_prepr
 from sd_backend_client.api.comfyui.diffusion_workflow_builder import DiffusionWorkflowBuilder, \
     EXTENSION_MODEL_PATTERN
 from sd_backend_client.api.comfyui.latent_upscale_workflow_builder import LatentUpscaleWorkflowBuilder
+from sd_backend_client.api.comfyui.nodes.controlnet.apply_controlnet_node import NODE_NAME as APPLY_CONTROLNET_NODE_NAME
 from sd_backend_client.api.comfyui.nodes.ksampler_node import KSAMPLER_NAME
 from sd_backend_client.api.comfyui.nodes.ultimate_upscale_node import ULTIMATE_UPSCALE_NODE_NAME
 from sd_backend_client.api.comfyui.preprocessor_preview_workflow_builder import PreprocessorPreviewWorkflowBuilder
 from sd_backend_client.api.shared_data.api_datatypes import DiffusionUpscalingParams
 from sd_backend_client.api.shared_data.backend import Backend, require_init_image, require_mask, \
     require_upscale_size
+from sd_backend_client.api.shared_data.backend_options import BackendCapabilities, BackendOption
 from sd_backend_client.api.shared_data.controlnet.controlnet_category_builder import ControlNetCategoryBuilder
 from sd_backend_client.api.shared_data.controlnet.controlnet_constants import ControlTypeDef
+from sd_backend_client.api.shared_data.controlnet.controlnet_model import ControlNetModel
 from sd_backend_client.api.shared_data.controlnet.controlnet_preprocessor import ControlNetPreprocessor, \
     PreprocessorParams
 from sd_backend_client.api.shared_data.controlnet.controlnet_unit import ControlNetUnit
 from sd_backend_client.api.shared_data.diffusion_params import DiffusionParams
+from sd_backend_client.api.shared_data.sampler_names import SAMPLER_WEBUI_NAMES
 from sd_backend_client.api.webservice import WebService, MULTIPART_FORM_DATA_TYPE, DEFAULT_REQUEST_TIMEOUT
 from sd_backend_client.errors import BackendConnectionError, BackendTimeoutError, ServerError, \
     UnexpectedResponseError, WorkflowValidationError
@@ -133,7 +137,7 @@ class ComfyUiWebservice(WebService, Backend):
     """
     ComfyUiWebservice provides access to Stable Diffusion through the ComfyUI REST API.
 
-    Its `submit_*` methods implement `Backend`. The `txt2img`, `img2img`, `inpaint`, `upscale` and
+    Its `submit_*`, `list_*` and `get_capabilities` methods implement `Backend`. The `txt2img`, `img2img`, `inpaint`, `upscale` and
     `controlnet_preprocessor_preview` methods queue the same jobs but return the raw `QueueAdditionResponse`.
     """
 
@@ -269,6 +273,53 @@ class ComfyUiWebservice(WebService, Backend):
         control_type_builder = ControlNetCategoryBuilder(preprocessor_names, model_names, preprocessor_categories,
                                                          None)
         return control_type_builder.get_control_types()
+
+    # Backend discovery methods:
+
+    def list_checkpoints(self) -> list[BackendOption]:
+        """List checkpoints by file name, implementing `Backend.list_checkpoints`."""
+        return [BackendOption(name=name) for name in self.get_sd_checkpoints()]
+
+    def list_vaes(self) -> list[BackendOption]:
+        """List VAE models by file name, implementing `Backend.list_vaes`."""
+        return [BackendOption(name=name) for name in self.get_vae_models()]
+
+    def list_loras(self) -> list[BackendOption]:
+        """List LoRA models by file name, implementing `Backend.list_loras`."""
+        return [BackendOption(name=name) for name in self.get_lora_models()]
+
+    def list_hypernetworks(self) -> list[BackendOption]:
+        """List hypernetworks by file name, implementing `Backend.list_hypernetworks`."""
+        return [BackendOption(name=name) for name in self.get_hypernetwork_models()]
+
+    def list_samplers(self) -> list[BackendOption]:
+        """List KSampler's samplers, implementing `Backend.list_samplers`. `display_name` is the WebUI name, if any."""
+        return [BackendOption(name=name, display_name=SAMPLER_WEBUI_NAMES.get(name))
+                for name in self.get_sampler_names()]
+
+    def list_schedulers(self) -> list[BackendOption]:
+        """List KSampler's schedulers, implementing `Backend.list_schedulers`."""
+        return [BackendOption(name=name) for name in self.get_scheduler_names()]
+
+    def list_upscalers(self) -> list[BackendOption]:
+        """List upscaling models by file name, implementing `Backend.list_upscalers`."""
+        return [BackendOption(name=name) for name in self.get_models(ComfyModelType.UPSCALING)]
+
+    def list_controlnet_models(self) -> list[ControlNetModel]:
+        """List ControlNet models by file name, implementing `Backend.list_controlnet_models`."""
+        return [ControlNetModel(name) for name in self.get_controlnet_models()]
+
+    def get_capabilities(self) -> BackendCapabilities:
+        """Report optional features, implementing `Backend.get_capabilities`.
+
+        ControlNet and Ultimate SD Upscale support are detected from the nodes the workflows use.
+        """
+        return BackendCapabilities(
+            controlnet=self.is_node_available(APPLY_CONTROLNET_NODE_NAME),
+            ultimate_upscale=self.is_node_available(ULTIMATE_UPSCALE_NODE_NAME),
+            scheduler=True,
+            interrogate=False,
+            free_memory=True)
 
     # File I/O:
     def _upload_image_file(self,
