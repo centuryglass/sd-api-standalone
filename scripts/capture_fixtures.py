@@ -163,10 +163,16 @@ def capture_webui(url: str, credentials: Optional[tuple[str, str]]) -> dict[str,
     service.get_samplers()
     service.get_latent_upscale_modes()
     service.get_scripts()
+    if not service.get_capabilities().controlnet:
+        sys.exit(f'{url} has no ControlNet API; the WebUI capture needs one')
+    # Forge's built-in ControlNet has no version endpoint; the 404 lands in `errors`.
+    version: Optional[int]
     try:
         version = service.get_controlnet_version()
-    except ServerError:
-        sys.exit(f'{url} has no ControlNet extension; the WebUI capture needs one')
+    except ServerError as err:
+        if err.status_code != 404:
+            raise
+        version = None
     service.get_controlnet_preprocessors()
     service.get_controlnet_type_categories()
     _run_discovery(service)

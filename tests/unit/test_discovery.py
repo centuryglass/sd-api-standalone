@@ -216,6 +216,13 @@ def test_webui_without_extensions_lists_nothing_and_reports_missing_features():
                                                              scheduler=False, interrogate=True, free_memory=False)
 
 
+def test_webui_reports_forge_builtin_controlnet_without_a_version_endpoint():
+    """Forge's built-in ControlNet serves /controlnet/model_list but not /controlnet/version."""
+    service, session = _webui()
+    session.routes[('GET', A1111Webservice.Endpoints.CONTROLNET_VERSION)] = NOT_FOUND
+    assert service.get_capabilities().controlnet
+
+
 def test_webui_discovery_raises_server_errors_other_than_not_found():
     """Only a 404 means a missing feature; other failures still raise."""
     service, session = _webui()

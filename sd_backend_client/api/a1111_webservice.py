@@ -634,8 +634,11 @@ class A1111Webservice(WebService, Backend):
 
     def get_controlnet_version(self) -> int:
         """
-        Returns the installed version of the Stable Diffusion ControlNet extension, or raises if the exception is not
-        installed.
+        Returns the installed version of the Stable Diffusion ControlNet extension, or raises ServerError if the
+        extension is not installed.
+
+        Forge's built-in ControlNet has no version endpoint, so this raises there even though ControlNet works; use
+        `get_capabilities` to check for ControlNet support.
         """
         return self.get(A1111Webservice.Endpoints.CONTROLNET_VERSION).json()['version']
 
@@ -767,12 +770,13 @@ class A1111Webservice(WebService, Backend):
     def get_capabilities(self) -> BackendCapabilities:
         """Report optional features, implementing `Backend.get_capabilities`.
 
-        ControlNet support is detected from `/controlnet/version`, Ultimate SD Upscale from the img2img script list,
-        and scheduler support from `/sdapi/v1/schedulers`.
+        ControlNet support is detected from `/controlnet/model_list`, which both the sd-webui-controlnet extension and
+        Forge's built-in ControlNet serve; Forge has no `/controlnet/version`. Ultimate SD Upscale is detected from the
+        img2img script list, and scheduler support from `/sdapi/v1/schedulers`.
         """
         img2img_scripts = [script.lower() for script in self.get_scripts().img2img]
         return BackendCapabilities(
-            controlnet=self._get_if_present(A1111Webservice.Endpoints.CONTROLNET_VERSION) is not None,
+            controlnet=self._get_if_present(A1111Webservice.Endpoints.CONTROLNET_MODELS) is not None,
             ultimate_upscale=ULTIMATE_UPSCALE_SCRIPT in img2img_scripts,
             scheduler=self._get_if_present(A1111Webservice.Endpoints.SCHEDULERS) is not None,
             interrogate=True,
