@@ -1,8 +1,7 @@
 {
  "errors": {
   "/controlnet/version": 404,
-  "/sdapi/v1/interrogate": 405,
-  "/sdapi/v1/sd-vae": 404
+  "/sdapi/v1/interrogate": 405
  },
  "meta": {
   "backend": "webui",
@@ -63,29 +62,40 @@
      ],
      "module_list": [
       "None",
+      "tile_resample_variant",
       "softedge_pidinet",
       "shuffle",
       "seg_ofade20k",
       "scribble_pidinet",
+      "revision_clipvision_variant",
+      "reference_only_variant",
       "reference_only",
+      "recolor_luminance_variant",
       "openpose_full",
       "normalbae",
+      "normal_bae_variant",
       "mlsd",
       "lineart_standard (from white bg & black line)",
+      "ip-adapter_clip_sd15_variant",
+      "inpaint_only_variant",
       "depth_midas",
       "depth_marigold",
       "canny",
       "invert (from white bg & black line)",
       "InsightFace+CLIP-H (IPAdapter)",
+      "ClipVision (Photomaker)",
       "CLIP-ViT-bigG (IPAdapter)",
       "CLIP-ViT-H (IPAdapter)",
       "InsightFace (InstantID)",
       "CLIP-G (Revision)",
       "CLIP-G (Revision ignore prompt)",
       "tile_resample",
+      "tile_colorfix_variant",
+      "tile_colorfix+sharp_variant",
       "tile_colorfix+sharp",
       "tile_colorfix",
       "threshold",
+      "t2ia_style_clipvision_variant",
       "t2ia_sketch_pidi",
       "t2ia_color_grid",
       "softedge_teed",
@@ -97,23 +107,35 @@
       "seg_anime_face",
       "scribble_xdog",
       "scribble_hed",
+      "revision_ignore_prompt_variant",
+      "reference_adain_variant",
+      "reference_adain+attn_variant",
       "reference_adain+attn",
       "reference_adain",
       "recolor_luminance",
+      "recolor_intensity_variant",
       "recolor_intensity",
       "openpose_hand",
       "openpose_faceonly",
       "openpose_face",
       "openpose",
-      "normal_midas",
+      "normalmap_midas",
       "mediapipe_face",
       "lineart_realistic",
       "lineart_coarse",
       "lineart_anime_denoise",
       "lineart_anime",
+      "ip-adapter_face_id_variant",
+      "ip-adapter_face_id_plus_variant",
+      "ip-adapter_clip_sdxl_variant",
+      "ip-adapter_clip_sdxl_plus_vith_variant",
       "instant_id_face_keypoints",
+      "instant_id_face_embedding",
+      "inpaint_only+lama_variant",
       "inpaint_only+lama",
       "inpaint_only",
+      "inpaint_noobai_xl",
+      "inpaint_global_harmonious_variant",
       "inpaint_global_harmonious",
       "dw_openpose_full",
       "depth_zoe",
@@ -130,7 +152,7 @@
     },
     "Blur": {
      "default_model": "control_v11f1e_sd15_tile [a371b31b]",
-     "default_option": "blur_gaussian",
+     "default_option": "tile_resample_variant",
      "model_list": [
       "None",
       "TTPLANET_Controlnet_Tile_realistic_v2_fp16 [c32b8550]",
@@ -139,6 +161,9 @@
      ],
      "module_list": [
       "None",
+      "tile_resample_variant",
+      "tile_colorfix_variant",
+      "tile_colorfix+sharp_variant",
       "blur_gaussian"
      ]
     },
@@ -181,32 +206,40 @@
     },
     "IP-Adapter": {
      "default_model": "ip-adapter-plus-face_sd15 [71693645]",
-     "default_option": "InsightFace+CLIP-H (IPAdapter)",
+     "default_option": "ip-adapter_clip_sd15_variant",
      "model_list": [
       "None",
       "ip-adapter-plus-face_sd15 [71693645]",
       "ip-adapter_sd15 [6a3f6166]",
-      "ip-adapter_sd15_plus [32cd8f7f]",
-      "ip-adapter_xl [4209e9f7]"
+      "ip-adapter_sd15_plus [32cd8f7f]"
      ],
      "module_list": [
       "None",
+      "ip-adapter_clip_sd15_variant",
       "InsightFace+CLIP-H (IPAdapter)",
       "CLIP-ViT-bigG (IPAdapter)",
-      "CLIP-ViT-H (IPAdapter)"
+      "CLIP-ViT-H (IPAdapter)",
+      "ip-adapter_face_id_variant",
+      "ip-adapter_face_id_plus_variant",
+      "ip-adapter_clip_sdxl_variant",
+      "ip-adapter_clip_sdxl_plus_vith_variant"
      ]
     },
     "Inpaint": {
      "default_model": "control_v11p_sd15_inpaint [ebff9138]",
-     "default_option": "inpaint_only+lama",
+     "default_option": "inpaint_only_variant",
      "model_list": [
       "None",
       "control_v11p_sd15_inpaint [ebff9138]"
      ],
      "module_list": [
       "None",
+      "inpaint_only_variant",
+      "inpaint_only+lama_variant",
       "inpaint_only+lama",
       "inpaint_only",
+      "inpaint_noobai_xl",
+      "inpaint_global_harmonious_variant",
       "inpaint_global_harmonious"
      ]
     },
@@ -219,7 +252,8 @@
      "module_list": [
       "None",
       "InsightFace (InstantID)",
-      "instant_id_face_keypoints"
+      "instant_id_face_keypoints",
+      "instant_id_face_embedding"
      ]
     },
     "Lineart": {
@@ -263,7 +297,8 @@
      "module_list": [
       "None",
       "normalbae",
-      "normal_midas"
+      "normal_bae_variant",
+      "normalmap_midas"
      ]
     },
     "OpenPose": {
@@ -288,42 +323,60 @@
       "animal_openpose"
      ]
     },
+    "PhotoMaker": {
+     "default_model": "None",
+     "default_option": "ClipVision (Photomaker)",
+     "model_list": [
+      "None"
+     ],
+     "module_list": [
+      "None",
+      "ClipVision (Photomaker)"
+     ]
+    },
     "Recolor": {
      "default_model": "t2iadapter_color-fp16 [743b5c62]",
-     "default_option": "recolor_luminance",
+     "default_option": "recolor_luminance_variant",
      "model_list": [
       "None",
       "t2iadapter_color-fp16 [743b5c62]"
      ],
      "module_list": [
       "None",
+      "recolor_luminance_variant",
       "recolor_luminance",
+      "recolor_intensity_variant",
       "recolor_intensity"
      ]
     },
     "Reference": {
      "default_model": "None",
-     "default_option": "reference_only",
+     "default_option": "reference_only_variant",
      "model_list": [
       "None"
      ],
      "module_list": [
       "None",
+      "reference_only_variant",
       "reference_only",
+      "reference_adain_variant",
+      "reference_adain+attn_variant",
       "reference_adain+attn",
       "reference_adain"
      ]
     },
     "Revision": {
      "default_model": "None",
-     "default_option": "CLIP-G (Revision)",
+     "default_option": "revision_clipvision_variant",
      "model_list": [
       "None"
      ],
      "module_list": [
       "None",
+      "revision_clipvision_variant",
       "CLIP-G (Revision)",
-      "CLIP-G (Revision ignore prompt)"
+      "CLIP-G (Revision ignore prompt)",
+      "revision_ignore_prompt_variant"
      ]
     },
     "Scribble": {
@@ -407,7 +460,7 @@
     },
     "T2I-Adapter": {
      "default_model": "t2iadapter_canny-fp16 [f2e7f7cd]",
-     "default_option": "t2ia_sketch_pidi",
+     "default_option": "t2ia_style_clipvision_variant",
      "model_list": [
       "None",
       "t2iadapter_canny-fp16 [f2e7f7cd]",
@@ -421,13 +474,14 @@
      ],
      "module_list": [
       "None",
+      "t2ia_style_clipvision_variant",
       "t2ia_sketch_pidi",
       "t2ia_color_grid"
      ]
     },
     "Tile": {
      "default_model": "control_v11f1e_sd15_tile [a371b31b]",
-     "default_option": "tile_resample",
+     "default_option": "tile_resample_variant",
      "model_list": [
       "None",
       "TTPLANET_Controlnet_Tile_realistic_v2_fp16 [c32b8550]",
@@ -436,7 +490,10 @@
      ],
      "module_list": [
       "None",
+      "tile_resample_variant",
       "tile_resample",
+      "tile_colorfix_variant",
+      "tile_colorfix+sharp_variant",
       "tile_colorfix+sharp",
       "tile_colorfix",
       "blur_gaussian"
@@ -488,29 +545,40 @@
   "/controlnet/module_list": {
    "module_list": [
     "None",
+    "tile_resample_variant",
     "softedge_pidinet",
     "shuffle",
     "seg_ofade20k",
     "scribble_pidinet",
+    "revision_clipvision_variant",
+    "reference_only_variant",
     "reference_only",
+    "recolor_luminance_variant",
     "openpose_full",
     "normalbae",
+    "normal_bae_variant",
     "mlsd",
     "lineart_standard (from white bg & black line)",
+    "ip-adapter_clip_sd15_variant",
+    "inpaint_only_variant",
     "depth_midas",
     "depth_marigold",
     "canny",
     "invert (from white bg & black line)",
     "InsightFace+CLIP-H (IPAdapter)",
+    "ClipVision (Photomaker)",
     "CLIP-ViT-bigG (IPAdapter)",
     "CLIP-ViT-H (IPAdapter)",
     "InsightFace (InstantID)",
     "CLIP-G (Revision)",
     "CLIP-G (Revision ignore prompt)",
     "tile_resample",
+    "tile_colorfix_variant",
+    "tile_colorfix+sharp_variant",
     "tile_colorfix+sharp",
     "tile_colorfix",
     "threshold",
+    "t2ia_style_clipvision_variant",
     "t2ia_sketch_pidi",
     "t2ia_color_grid",
     "softedge_teed",
@@ -522,23 +590,35 @@
     "seg_anime_face",
     "scribble_xdog",
     "scribble_hed",
+    "revision_ignore_prompt_variant",
+    "reference_adain_variant",
+    "reference_adain+attn_variant",
     "reference_adain+attn",
     "reference_adain",
     "recolor_luminance",
+    "recolor_intensity_variant",
     "recolor_intensity",
     "openpose_hand",
     "openpose_faceonly",
     "openpose_face",
     "openpose",
-    "normal_midas",
+    "normalmap_midas",
     "mediapipe_face",
     "lineart_realistic",
     "lineart_coarse",
     "lineart_anime_denoise",
     "lineart_anime",
+    "ip-adapter_face_id_variant",
+    "ip-adapter_face_id_plus_variant",
+    "ip-adapter_clip_sdxl_variant",
+    "ip-adapter_clip_sdxl_plus_vith_variant",
     "instant_id_face_keypoints",
+    "instant_id_face_embedding",
+    "inpaint_only+lama_variant",
     "inpaint_only+lama",
     "inpaint_only",
+    "inpaint_noobai_xl",
+    "inpaint_global_harmonious_variant",
     "inpaint_global_harmonious",
     "dw_openpose_full",
     "depth_zoe",
@@ -556,11 +636,11 @@
   "/sdapi/v1/hypernetworks": [
    {
     "name": "By bad artist -neg",
-    "path": "/opt/stabilitymatrix/Data/Packages/Stable Diffusion WebUI Forge/models/hypernetworks/By bad artist -neg.pt"
+    "path": "/opt/stabilitymatrix/Data/Packages/Stable Diffusion WebUI reForge/models/hypernetworks/By bad artist -neg.pt"
    },
    {
     "name": "CyberRealistic_Negative_v3",
-    "path": "/opt/stabilitymatrix/Data/Packages/Stable Diffusion WebUI Forge/models/hypernetworks/CyberRealistic_Negative_v3.pt"
+    "path": "/opt/stabilitymatrix/Data/Packages/Stable Diffusion WebUI reForge/models/hypernetworks/CyberRealistic_Negative_v3.pt"
    }
   ],
   "/sdapi/v1/latent-upscale-modes": [
@@ -588,7 +668,7 @@
     "alias": "3DMM_V11",
     "metadata": {},
     "name": "3DMM_V11",
-    "path": "/opt/stabilitymatrix/Data/Packages/Stable Diffusion WebUI Forge/models/Lora/3DMM_V11.safetensors"
+    "path": "/opt/stabilitymatrix/Data/Packages/Stable Diffusion WebUI reForge/models/Lora/3DMM_V11.safetensors"
    },
    {
     "alias": "80s Movie Poster Style v2",
@@ -709,7 +789,7 @@
      "sshs_model_hash": "422c40df3445bff890e00a900fc6bc10930677dcc48d0e2aeab4eb8a4ce9f811"
     },
     "name": "80s Movie Poster Style v1.5",
-    "path": "/opt/stabilitymatrix/Data/Packages/Stable Diffusion WebUI Forge/models/Lora/80s Movie Poster Style v1.5.safetensors"
+    "path": "/opt/stabilitymatrix/Data/Packages/Stable Diffusion WebUI reForge/models/Lora/80s Movie Poster Style v1.5.safetensors"
    },
    {
     "alias": "90VHS",
@@ -910,7 +990,7 @@
      "sshs_model_hash": "0f2f2728b5fdac953cc154e647a4f44a9f29bef5014f86d667f84475ccc41454"
     },
     "name": "90VHS-03",
-    "path": "/opt/stabilitymatrix/Data/Packages/Stable Diffusion WebUI Forge/models/Lora/90VHS-03.safetensors"
+    "path": "/opt/stabilitymatrix/Data/Packages/Stable Diffusion WebUI reForge/models/Lora/90VHS-03.safetensors"
    },
    {
     "alias": "sdxl",
@@ -1269,7 +1349,7 @@
      "sshs_model_hash": "0ed6b34a67d3505790f401aadc9959d92776361b0342ac00ab7c51f0fc78d049"
     },
     "name": "Alchemy_sdxl",
-    "path": "/opt/stabilitymatrix/Data/Packages/Stable Diffusion WebUI Forge/models/Lora/Alchemy_sdxl.safetensors"
+    "path": "/opt/stabilitymatrix/Data/Packages/Stable Diffusion WebUI reForge/models/Lora/Alchemy_sdxl.safetensors"
    },
    {
     "alias": "ascii_art",
@@ -1335,7 +1415,7 @@
      "sshs_model_hash": "49eefbdb8e4999663d9d7414f264b9e1df46efb1bf11cc93a6c0493d6961f8af"
     },
     "name": "ascii_art-10",
-    "path": "/opt/stabilitymatrix/Data/Packages/Stable Diffusion WebUI Forge/models/Lora/ascii_art-10.safetensors"
+    "path": "/opt/stabilitymatrix/Data/Packages/Stable Diffusion WebUI reForge/models/Lora/ascii_art-10.safetensors"
    },
    {
     "alias": "Astraali_GRAFFITI",
@@ -1415,19 +1495,19 @@
      "sshs_model_hash": "0ed7e392bc72e0a58d889be2785618a7e07940e9f0e4ef2bdb730b742658c97d"
     },
     "name": "Astraali_GRAFFITI",
-    "path": "/opt/stabilitymatrix/Data/Packages/Stable Diffusion WebUI Forge/models/Lora/Astraali_GRAFFITI.safetensors"
+    "path": "/opt/stabilitymatrix/Data/Packages/Stable Diffusion WebUI reForge/models/Lora/Astraali_GRAFFITI.safetensors"
    },
    {
     "alias": "badvhs_v1",
     "metadata": {},
     "name": "badvhs_v1",
-    "path": "/opt/stabilitymatrix/Data/Packages/Stable Diffusion WebUI Forge/models/Lora/badvhs_v1.safetensors"
+    "path": "/opt/stabilitymatrix/Data/Packages/Stable Diffusion WebUI reForge/models/Lora/badvhs_v1.safetensors"
    },
    {
     "alias": "bichu-v0612",
     "metadata": {},
     "name": "bichu-v0612",
-    "path": "/opt/stabilitymatrix/Data/Packages/Stable Diffusion WebUI Forge/models/Lora/bichu-v0612.safetensors"
+    "path": "/opt/stabilitymatrix/Data/Packages/Stable Diffusion WebUI reForge/models/Lora/bichu-v0612.safetensors"
    },
    {
     "alias": "caravaggio_resize",
@@ -1453,7 +1533,7 @@
      "sshs_model_hash": "81c05b1ace1b48d78293a83040d19b706bab33f34c489a4f6b35b02551b6bbf5"
     },
     "name": "caravaggio_resize",
-    "path": "/opt/stabilitymatrix/Data/Packages/Stable Diffusion WebUI Forge/models/Lora/caravaggio_resize.safetensors"
+    "path": "/opt/stabilitymatrix/Data/Packages/Stable Diffusion WebUI reForge/models/Lora/caravaggio_resize.safetensors"
    },
    {
     "alias": "chaplin_resize",
@@ -1479,7 +1559,7 @@
      "sshs_model_hash": "6838667400c15f46a364b3b5debad3b8cf07c9eff0108541dc24e4c141e131da"
     },
     "name": "chaplin_resize",
-    "path": "/opt/stabilitymatrix/Data/Packages/Stable Diffusion WebUI Forge/models/Lora/chaplin_resize.safetensors"
+    "path": "/opt/stabilitymatrix/Data/Packages/Stable Diffusion WebUI reForge/models/Lora/chaplin_resize.safetensors"
    },
    {
     "alias": "CircleArt_Sora",
@@ -1783,13 +1863,13 @@
      "sshs_model_hash": "e065bbf925ecdf23c71e4785a2f1b58433ef0c07eec180b557563b03d941b931"
     },
     "name": "CircleArt_Sora_SD15",
-    "path": "/opt/stabilitymatrix/Data/Packages/Stable Diffusion WebUI Forge/models/Lora/CircleArt_Sora_SD15.safetensors"
+    "path": "/opt/stabilitymatrix/Data/Packages/Stable Diffusion WebUI reForge/models/Lora/CircleArt_Sora_SD15.safetensors"
    },
    {
     "alias": "Claysculpt_v1_R64",
     "metadata": {},
     "name": "Claysculpt_v1_R64",
-    "path": "/opt/stabilitymatrix/Data/Packages/Stable Diffusion WebUI Forge/models/Lora/Claysculpt_v1_R64.safetensors"
+    "path": "/opt/stabilitymatrix/Data/Packages/Stable Diffusion WebUI reForge/models/Lora/Claysculpt_v1_R64.safetensors"
    },
    {
     "alias": "corpoart2",
@@ -2214,7 +2294,7 @@
      "sshs_model_hash": "f54dd20092b28bec57115623e4a4ee2fa5bd21ea2b5c354fcccc3a4e340556b5"
     },
     "name": "corpoart2",
-    "path": "/opt/stabilitymatrix/Data/Packages/Stable Diffusion WebUI Forge/models/Lora/corpoart2.safetensors"
+    "path": "/opt/stabilitymatrix/Data/Packages/Stable Diffusion WebUI reForge/models/Lora/corpoart2.safetensors"
    },
    {
     "alias": "crayon-v1.1",
@@ -2423,7 +2503,7 @@
      "sshs_model_hash": "d6a53c4bb2035133cf656d328da7042153280f0f22e2d476bdc2b77caecfba31"
     },
     "name": "crayon-v1.1-000005",
-    "path": "/opt/stabilitymatrix/Data/Packages/Stable Diffusion WebUI Forge/models/Lora/crayon-v1.1-000005.safetensors"
+    "path": "/opt/stabilitymatrix/Data/Packages/Stable Diffusion WebUI reForge/models/Lora/crayon-v1.1-000005.safetensors"
    },
    {
     "alias": "cyber_tech",
@@ -2489,7 +2569,7 @@
      "sshs_model_hash": "607e100e4f96221e718cdd5ba5046a9ae56d68cebb00ed9759017d4846ccb070"
     },
     "name": "cyber_tech-10",
-    "path": "/opt/stabilitymatrix/Data/Packages/Stable Diffusion WebUI Forge/models/Lora/cyber_tech-10.safetensors"
+    "path": "/opt/stabilitymatrix/Data/Packages/Stable Diffusion WebUI reForge/models/Lora/cyber_tech-10.safetensors"
    },
    {
     "alias": "Cyclops",
@@ -2682,7 +2762,7 @@
      "sshs_model_hash": "a2370844c04e63c1c6990f5cc6c560e2a3beae37945c74616f75f3c74d1d624b"
     },
     "name": "Cyclops-sd15",
-    "path": "/opt/stabilitymatrix/Data/Packages/Stable Diffusion WebUI Forge/models/Lora/Cyclops-sd15.safetensors"
+    "path": "/opt/stabilitymatrix/Data/Packages/Stable Diffusion WebUI reForge/models/Lora/Cyclops-sd15.safetensors"
    },
    {
     "alias": "detail_slider_v4",
@@ -2708,7 +2788,7 @@
      "version": "1.0"
     },
     "name": "detail_slider_v4",
-    "path": "/opt/stabilitymatrix/Data/Packages/Stable Diffusion WebUI Forge/models/Lora/detail_slider_v4.safetensors"
+    "path": "/opt/stabilitymatrix/Data/Packages/Stable Diffusion WebUI reForge/models/Lora/detail_slider_v4.safetensors"
    },
    {
     "alias": "Emotive_Corporate",
@@ -3128,19 +3208,19 @@
      "sshs_model_hash": "f1c6b594dc5be6543fd87a32ba899fabc7a1c62b48001f0a13a5df5c4b2ae71c"
     },
     "name": "Emotive_Corporate",
-    "path": "/opt/stabilitymatrix/Data/Packages/Stable Diffusion WebUI Forge/models/Lora/Emotive_Corporate.safetensors"
+    "path": "/opt/stabilitymatrix/Data/Packages/Stable Diffusion WebUI reForge/models/Lora/Emotive_Corporate.safetensors"
    },
    {
     "alias": "epi_noiseoffset2",
     "metadata": {},
     "name": "epi_noiseoffset2",
-    "path": "/opt/stabilitymatrix/Data/Packages/Stable Diffusion WebUI Forge/models/Lora/epi_noiseoffset2.safetensors"
+    "path": "/opt/stabilitymatrix/Data/Packages/Stable Diffusion WebUI reForge/models/Lora/epi_noiseoffset2.safetensors"
    },
    {
     "alias": "epiNoiseoffset_v2",
     "metadata": {},
     "name": "epiNoiseoffset_v2",
-    "path": "/opt/stabilitymatrix/Data/Packages/Stable Diffusion WebUI Forge/models/Lora/epiNoiseoffset_v2.safetensors"
+    "path": "/opt/stabilitymatrix/Data/Packages/Stable Diffusion WebUI reForge/models/Lora/epiNoiseoffset_v2.safetensors"
    },
    {
     "alias": "FaeTech",
@@ -3229,7 +3309,7 @@
      "sshs_model_hash": "8be704ae8315e2ed73d02ab5db8d118bd1e1ca8bf77ba3093c30d91af6f6ed45"
     },
     "name": "FaeTech-30",
-    "path": "/opt/stabilitymatrix/Data/Packages/Stable Diffusion WebUI Forge/models/Lora/FaeTech-30.safetensors"
+    "path": "/opt/stabilitymatrix/Data/Packages/Stable Diffusion WebUI reForge/models/Lora/FaeTech-30.safetensors"
    },
    {
     "alias": "fidus_v2_7200",
@@ -3671,7 +3751,7 @@
      "unet:9:up": "lora_unet_down_blocks_0_attentions_1_transformer_blocks_0_attn1_to_q.lora_up.weight"
     },
     "name": "fidus_v2_7200",
-    "path": "/opt/stabilitymatrix/Data/Packages/Stable Diffusion WebUI Forge/models/Lora/fidus_v2_7200.safetensors"
+    "path": "/opt/stabilitymatrix/Data/Packages/Stable Diffusion WebUI reForge/models/Lora/fidus_v2_7200.safetensors"
    },
    {
     "alias": "GemTech",
@@ -3821,7 +3901,7 @@
      "sshs_model_hash": "fe028512a4903abefee092c0d3bb5704437c95fd15aa4afefeaedc174d91490d"
     },
     "name": "GemTech-22",
-    "path": "/opt/stabilitymatrix/Data/Packages/Stable Diffusion WebUI Forge/models/Lora/GemTech-22.safetensors"
+    "path": "/opt/stabilitymatrix/Data/Packages/Stable Diffusion WebUI reForge/models/Lora/GemTech-22.safetensors"
    },
    {
     "alias": "glassart1rep2",
@@ -4122,7 +4202,7 @@
      "sshs_model_hash": "1429b59398c40005ba5f882f39b0dfcd1ca6db593355d83554872c538481575d"
     },
     "name": "glassart600",
-    "path": "/opt/stabilitymatrix/Data/Packages/Stable Diffusion WebUI Forge/models/Lora/glassart600.safetensors"
+    "path": "/opt/stabilitymatrix/Data/Packages/Stable Diffusion WebUI reForge/models/Lora/glassart600.safetensors"
    },
    {
     "alias": "Graphic",
@@ -4331,7 +4411,7 @@
      "sshs_model_hash": "071e3486a168f4328d8f84b717e64ceae0697444f4489ab7b376f40ad2f87001"
     },
     "name": "Graphic",
-    "path": "/opt/stabilitymatrix/Data/Packages/Stable Diffusion WebUI Forge/models/Lora/Graphic.safetensors"
+    "path": "/opt/stabilitymatrix/Data/Packages/Stable Diffusion WebUI reForge/models/Lora/Graphic.safetensors"
    },
    {
     "alias": "Graphic_Portrait_SD15",
@@ -4675,7 +4755,7 @@
      "sshs_model_hash": "584a81932a0a46b8427eface3a5d29dc778db25304b46bae08343e8cf1298f91"
     },
     "name": "Graphic_Portrait_SD15",
-    "path": "/opt/stabilitymatrix/Data/Packages/Stable Diffusion WebUI Forge/models/Lora/Graphic_Portrait_SD15.safetensors"
+    "path": "/opt/stabilitymatrix/Data/Packages/Stable Diffusion WebUI reForge/models/Lora/Graphic_Portrait_SD15.safetensors"
    },
    {
     "alias": "H4LFT0N3_XL",
@@ -4754,7 +4834,7 @@
      "sshs_model_hash": "1d885134db9f615027aa690670d06383f9925f3bbf92781d1b79104746e6085f"
     },
     "name": "H4LFT0N3_XL",
-    "path": "/opt/stabilitymatrix/Data/Packages/Stable Diffusion WebUI Forge/models/Lora/H4LFT0N3_XL.safetensors"
+    "path": "/opt/stabilitymatrix/Data/Packages/Stable Diffusion WebUI reForge/models/Lora/H4LFT0N3_XL.safetensors"
    },
    {
     "alias": "Healing",
@@ -5056,7 +5136,7 @@
      "sshs_model_hash": "4aba1a04a905ee3e96b029bd84776d40ef315b4c84727d1408ba9f7d0ce29a69"
     },
     "name": "Healing-000010",
-    "path": "/opt/stabilitymatrix/Data/Packages/Stable Diffusion WebUI Forge/models/Lora/Healing-000010.safetensors"
+    "path": "/opt/stabilitymatrix/Data/Packages/Stable Diffusion WebUI reForge/models/Lora/Healing-000010.safetensors"
    },
    {
     "alias": "J_comic_book",
@@ -5508,7 +5588,7 @@
      "sshs_model_hash": "cf275ebbf0a2eb7f8eac478c88d9396e0dad1676cf256117328c98496a2fea24"
     },
     "name": "J_comic_book",
-    "path": "/opt/stabilitymatrix/Data/Packages/Stable Diffusion WebUI Forge/models/Lora/J_comic_book.safetensors"
+    "path": "/opt/stabilitymatrix/Data/Packages/Stable Diffusion WebUI reForge/models/Lora/J_comic_book.safetensors"
    },
    {
     "alias": "jaggy_lines_noise_taged",
@@ -9181,7 +9261,7 @@
      "sshs_model_hash": "e5d5f2d66431d590dad5e353694ea52a9d2d55c87952b41f39e192d528c1d492"
     },
     "name": "jaggy_lines_noise_taged-000012",
-    "path": "/opt/stabilitymatrix/Data/Packages/Stable Diffusion WebUI Forge/models/Lora/jaggy_lines_noise_taged-000012.safetensors"
+    "path": "/opt/stabilitymatrix/Data/Packages/Stable Diffusion WebUI reForge/models/Lora/jaggy_lines_noise_taged-000012.safetensors"
    },
    {
     "alias": "JJsFloorPlan_v2",
@@ -10775,7 +10855,7 @@
      "sshs_model_hash": "948e16d55fbec2361c03e8f117e5d41b324ac6e5f709d8c6f93c2318b301169f"
     },
     "name": "JJsFloorPlan_v2",
-    "path": "/opt/stabilitymatrix/Data/Packages/Stable Diffusion WebUI Forge/models/Lora/JJsFloorPlan_v2.safetensors"
+    "path": "/opt/stabilitymatrix/Data/Packages/Stable Diffusion WebUI reForge/models/Lora/JJsFloorPlan_v2.safetensors"
    },
    {
     "alias": "KawaiiTech",
@@ -10857,7 +10937,7 @@
      "sshs_model_hash": "2268585fbf19a1e97eeee876589395ac37e951bbdca40f13a82f201d47817467"
     },
     "name": "KawaiiTech-20",
-    "path": "/opt/stabilitymatrix/Data/Packages/Stable Diffusion WebUI Forge/models/Lora/KawaiiTech-20.safetensors"
+    "path": "/opt/stabilitymatrix/Data/Packages/Stable Diffusion WebUI reForge/models/Lora/KawaiiTech-20.safetensors"
    },
    {
     "alias": "banhua",
@@ -11099,7 +11179,7 @@
      "sshs_model_hash": "852334b4f22b13be6c0d0a75193fb1db4cffa97fb2642258e9a836847c02371e"
     },
     "name": "laomanhua",
-    "path": "/opt/stabilitymatrix/Data/Packages/Stable Diffusion WebUI Forge/models/Lora/laomanhua.safetensors"
+    "path": "/opt/stabilitymatrix/Data/Packages/Stable Diffusion WebUI reForge/models/Lora/laomanhua.safetensors"
    },
    {
     "alias": "lcm-lora-sdv1-5",
@@ -11107,7 +11187,7 @@
      "format": "pt"
     },
     "name": "lcm-lora-sdv1-5",
-    "path": "/opt/stabilitymatrix/Data/Packages/Stable Diffusion WebUI Forge/models/Lora/lcm-lora-sdv1-5.safetensors"
+    "path": "/opt/stabilitymatrix/Data/Packages/Stable Diffusion WebUI reForge/models/Lora/lcm-lora-sdv1-5.safetensors"
    },
    {
     "alias": "lcm-lora-sdxl",
@@ -11129,7 +11209,7 @@
      "sshs_model_hash": "2fa7e8e56b09cf8506a5f289c1da8dce12d1bca2f2d842d3e9862cc638c70965"
     },
     "name": "lcm-lora-sdxl",
-    "path": "/opt/stabilitymatrix/Data/Packages/Stable Diffusion WebUI Forge/models/Lora/lcm-lora-sdxl.safetensors"
+    "path": "/opt/stabilitymatrix/Data/Packages/Stable Diffusion WebUI reForge/models/Lora/lcm-lora-sdxl.safetensors"
    },
    {
     "alias": "lego_v2.0.768",
@@ -12025,7 +12105,7 @@
      "sshs_model_hash": "59b0ba1247ebb0eb7bf81bf6c3bbfe652da81322d13227bc5ab06b64a3ef22bb"
     },
     "name": "lego_v2.0.768",
-    "path": "/opt/stabilitymatrix/Data/Packages/Stable Diffusion WebUI Forge/models/Lora/lego_v2.0.768.safetensors"
+    "path": "/opt/stabilitymatrix/Data/Packages/Stable Diffusion WebUI reForge/models/Lora/lego_v2.0.768.safetensors"
    },
    {
     "alias": "MapSatimageEU_V1.0_ST_LoRa",
@@ -12036,7 +12116,7 @@
      "sshs_model_hash": "99114c419ea8ea42c5f0c97ee5d649d1abdb5c98a3b87002bff82a167df32981"
     },
     "name": "MapSatimageEU_V1.0_ST_LoRa",
-    "path": "/opt/stabilitymatrix/Data/Packages/Stable Diffusion WebUI Forge/models/Lora/MapSatimageEU_V1.0_ST_LoRa.safetensors"
+    "path": "/opt/stabilitymatrix/Data/Packages/Stable Diffusion WebUI reForge/models/Lora/MapSatimageEU_V1.0_ST_LoRa.safetensors"
    },
    {
     "alias": "Meme_AwkwardCatPhoto",
@@ -12051,7 +12131,7 @@
      "ot_revision": "9560751"
     },
     "name": "Meme_AwkwardCatPhoto",
-    "path": "/opt/stabilitymatrix/Data/Packages/Stable Diffusion WebUI Forge/models/Lora/Meme_AwkwardCatPhoto.safetensors"
+    "path": "/opt/stabilitymatrix/Data/Packages/Stable Diffusion WebUI reForge/models/Lora/Meme_AwkwardCatPhoto.safetensors"
    },
    {
     "alias": "methurlant",
@@ -12272,7 +12352,7 @@
      "sshs_model_hash": "a6e9ebbee184cf01267dac0351deda90b73659828bc15168b2b7d70a5042ecd6"
     },
     "name": "methurlant",
-    "path": "/opt/stabilitymatrix/Data/Packages/Stable Diffusion WebUI Forge/models/Lora/methurlant.safetensors"
+    "path": "/opt/stabilitymatrix/Data/Packages/Stable Diffusion WebUI reForge/models/Lora/methurlant.safetensors"
    },
    {
     "alias": "microverse_creator",
@@ -12338,7 +12418,7 @@
      "sshs_model_hash": "d5c39e7aed09fae03c779b6a008159f2d9aec0dec5f86b50922cc225eade9566"
     },
     "name": "microverse_creator-10",
-    "path": "/opt/stabilitymatrix/Data/Packages/Stable Diffusion WebUI Forge/models/Lora/microverse_creator-10.safetensors"
+    "path": "/opt/stabilitymatrix/Data/Packages/Stable Diffusion WebUI reForge/models/Lora/microverse_creator-10.safetensors"
    },
    {
     "alias": "mshn",
@@ -12502,7 +12582,7 @@
      "sshs_model_hash": "2297fb239bd060e7df7abae551f23904e22c6f8fd4a70da6b881dbc85d4ef52c"
     },
     "name": "mshn",
-    "path": "/opt/stabilitymatrix/Data/Packages/Stable Diffusion WebUI Forge/models/Lora/mshn.safetensors"
+    "path": "/opt/stabilitymatrix/Data/Packages/Stable Diffusion WebUI reForge/models/Lora/mshn.safetensors"
    },
    {
     "alias": "Neon_Cyberpunk_Cyberspace_SD1.5",
@@ -12601,7 +12681,7 @@
      "sshs_model_hash": "dd35cf4a6eefb2178eab43d9a194e8e3d93a8ea664f32234b80ee72aaa46b8e5"
     },
     "name": "Neon_Cyberpunk_Cyberspace_SD1.5",
-    "path": "/opt/stabilitymatrix/Data/Packages/Stable Diffusion WebUI Forge/models/Lora/Neon_Cyberpunk_Cyberspace_SD1.5.safetensors"
+    "path": "/opt/stabilitymatrix/Data/Packages/Stable Diffusion WebUI reForge/models/Lora/Neon_Cyberpunk_Cyberspace_SD1.5.safetensors"
    },
    {
     "alias": "PE_TerribleFanArtV1",
@@ -12778,7 +12858,7 @@
      "sshs_model_hash": "8df587ea6fefcc3c17cde0d3666b2179eacec2353354af7a1571a4039067bbda"
     },
     "name": "PE_TerribleFanArtV1",
-    "path": "/opt/stabilitymatrix/Data/Packages/Stable Diffusion WebUI Forge/models/Lora/PE_TerribleFanArtV1.safetensors"
+    "path": "/opt/stabilitymatrix/Data/Packages/Stable Diffusion WebUI reForge/models/Lora/PE_TerribleFanArtV1.safetensors"
    },
    {
     "alias": "pixelbuildings128-v2",
@@ -12895,7 +12975,7 @@
      "sshs_model_hash": "dbe5cdf5f8f454327c23d9c24d8e92002c0064a9692d18d4efe7d93fcd640cd8"
     },
     "name": "pixel-art-xl-v1.1",
-    "path": "/opt/stabilitymatrix/Data/Packages/Stable Diffusion WebUI Forge/models/Lora/pixel-art-xl-v1.1.safetensors"
+    "path": "/opt/stabilitymatrix/Data/Packages/Stable Diffusion WebUI reForge/models/Lora/pixel-art-xl-v1.1.safetensors"
    },
    {
     "alias": "psychedelic_noir",
@@ -12961,7 +13041,7 @@
      "sshs_model_hash": "70e8cda502517259fb873fd254b652478b0d26ab0e83eeef0cb080f1a05aeb13"
     },
     "name": "psychedelic_noir-10",
-    "path": "/opt/stabilitymatrix/Data/Packages/Stable Diffusion WebUI Forge/models/Lora/psychedelic_noir-10.safetensors"
+    "path": "/opt/stabilitymatrix/Data/Packages/Stable Diffusion WebUI reForge/models/Lora/psychedelic_noir-10.safetensors"
    },
    {
     "alias": "RetroGlitch",
@@ -13241,7 +13321,7 @@
      "sshs_model_hash": "a21c9735a70296b116ed651cc8fb283bbd3726056a69c5fddf09baac2805a406"
     },
     "name": "RetroGlitch",
-    "path": "/opt/stabilitymatrix/Data/Packages/Stable Diffusion WebUI Forge/models/Lora/RetroGlitch.safetensors"
+    "path": "/opt/stabilitymatrix/Data/Packages/Stable Diffusion WebUI reForge/models/Lora/RetroGlitch.safetensors"
    },
    {
     "alias": "SilverSapphireAI",
@@ -13338,7 +13418,7 @@
      "sshs_model_hash": "af4b1ebe6d4251c2dabf85a969b4b9bfb4fe72f75333f323d3fdb62f9dd3a73f"
     },
     "name": "SilverSapphireAI",
-    "path": "/opt/stabilitymatrix/Data/Packages/Stable Diffusion WebUI Forge/models/Lora/SilverSapphireAI.safetensors"
+    "path": "/opt/stabilitymatrix/Data/Packages/Stable Diffusion WebUI reForge/models/Lora/SilverSapphireAI.safetensors"
    },
    {
     "alias": "SolarPunk_Buildings",
@@ -13551,7 +13631,7 @@
      "sshs_model_hash": "615c952e9c174755cea5870fc512f5a24df0900b231abdca5313ac745e9b2a68"
     },
     "name": "SolarPunk_Buildings",
-    "path": "/opt/stabilitymatrix/Data/Packages/Stable Diffusion WebUI Forge/models/Lora/SolarPunk_Buildings.safetensors"
+    "path": "/opt/stabilitymatrix/Data/Packages/Stable Diffusion WebUI reForge/models/Lora/SolarPunk_Buildings.safetensors"
    },
    {
     "alias": "20240113-1705136141854",
@@ -13704,7 +13784,7 @@
      "sshs_model_hash": "0f1fbe4e69e868c02594540f68e41ca9944c14e4e72626f4e399303dd20d1727"
     },
     "name": "splash_water",
-    "path": "/opt/stabilitymatrix/Data/Packages/Stable Diffusion WebUI Forge/models/Lora/splash_water.safetensors"
+    "path": "/opt/stabilitymatrix/Data/Packages/Stable Diffusion WebUI reForge/models/Lora/splash_water.safetensors"
    },
    {
     "alias": "stone_statue",
@@ -13870,7 +13950,7 @@
      "sshs_model_hash": "c94d2066ebf589aec9bf2a5be942b8d48e9f26d09d8df94d00775c183961a3f1"
     },
     "name": "stone_statue",
-    "path": "/opt/stabilitymatrix/Data/Packages/Stable Diffusion WebUI Forge/models/Lora/stone_statue.safetensors"
+    "path": "/opt/stabilitymatrix/Data/Packages/Stable Diffusion WebUI reForge/models/Lora/stone_statue.safetensors"
    },
    {
     "alias": "Surreal Harmony",
@@ -13955,7 +14035,7 @@
      "sshs_model_hash": "defca0bb9d0ca9012f3efae0718a60e84109dd59369300f1c1ec195850bdf36c"
     },
     "name": "Surreal Harmony",
-    "path": "/opt/stabilitymatrix/Data/Packages/Stable Diffusion WebUI Forge/models/Lora/Surreal Harmony.safetensors"
+    "path": "/opt/stabilitymatrix/Data/Packages/Stable Diffusion WebUI reForge/models/Lora/Surreal Harmony.safetensors"
    },
    {
     "alias": "Vector_illustration_V2",
@@ -14113,7 +14193,7 @@
      "sshs_model_hash": "3bf334bb22001b853bcbe78c1bb5551f28e2078b94c39308af6c19cf001adc48"
     },
     "name": "Vector_illustration_V2",
-    "path": "/opt/stabilitymatrix/Data/Packages/Stable Diffusion WebUI Forge/models/Lora/Vector_illustration_V2.safetensors"
+    "path": "/opt/stabilitymatrix/Data/Packages/Stable Diffusion WebUI reForge/models/Lora/Vector_illustration_V2.safetensors"
    },
    {
     "alias": "VHSfootage",
@@ -14349,7 +14429,7 @@
      "sshs_model_hash": "a26d9208bbb22668e8175a7b3896257a5b88d9b08bb9f3a85b47e4c7963e8e40"
     },
     "name": "VHSfootage",
-    "path": "/opt/stabilitymatrix/Data/Packages/Stable Diffusion WebUI Forge/models/Lora/VHSfootage.safetensors"
+    "path": "/opt/stabilitymatrix/Data/Packages/Stable Diffusion WebUI reForge/models/Lora/VHSfootage.safetensors"
    },
    {
     "alias": "Vintage_vibes_SD15",
@@ -14671,7 +14751,7 @@
      "sshs_model_hash": "796dbbb481d7b841716c56a574e857a753f6575e7330b898a79cc99dc8d0f341"
     },
     "name": "Vintage_vibes_SD15",
-    "path": "/opt/stabilitymatrix/Data/Packages/Stable Diffusion WebUI Forge/models/Lora/Vintage_vibes_SD15.safetensors"
+    "path": "/opt/stabilitymatrix/Data/Packages/Stable Diffusion WebUI reForge/models/Lora/Vintage_vibes_SD15.safetensors"
    },
    {
     "alias": "last",
@@ -14780,7 +14860,7 @@
      "sshs_model_hash": "796529775279bf5f4e0d65d98426ef482163668414ef68b883855e7231dccf25"
     },
     "name": "VoxelXL_v1",
-    "path": "/opt/stabilitymatrix/Data/Packages/Stable Diffusion WebUI Forge/models/Lora/VoxelXL_v1.safetensors"
+    "path": "/opt/stabilitymatrix/Data/Packages/Stable Diffusion WebUI reForge/models/Lora/VoxelXL_v1.safetensors"
    },
    {
     "alias": "Worl",
@@ -14885,7 +14965,7 @@
      "sshs_model_hash": "8cd2239771361738ffda97a0deb7964239a55df95790c1b8844f82fed8b772ea"
     },
     "name": "Worl-10",
-    "path": "/opt/stabilitymatrix/Data/Packages/Stable Diffusion WebUI Forge/models/Lora/Worl-10.safetensors"
+    "path": "/opt/stabilitymatrix/Data/Packages/Stable Diffusion WebUI reForge/models/Lora/Worl-10.safetensors"
    },
    {
     "alias": "xk3mt1ks",
@@ -14907,7 +14987,7 @@
      "sshs_model_hash": "0af43f2a186cb7451894add80995361933173bdac6d5a3fe3bd4e8347c20f509"
     },
     "name": "xk3mt1ks",
-    "path": "/opt/stabilitymatrix/Data/Packages/Stable Diffusion WebUI Forge/models/Lora/xk3mt1ks.safetensors"
+    "path": "/opt/stabilitymatrix/Data/Packages/Stable Diffusion WebUI reForge/models/Lora/xk3mt1ks.safetensors"
    }
   ],
   "/sdapi/v1/progress?skip_current_image=true": {
@@ -14943,9 +15023,9 @@
     ],
     "name": "DPM++ SDE",
     "options": {
-     "brownian_noise": true,
+     "brownian_noise": "True",
      "scheduler": "karras",
-     "second_order": true
+     "second_order": "True"
     }
    },
    {
@@ -14954,7 +15034,7 @@
     ],
     "name": "DPM++ 2M SDE",
     "options": {
-     "brownian_noise": true,
+     "brownian_noise": "True",
      "scheduler": "exponential"
     }
    },
@@ -14964,7 +15044,7 @@
     ],
     "name": "DPM++ 2M SDE Heun",
     "options": {
-     "brownian_noise": true,
+     "brownian_noise": "True",
      "scheduler": "exponential",
      "solver_type": "heun"
     }
@@ -14976,8 +15056,8 @@
     "name": "DPM++ 2S a",
     "options": {
      "scheduler": "karras",
-     "second_order": true,
-     "uses_ensd": true
+     "second_order": "True",
+     "uses_ensd": "True"
     }
    },
    {
@@ -14986,8 +15066,8 @@
     ],
     "name": "DPM++ 3M SDE",
     "options": {
-     "brownian_noise": true,
-     "discard_next_to_last_sigma": true,
+     "brownian_noise": "True",
+     "discard_next_to_last_sigma": "True",
      "scheduler": "exponential"
     }
    },
@@ -14998,7 +15078,7 @@
     ],
     "name": "Euler a",
     "options": {
-     "uses_ensd": true
+     "uses_ensd": "True"
     }
    },
    {
@@ -15021,7 +15101,7 @@
     ],
     "name": "Heun",
     "options": {
-     "second_order": true
+     "second_order": "True"
     }
    },
    {
@@ -15030,9 +15110,9 @@
     ],
     "name": "DPM2",
     "options": {
-     "discard_next_to_last_sigma": true,
+     "discard_next_to_last_sigma": "True",
      "scheduler": "karras",
-     "second_order": true
+     "second_order": "True"
     }
    },
    {
@@ -15041,10 +15121,10 @@
     ],
     "name": "DPM2 a",
     "options": {
-     "discard_next_to_last_sigma": true,
+     "discard_next_to_last_sigma": "True",
      "scheduler": "karras",
-     "second_order": true,
-     "uses_ensd": true
+     "second_order": "True",
+     "uses_ensd": "True"
     }
    },
    {
@@ -15053,7 +15133,7 @@
     ],
     "name": "DPM fast",
     "options": {
-     "uses_ensd": true
+     "uses_ensd": "True"
     }
    },
    {
@@ -15062,7 +15142,7 @@
     ],
     "name": "DPM adaptive",
     "options": {
-     "uses_ensd": true
+     "uses_ensd": "True"
     }
    },
    {
@@ -15072,8 +15152,267 @@
     "name": "Restart",
     "options": {
      "scheduler": "karras",
-     "second_order": true
+     "second_order": "True"
     }
+   },
+   {
+    "aliases": [
+     "k_euler_dy"
+    ],
+    "name": "Euler Dy",
+    "options": {}
+   },
+   {
+    "aliases": [
+     "k_euler_smea_dy"
+    ],
+    "name": "Euler SMEA Dy",
+    "options": {}
+   },
+   {
+    "aliases": [
+     "k_euler_negative"
+    ],
+    "name": "Euler Negative",
+    "options": {}
+   },
+   {
+    "aliases": [
+     "k_euler_dy_negative"
+    ],
+    "name": "Euler Negative Dy",
+    "options": {}
+   },
+   {
+    "aliases": [
+     "ddim"
+    ],
+    "name": "DDIM",
+    "options": {}
+   },
+   {
+    "aliases": [
+     "plms"
+    ],
+    "name": "PLMS",
+    "options": {}
+   },
+   {
+    "aliases": [
+     "unipc"
+    ],
+    "name": "UniPC",
+    "options": {}
+   },
+   {
+    "aliases": [
+     "k_lcm"
+    ],
+    "name": "LCM",
+    "options": {}
+   },
+   {
+    "aliases": [
+     "dpmpp_sde_classic"
+    ],
+    "name": "DPM++ SDE Classic",
+    "options": {}
+   },
+   {
+    "aliases": [
+     "ER SDE"
+    ],
+    "name": "ER SDE",
+    "options": {}
+   },
+   {
+    "aliases": [
+     "Kohaku_LoNyu_Yog"
+    ],
+    "name": "Kohaku_LoNyu_Yog",
+    "options": {}
+   },
+   {
+    "aliases": [
+     "euler_cfg_pp"
+    ],
+    "name": "Euler CFG++",
+    "options": {}
+   },
+   {
+    "aliases": [
+     "euler_ancestral_cfg_pp"
+    ],
+    "name": "Euler Ancestral CFG++",
+    "options": {}
+   },
+   {
+    "aliases": [
+     "dpmpp_2s_ancestral_cfg_pp"
+    ],
+    "name": "DPM++ 2S Ancestral CFG++",
+    "options": {}
+   },
+   {
+    "aliases": [
+     "dpmpp_2m_cfg_pp"
+    ],
+    "name": "DPM++ 2M CFG++",
+    "options": {}
+   },
+   {
+    "aliases": [
+     "dpmpp_sde_cfg_pp"
+    ],
+    "name": "DPM++ SDE CFG++",
+    "options": {}
+   },
+   {
+    "aliases": [
+     "dpmpp_3m_sde_cfg_pp"
+    ],
+    "name": "DPM++ 3M SDE CFG++",
+    "options": {}
+   },
+   {
+    "aliases": [
+     "euler_dy_cfg_pp"
+    ],
+    "name": "Euler DY CFG++",
+    "options": {}
+   },
+   {
+    "aliases": [
+     "euler_smea_dy_cfg_pp"
+    ],
+    "name": "Euler SMEA DY CFG++",
+    "options": {}
+   },
+   {
+    "aliases": [
+     "euler_ancestral_dy_cfg_pp"
+    ],
+    "name": "Euler A DY CFG++",
+    "options": {}
+   },
+   {
+    "aliases": [
+     "dpmpp_2m_dy_cfg_pp"
+    ],
+    "name": "DPM++ 2M DY CFG++",
+    "options": {}
+   },
+   {
+    "aliases": [
+     "res_multistep"
+    ],
+    "name": "RES Multistep",
+    "options": {}
+   },
+   {
+    "aliases": [
+     "res_multistep_cfg_pp"
+    ],
+    "name": "RES Multistep CFG++",
+    "options": {}
+   },
+   {
+    "aliases": [
+     "res_multistep_ancestral"
+    ],
+    "name": "RES Multistep Ancestral",
+    "options": {}
+   },
+   {
+    "aliases": [
+     "res_multistep_ancestral_cfg_pp"
+    ],
+    "name": "RES Multistep Ancestral CFG++",
+    "options": {}
+   },
+   {
+    "aliases": [
+     "gradient_estimation"
+    ],
+    "name": "Gradient Estimation",
+    "options": {}
+   },
+   {
+    "aliases": [
+     "gradient_estimation_CFG++"
+    ],
+    "name": "Gradient Estimation CFG++",
+    "options": {}
+   },
+   {
+    "aliases": [
+     "SEEDS_2"
+    ],
+    "name": "SEEDS 2 DP",
+    "options": {}
+   },
+   {
+    "aliases": [
+     "SEEDS_3"
+    ],
+    "name": "SEEDS 3 DP",
+    "options": {}
+   },
+   {
+    "aliases": [
+     "SA-Solver"
+    ],
+    "name": "SA-Solver",
+    "options": {}
+   },
+   {
+    "aliases": [
+     "SA-Solver-Pece"
+    ],
+    "name": "SA-Solver-Pece",
+    "options": {}
+   },
+   {
+    "aliases": [
+     "exp_heun2"
+    ],
+    "name": "EXP Heun 2 x0",
+    "options": {}
+   },
+   {
+    "aliases": [
+     "exp_heun2_sde"
+    ],
+    "name": "EXP Heun 2 x0 SDE",
+    "options": {}
+   },
+   {
+    "aliases": [
+     "dpmpp_2m_dy"
+    ],
+    "name": "DPM++ 2M DY",
+    "options": {}
+   },
+   {
+    "aliases": [
+     "dpmpp_3m_dy"
+    ],
+    "name": "DPM++ 3M DY",
+    "options": {}
+   },
+   {
+    "aliases": [
+     "dpmpp_3m_sde_dy"
+    ],
+    "name": "DPM++ 3M SDE DY",
+    "options": {}
+   },
+   {
+    "aliases": [
+     "ddpm"
+    ],
+    "name": "DDPM",
+    "options": {}
    },
    {
     "aliases": [
@@ -15105,44 +15444,163 @@
    },
    {
     "aliases": [
-     "ddim"
+     "res_solver"
     ],
-    "name": "DDIM",
+    "name": "RES Solver",
     "options": {}
    },
    {
     "aliases": [
-     "ddim_cfgpp"
+     "ode_bosh3"
     ],
-    "name": "DDIM CFG++",
+    "name": "ODE (Bosh3)",
     "options": {}
    },
    {
     "aliases": [
-     "plms"
+     "ode_fehlberg2"
     ],
-    "name": "PLMS",
+    "name": "ODE (Fehlberg2)",
     "options": {}
    },
    {
     "aliases": [
-     "unipc"
+     "ode_adaptive_heun"
     ],
-    "name": "UniPC",
+    "name": "ODE (Adaptive Heun)",
     "options": {}
    },
    {
     "aliases": [
-     "k_lcm"
+     "ode_dopri5"
     ],
-    "name": "LCM",
+    "name": "ODE (Dopri5)",
     "options": {}
    },
    {
     "aliases": [
-     "ddpm"
+     "ode_custom"
     ],
-    "name": "DDPM",
+    "name": "ODE Custom",
+    "options": {}
+   },
+   {
+    "aliases": [
+     "euler_ancestral_turbo"
+    ],
+    "name": "Euler A Turbo",
+    "options": {}
+   },
+   {
+    "aliases": [
+     "dpmpp_2m_turbo"
+    ],
+    "name": "DPM++ 2M Turbo",
+    "options": {}
+   },
+   {
+    "aliases": [
+     "dpmpp_2m_sde_turbo"
+    ],
+    "name": "DPM++ 2M SDE Turbo",
+    "options": {}
+   },
+   {
+    "aliases": [
+     "euler_comfy"
+    ],
+    "name": "Euler Comfy",
+    "options": {}
+   },
+   {
+    "aliases": [
+     "euler_ancestral_comfy"
+    ],
+    "name": "Euler A Comfy",
+    "options": {}
+   },
+   {
+    "aliases": [
+     "euler_ancestral_comfy_RF"
+    ],
+    "name": "Euler A Comfy RF",
+    "options": {}
+   },
+   {
+    "aliases": [
+     "euler_a2"
+    ],
+    "name": "Euler A2",
+    "options": {}
+   },
+   {
+    "aliases": [
+     "heun_comfy"
+    ],
+    "name": "Heun Comfy",
+    "options": {}
+   },
+   {
+    "aliases": [
+     "dpmpp_2s_ancestral_comfy"
+    ],
+    "name": "DPM++ 2S Ancestral Comfy",
+    "options": {}
+   },
+   {
+    "aliases": [
+     "sample_dpmpp_2s_ancestral_RF"
+    ],
+    "name": "DPM++ 2S Ancestral Comfy RF",
+    "options": {}
+   },
+   {
+    "aliases": [
+     "dpmpp_sde_comfy"
+    ],
+    "name": "DPM++ SDE Comfy",
+    "options": {}
+   },
+   {
+    "aliases": [
+     "dpmpp_2m_comfy"
+    ],
+    "name": "DPM++ 2M Comfy",
+    "options": {}
+   },
+   {
+    "aliases": [
+     "dpmpp_2m_sde_comfy"
+    ],
+    "name": "DPM++ 2M SDE Comfy",
+    "options": {}
+   },
+   {
+    "aliases": [
+     "dpmpp_3m_sde_comfy"
+    ],
+    "name": "DPM++ 3M SDE Comfy",
+    "options": {}
+   },
+   {
+    "aliases": [
+     "dpmpp_2s_ancestral_cfg_pp_dyn"
+    ],
+    "name": "DPM++ 2S Ancestral CFG++ Dyn",
+    "options": {}
+   },
+   {
+    "aliases": [
+     "dpmpp_2s_ancestral_cfg_pp_intern"
+    ],
+    "name": "DPM++ 2S Ancestral CFG++ Intern",
+    "options": {}
+   },
+   {
+    "aliases": [
+     "custom_sampler"
+    ],
+    "name": "Custom Sampler",
     "options": {}
    }
   ],
@@ -15153,13 +15611,6 @@
     "label": "Automatic",
     "name": "automatic",
     "need_inner_model": false
-   },
-   {
-    "aliases": null,
-    "default_rho": -1.0,
-    "label": "Uniform",
-    "name": "uniform",
-    "need_inner_model": true
    },
    {
     "aliases": null,
@@ -15183,6 +15634,34 @@
     "need_inner_model": false
    },
    {
+    "aliases": null,
+    "default_rho": -1.0,
+    "label": "Sinusoidal SF",
+    "name": "sinusoidal_sf",
+    "need_inner_model": false
+   },
+   {
+    "aliases": null,
+    "default_rho": -1.0,
+    "label": "Invcosinusoidal SF",
+    "name": "invcosinusoidal_sf",
+    "need_inner_model": false
+   },
+   {
+    "aliases": null,
+    "default_rho": -1.0,
+    "label": "React Cosinusoidal DynSF",
+    "name": "react_cosinusoidal_dynsf",
+    "need_inner_model": false
+   },
+   {
+    "aliases": null,
+    "default_rho": -1.0,
+    "label": "Uniform",
+    "name": "uniform",
+    "need_inner_model": true
+   },
+   {
     "aliases": [
      "SGMUniform"
     ],
@@ -15196,13 +15675,6 @@
     "default_rho": -1.0,
     "label": "KL Optimal",
     "name": "kl_optimal",
-    "need_inner_model": false
-   },
-   {
-    "aliases": null,
-    "default_rho": -1.0,
-    "label": "Align Your Steps",
-    "name": "align_your_steps",
     "need_inner_model": false
    },
    {
@@ -15229,6 +15701,20 @@
    {
     "aliases": null,
     "default_rho": -1.0,
+    "label": "Align Your Steps",
+    "name": "align_your_steps",
+    "need_inner_model": false
+   },
+   {
+    "aliases": null,
+    "default_rho": -1.0,
+    "label": "Align Your Steps Custom",
+    "name": "align_your_steps_custom",
+    "need_inner_model": false
+   },
+   {
+    "aliases": null,
+    "default_rho": -1.0,
     "label": "Beta",
     "name": "beta",
     "need_inner_model": true
@@ -15239,6 +15725,41 @@
     "label": "Turbo",
     "name": "turbo",
     "need_inner_model": true
+   },
+   {
+    "aliases": null,
+    "default_rho": -1.0,
+    "label": "Cosine",
+    "name": "cosine",
+    "need_inner_model": false
+   },
+   {
+    "aliases": null,
+    "default_rho": -1.0,
+    "label": "Cosine-exponential Blend",
+    "name": "cosine-exponential blend",
+    "need_inner_model": false
+   },
+   {
+    "aliases": null,
+    "default_rho": -1.0,
+    "label": "Phi",
+    "name": "phi",
+    "need_inner_model": false
+   },
+   {
+    "aliases": null,
+    "default_rho": -1.0,
+    "label": "Laplace",
+    "name": "laplace",
+    "need_inner_model": false
+   },
+   {
+    "aliases": null,
+    "default_rho": -1.0,
+    "label": "Karras Dynamic",
+    "name": "karras dynamic",
+    "need_inner_model": false
    },
    {
     "aliases": null,
@@ -15273,16 +15794,20 @@
     "sd upscale",
     "x/y/z plot",
     "extra options",
+    "mahiro cfg for reforge",
+    "\"apg's now your cfg\" and guidance limiter for reforge",
+    "rescalecfg for reforge",
+    "advanced model sampling for reforge",
     "controlnet",
     "dynamicthresholding (cfg-fix) integrated",
-    "freeu integrated (sd 1.x, sd 2.x, sdxl)",
+    "freeu integrated",
+    "hypertile integrated",
     "kohya hrfix integrated",
     "latentmodifier integrated",
     "multidiffusion integrated",
     "never oom integrated",
-    "perturbedattentionguidance integrated",
-    "selfattentionguidance integrated (sd 1.x, sd 2.x, sdxl)",
-    "stylealign integrated",
+    "selfattentionguidance integrated",
+    "random resolution",
     "soft inpainting",
     "ultimate sd upscale",
     "refiner",
@@ -15294,16 +15819,20 @@
     "prompts from file or textbox",
     "x/y/z plot",
     "extra options",
+    "mahiro cfg for reforge",
+    "\"apg's now your cfg\" and guidance limiter for reforge",
+    "rescalecfg for reforge",
+    "advanced model sampling for reforge",
     "controlnet",
     "dynamicthresholding (cfg-fix) integrated",
-    "freeu integrated (sd 1.x, sd 2.x, sdxl)",
+    "freeu integrated",
+    "hypertile integrated",
     "kohya hrfix integrated",
     "latentmodifier integrated",
     "multidiffusion integrated",
     "never oom integrated",
-    "perturbedattentionguidance integrated",
-    "selfattentionguidance integrated (sd 1.x, sd 2.x, sdxl)",
-    "stylealign integrated",
+    "selfattentionguidance integrated",
+    "random resolution",
     "refiner",
     "sampler",
     "seed"
@@ -15312,15 +15841,15 @@
   "/sdapi/v1/sd-models": [
    {
     "config": null,
-    "filename": "/opt/stabilitymatrix/Data/Packages/Stable Diffusion WebUI Forge/models/Stable-diffusion/sd/arthemyComics_v70.safetensors",
-    "hash": null,
+    "filename": "/opt/stabilitymatrix/Data/Packages/Stable Diffusion WebUI reForge/models/Stable-diffusion/sd/arthemyComics_v70.safetensors",
+    "hash": "a08a577280",
     "model_name": "sd_arthemyComics_v70",
-    "sha256": null,
-    "title": "sd/arthemyComics_v70.safetensors"
+    "sha256": "a08a577280d669b1c6e08c75db96ab0b0bff4a0518de9d921acf3ed49e5536dd",
+    "title": "sd/arthemyComics_v70.safetensors [a08a577280]"
    },
    {
     "config": null,
-    "filename": "/opt/stabilitymatrix/Data/Packages/Stable Diffusion WebUI Forge/models/Stable-diffusion/sd/aZovyaRPGArtistTools_v4.safetensors",
+    "filename": "/opt/stabilitymatrix/Data/Packages/Stable Diffusion WebUI reForge/models/Stable-diffusion/sd/aZovyaRPGArtistTools_v4.safetensors",
     "hash": null,
     "model_name": "sd_aZovyaRPGArtistTools_v4",
     "sha256": null,
@@ -15328,7 +15857,7 @@
    },
    {
     "config": null,
-    "filename": "/opt/stabilitymatrix/Data/Packages/Stable Diffusion WebUI Forge/models/Stable-diffusion/sd/commoncanvas_s_c.safetensors",
+    "filename": "/opt/stabilitymatrix/Data/Packages/Stable Diffusion WebUI reForge/models/Stable-diffusion/sd/commoncanvas_s_c.safetensors",
     "hash": null,
     "model_name": "sd_commoncanvas_s_c",
     "sha256": null,
@@ -15336,7 +15865,7 @@
    },
    {
     "config": null,
-    "filename": "/opt/stabilitymatrix/Data/Packages/Stable Diffusion WebUI Forge/models/Stable-diffusion/sd/commoncanvas_s_nc.safetensors",
+    "filename": "/opt/stabilitymatrix/Data/Packages/Stable Diffusion WebUI reForge/models/Stable-diffusion/sd/commoncanvas_s_nc.safetensors",
     "hash": null,
     "model_name": "sd_commoncanvas_s_nc",
     "sha256": null,
@@ -15344,7 +15873,7 @@
    },
    {
     "config": null,
-    "filename": "/opt/stabilitymatrix/Data/Packages/Stable Diffusion WebUI Forge/models/Stable-diffusion/sd/commoncanvas_xl_c.safetensors",
+    "filename": "/opt/stabilitymatrix/Data/Packages/Stable Diffusion WebUI reForge/models/Stable-diffusion/sd/commoncanvas_xl_c.safetensors",
     "hash": null,
     "model_name": "sd_commoncanvas_xl_c",
     "sha256": null,
@@ -15352,7 +15881,7 @@
    },
    {
     "config": null,
-    "filename": "/opt/stabilitymatrix/Data/Packages/Stable Diffusion WebUI Forge/models/Stable-diffusion/sd/commoncanvas_xl_nc.safetensors",
+    "filename": "/opt/stabilitymatrix/Data/Packages/Stable Diffusion WebUI reForge/models/Stable-diffusion/sd/commoncanvas_xl_nc.safetensors",
     "hash": null,
     "model_name": "sd_commoncanvas_xl_nc",
     "sha256": null,
@@ -15360,7 +15889,7 @@
    },
    {
     "config": null,
-    "filename": "/opt/stabilitymatrix/Data/Packages/Stable Diffusion WebUI Forge/models/Stable-diffusion/sd/cyberrealistic_v80.safetensors",
+    "filename": "/opt/stabilitymatrix/Data/Packages/Stable Diffusion WebUI reForge/models/Stable-diffusion/sd/cyberrealistic_v80.safetensors",
     "hash": null,
     "model_name": "sd_cyberrealistic_v80",
     "sha256": null,
@@ -15368,7 +15897,7 @@
    },
    {
     "config": null,
-    "filename": "/opt/stabilitymatrix/Data/Packages/Stable Diffusion WebUI Forge/models/Stable-diffusion/sd/deliberate_v3-inpainting.safetensors",
+    "filename": "/opt/stabilitymatrix/Data/Packages/Stable Diffusion WebUI reForge/models/Stable-diffusion/sd/deliberate_v3-inpainting.safetensors",
     "hash": null,
     "model_name": "sd_deliberate_v3-inpainting",
     "sha256": null,
@@ -15376,7 +15905,7 @@
    },
    {
     "config": null,
-    "filename": "/opt/stabilitymatrix/Data/Packages/Stable Diffusion WebUI Forge/models/Stable-diffusion/sd/deliberate_v3.safetensors",
+    "filename": "/opt/stabilitymatrix/Data/Packages/Stable Diffusion WebUI reForge/models/Stable-diffusion/sd/deliberate_v3.safetensors",
     "hash": null,
     "model_name": "sd_deliberate_v3",
     "sha256": null,
@@ -15384,7 +15913,7 @@
    },
    {
     "config": null,
-    "filename": "/opt/stabilitymatrix/Data/Packages/Stable Diffusion WebUI Forge/models/Stable-diffusion/sd/dreamlabsoil_v2.safetensors",
+    "filename": "/opt/stabilitymatrix/Data/Packages/Stable Diffusion WebUI reForge/models/Stable-diffusion/sd/dreamlabsoil_v2.safetensors",
     "hash": null,
     "model_name": "sd_dreamlabsoil_v2",
     "sha256": null,
@@ -15392,7 +15921,7 @@
    },
    {
     "config": null,
-    "filename": "/opt/stabilitymatrix/Data/Packages/Stable Diffusion WebUI Forge/models/Stable-diffusion/sd/dreamlikeDiffusion_v10.ckpt",
+    "filename": "/opt/stabilitymatrix/Data/Packages/Stable Diffusion WebUI reForge/models/Stable-diffusion/sd/dreamlikeDiffusion_v10.ckpt",
     "hash": null,
     "model_name": "sd_dreamlikeDiffusion_v10",
     "sha256": null,
@@ -15400,7 +15929,7 @@
    },
    {
     "config": null,
-    "filename": "/opt/stabilitymatrix/Data/Packages/Stable Diffusion WebUI Forge/models/Stable-diffusion/sd/dreamshaper_v8.safetensors",
+    "filename": "/opt/stabilitymatrix/Data/Packages/Stable Diffusion WebUI reForge/models/Stable-diffusion/sd/dreamshaper_v8.safetensors",
     "hash": null,
     "model_name": "sd_dreamshaper_v8",
     "sha256": null,
@@ -15408,7 +15937,7 @@
    },
    {
     "config": null,
-    "filename": "/opt/stabilitymatrix/Data/Packages/Stable Diffusion WebUI Forge/models/Stable-diffusion/sd/etherBluMix_v7.safetensors",
+    "filename": "/opt/stabilitymatrix/Data/Packages/Stable Diffusion WebUI reForge/models/Stable-diffusion/sd/etherBluMix_v7.safetensors",
     "hash": null,
     "model_name": "sd_etherBluMix_v7",
     "sha256": null,
@@ -15416,7 +15945,7 @@
    },
    {
     "config": null,
-    "filename": "/opt/stabilitymatrix/Data/Packages/Stable Diffusion WebUI Forge/models/Stable-diffusion/sd/etherRealMix_v4.safetensors",
+    "filename": "/opt/stabilitymatrix/Data/Packages/Stable Diffusion WebUI reForge/models/Stable-diffusion/sd/etherRealMix_v4.safetensors",
     "hash": null,
     "model_name": "sd_etherRealMix_v4",
     "sha256": null,
@@ -15424,7 +15953,7 @@
    },
    {
     "config": null,
-    "filename": "/opt/stabilitymatrix/Data/Packages/Stable Diffusion WebUI Forge/models/Stable-diffusion/sd/FlatIllustration_v10.safetensors",
+    "filename": "/opt/stabilitymatrix/Data/Packages/Stable Diffusion WebUI reForge/models/Stable-diffusion/sd/FlatIllustration_v10.safetensors",
     "hash": null,
     "model_name": "sd_FlatIllustration_v10",
     "sha256": null,
@@ -15432,7 +15961,7 @@
    },
    {
     "config": null,
-    "filename": "/opt/stabilitymatrix/Data/Packages/Stable Diffusion WebUI Forge/models/Stable-diffusion/sd/illustriousXL_v20.safetensors",
+    "filename": "/opt/stabilitymatrix/Data/Packages/Stable Diffusion WebUI reForge/models/Stable-diffusion/sd/illustriousXL_v20.safetensors",
     "hash": null,
     "model_name": "sd_illustriousXL_v20",
     "sha256": null,
@@ -15440,15 +15969,15 @@
    },
    {
     "config": null,
-    "filename": "/opt/stabilitymatrix/Data/Packages/Stable Diffusion WebUI Forge/models/Stable-diffusion/sd/juggernaut_reborn.safetensors",
-    "hash": null,
+    "filename": "/opt/stabilitymatrix/Data/Packages/Stable Diffusion WebUI reForge/models/Stable-diffusion/sd/juggernaut_reborn.safetensors",
+    "hash": "338b85bc4f",
     "model_name": "sd_juggernaut_reborn",
-    "sha256": null,
-    "title": "sd/juggernaut_reborn.safetensors"
+    "sha256": "338b85bc4f7628bc42cce336242e79154a57c2a4360531436e97f7793568f18c",
+    "title": "sd/juggernaut_reborn.safetensors [338b85bc4f]"
    },
    {
     "config": null,
-    "filename": "/opt/stabilitymatrix/Data/Packages/Stable Diffusion WebUI Forge/models/Stable-diffusion/sd/juggernautXL_lightning.safetensors",
+    "filename": "/opt/stabilitymatrix/Data/Packages/Stable Diffusion WebUI reForge/models/Stable-diffusion/sd/juggernautXL_lightning.safetensors",
     "hash": null,
     "model_name": "sd_juggernautXL_lightning",
     "sha256": null,
@@ -15456,7 +15985,7 @@
    },
    {
     "config": null,
-    "filename": "/opt/stabilitymatrix/Data/Packages/Stable Diffusion WebUI Forge/models/Stable-diffusion/sd/juggernautXL_v7.safetensors",
+    "filename": "/opt/stabilitymatrix/Data/Packages/Stable Diffusion WebUI reForge/models/Stable-diffusion/sd/juggernautXL_v7.safetensors",
     "hash": null,
     "model_name": "sd_juggernautXL_v7",
     "sha256": null,
@@ -15464,7 +15993,7 @@
    },
    {
     "config": null,
-    "filename": "/opt/stabilitymatrix/Data/Packages/Stable Diffusion WebUI Forge/models/Stable-diffusion/sd/landscapesupermix_v21.safetensors",
+    "filename": "/opt/stabilitymatrix/Data/Packages/Stable Diffusion WebUI reForge/models/Stable-diffusion/sd/landscapesupermix_v21.safetensors",
     "hash": null,
     "model_name": "sd_landscapesupermix_v21",
     "sha256": null,
@@ -15472,7 +16001,7 @@
    },
    {
     "config": null,
-    "filename": "/opt/stabilitymatrix/Data/Packages/Stable Diffusion WebUI Forge/models/Stable-diffusion/sd/lyriel_v16.safetensors",
+    "filename": "/opt/stabilitymatrix/Data/Packages/Stable Diffusion WebUI reForge/models/Stable-diffusion/sd/lyriel_v16.safetensors",
     "hash": null,
     "model_name": "sd_lyriel_v16",
     "sha256": null,
@@ -15480,7 +16009,7 @@
    },
    {
     "config": null,
-    "filename": "/opt/stabilitymatrix/Data/Packages/Stable Diffusion WebUI Forge/models/Stable-diffusion/sd/nextphoto_v30.safetensors",
+    "filename": "/opt/stabilitymatrix/Data/Packages/Stable Diffusion WebUI reForge/models/Stable-diffusion/sd/nextphoto_v30.safetensors",
     "hash": null,
     "model_name": "sd_nextphoto_v30",
     "sha256": null,
@@ -15488,7 +16017,7 @@
    },
    {
     "config": null,
-    "filename": "/opt/stabilitymatrix/Data/Packages/Stable Diffusion WebUI Forge/models/Stable-diffusion/sd/oilPainting_v10.safetensors",
+    "filename": "/opt/stabilitymatrix/Data/Packages/Stable Diffusion WebUI reForge/models/Stable-diffusion/sd/oilPainting_v10.safetensors",
     "hash": null,
     "model_name": "sd_oilPainting_v10",
     "sha256": null,
@@ -15496,7 +16025,7 @@
    },
    {
     "config": null,
-    "filename": "/opt/stabilitymatrix/Data/Packages/Stable Diffusion WebUI Forge/models/Stable-diffusion/sd/photon_v1.safetensors",
+    "filename": "/opt/stabilitymatrix/Data/Packages/Stable Diffusion WebUI reForge/models/Stable-diffusion/sd/photon_v1.safetensors",
     "hash": null,
     "model_name": "sd_photon_v1",
     "sha256": null,
@@ -15504,7 +16033,7 @@
    },
    {
     "config": null,
-    "filename": "/opt/stabilitymatrix/Data/Packages/Stable Diffusion WebUI Forge/models/Stable-diffusion/sd/pirsusArtstation_v10.safetensors",
+    "filename": "/opt/stabilitymatrix/Data/Packages/Stable Diffusion WebUI reForge/models/Stable-diffusion/sd/pirsusArtstation_v10.safetensors",
     "hash": null,
     "model_name": "sd_pirsusArtstation_v10",
     "sha256": null,
@@ -15512,7 +16041,7 @@
    },
    {
     "config": null,
-    "filename": "/opt/stabilitymatrix/Data/Packages/Stable Diffusion WebUI Forge/models/Stable-diffusion/sd/realisticVision_v60.safetensors",
+    "filename": "/opt/stabilitymatrix/Data/Packages/Stable Diffusion WebUI reForge/models/Stable-diffusion/sd/realisticVision_v60.safetensors",
     "hash": null,
     "model_name": "sd_realisticVision_v60",
     "sha256": null,
@@ -15520,7 +16049,7 @@
    },
    {
     "config": null,
-    "filename": "/opt/stabilitymatrix/Data/Packages/Stable Diffusion WebUI Forge/models/Stable-diffusion/sd/sd_xl_refiner_1.0.safetensors",
+    "filename": "/opt/stabilitymatrix/Data/Packages/Stable Diffusion WebUI reForge/models/Stable-diffusion/sd/sd_xl_refiner_1.0.safetensors",
     "hash": null,
     "model_name": "sd_sd_xl_refiner_1.0",
     "sha256": null,
@@ -15528,14 +16057,19 @@
    },
    {
     "config": null,
-    "filename": "/opt/stabilitymatrix/Data/Packages/Stable Diffusion WebUI Forge/models/Stable-diffusion/sd/v1-5-pruned-emaonly.ckpt",
+    "filename": "/opt/stabilitymatrix/Data/Packages/Stable Diffusion WebUI reForge/models/Stable-diffusion/sd/v1-5-pruned-emaonly.ckpt",
     "hash": null,
     "model_name": "sd_v1-5-pruned-emaonly",
     "sha256": null,
     "title": "sd/v1-5-pruned-emaonly.ckpt"
    }
   ],
-  "/sdapi/v1/sd-modules": [],
+  "/sdapi/v1/sd-vae": [
+   {
+    "filename": "/opt/stabilitymatrix/Data/Packages/Stable Diffusion WebUI reForge/models/Stable-diffusion/sd/sd_xl_base_1.0.vae.safetensors",
+    "model_name": "sd_xl_base_1.0.vae.safetensors"
+   }
+  ],
   "/sdapi/v1/upscalers": [
    {
     "model_name": null,
@@ -15580,8 +16114,8 @@
     "scale": 4.0
    },
    {
-    "model_name": "ESRGAN_4x",
-    "model_path": "/opt/stabilitymatrix/Data/Packages/Stable Diffusion WebUI Forge/models/ESRGAN/ESRGAN_4x.pth",
+    "model_name": "ESRGAN",
+    "model_path": "/opt/stabilitymatrix/Data/Packages/Stable Diffusion WebUI reForge/models/ESRGAN/ESRGAN_4x.pth",
     "model_url": null,
     "name": "ESRGAN_4x",
     "scale": 4.0
@@ -15598,27 +16132,6 @@
     "model_path": "https://github.com/xinntao/Real-ESRGAN/releases/download/v0.2.2.4/RealESRGAN_x4plus_anime_6B.pth",
     "model_url": null,
     "name": "R-ESRGAN 4x+ Anime6B",
-    "scale": 4.0
-   },
-   {
-    "model_name": "ScuNET GAN",
-    "model_path": "https://github.com/cszn/KAIR/releases/download/v1.0/scunet_color_real_gan.pth",
-    "model_url": null,
-    "name": "ScuNET GAN",
-    "scale": 4.0
-   },
-   {
-    "model_name": "ScuNET GAN",
-    "model_path": "https://github.com/cszn/KAIR/releases/download/v1.0/scunet_color_real_psnr.pth",
-    "model_url": null,
-    "name": "ScuNET PSNR",
-    "scale": 4.0
-   },
-   {
-    "model_name": "SwinIR 4x",
-    "model_path": "/opt/stabilitymatrix/Data/Packages/Stable Diffusion WebUI Forge/models/SwinIR/SwinIR_4x.pth",
-    "model_url": null,
-    "name": "SwinIR_4x",
     "scale": 4.0
    }
   ]

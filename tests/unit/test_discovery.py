@@ -48,6 +48,7 @@ def _webui_routes(full: bool) -> dict[tuple[str, str], Any]:
         ('GET', endpoints.SCHEDULERS): NOT_FOUND,
         ('GET', endpoints.CONTROLNET_VERSION): NOT_FOUND,
         ('GET', endpoints.CONTROLNET_MODELS): NOT_FOUND,
+        ('GET', endpoints.INTERROGATE): CannedStatus(405, '{"detail": "Method Not Allowed"}'),
         ('POST', endpoints.TXT2IMG): {'images': [image_to_base64(Image.new('RGBA', (8, 8)))]},
     }
     if full:
@@ -205,6 +206,20 @@ def test_webui_lists_hypernetworks_by_name():
     """WebUI hypernetworks are listed by the name its prompt tags use."""
     service, _ = _webui()
     assert service.list_hypernetworks() == [BackendOption(name='hn')]
+
+
+def test_webui_without_a_hypernetwork_endpoint_lists_none():
+    """Forge Neo has no /sdapi/v1/hypernetworks, so it lists no hypernetworks."""
+    service, session = _webui()
+    session.routes[('GET', A1111Webservice.Endpoints.HYPERNETWORKS)] = NOT_FOUND
+    assert not service.list_hypernetworks()
+
+
+def test_webui_without_an_interrogate_endpoint_reports_it_missing():
+    """Forge Neo has no /sdapi/v1/interrogate, which a GET probe sees as a 404 rather than a 405."""
+    service, session = _webui()
+    session.routes[('GET', A1111Webservice.Endpoints.INTERROGATE)] = NOT_FOUND
+    assert not service.get_capabilities().interrogate
 
 
 def test_webui_without_extensions_lists_nothing_and_reports_missing_features():

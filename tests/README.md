@@ -2,7 +2,7 @@
 
 Live-API integration tests for the two backend clients:
 
-- `sd_backend_client.api.a1111_webservice.A1111Webservice` (A1111 / Forge / ReForge)
+- `sd_backend_client.api.a1111_webservice.A1111Webservice` (A1111 / Forge / reForge / Forge Neo)
 - `sd_backend_client.api.comfyui_webservice.ComfyUiWebservice` (ComfyUI)
 
 They talk to a **real, running** server rather than mocking HTTP. Point the suite at
@@ -11,7 +11,7 @@ whichever backend is up — the other backend's tests skip themselves automatica
 
 ## Requirements
 
-- A running A1111/Forge/ReForge WebUI (`--api` enabled) **and/or** a running ComfyUI.
+- A running A1111/Forge/reForge/Forge Neo WebUI (`--api` enabled) **and/or** a running ComfyUI.
 - `pip install -r requirements.txt` plus `pytest`.
 
 ## Environment
@@ -79,13 +79,19 @@ python scripts/capture_fixtures.py                          # every reachable ba
 python scripts/capture_fixtures.py --only webui --label a1111
 ```
 
+There is one WebUI recording per fork: `a1111`, `forge`, `reforge` and `forge_neo`. Each
+recording's `meta.capabilities` holds what `get_capabilities()` reported live, and the replay
+checks the client derives the same from the recorded responses. The forks differ in which
+routes they serve: the Forge forks have no `/controlnet/version` or `/controlnet/settings`,
+and Forge Neo also drops `/sdapi/v1/hypernetworks` and `/sdapi/v1/interrogate`.
+
 The ComfyUI capture queues one small txt2img job, so it needs a checkpoint. Recordings list
 the server's model names, so review them before committing. When a client change requests an
 endpoint a recording lacks, the replay fails and names it; re-run the capture to refresh.
 
 ## What's covered (integration)
 
-### A1111 / Forge / ReForge
+### A1111 / Forge / reForge / Forge Neo
 
 - **`test_a1111_metadata.py`** — read-only `get_*` accessors (config, samplers,
   upscalers, models, VAE with Forge fallback, LoRAs, hypernetworks, styles, scripts,
@@ -96,9 +102,10 @@ endpoint a recording lacks, the replay fails and names it; re-run the capture to
 - **`test_a1111_controlnet.py`** — ControlNet extension endpoints. Gated on
   `/controlnet/model_list` (the reliable "installed" signal); the fork-specific optional
   routes `/controlnet/version` and `/controlnet/settings` skip individually if a build
-  (e.g. ReForge) drops them.
+  (e.g. reForge) drops them.
 - **`test_a1111_generation.py`** *(opt-in)* — real round-trips: txt2img (single/batch,
-  seed echo), img2img, inpaint-with-mask, basic upscale, interrogate, interrupt.
+  seed echo), img2img, inpaint-with-mask, basic upscale, interrogate (skipped where the
+  server has no `/sdapi/v1/interrogate`), interrupt.
 - **`test_a1111_controlnet_generation.py`** *(opt-in)* — ControlNet diffusion. Includes a
   **silent-failure detector**: the same seed + prompt is generated with and without a
   control unit, and the test fails unless the two images actually differ.

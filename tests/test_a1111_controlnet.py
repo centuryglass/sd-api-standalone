@@ -32,8 +32,10 @@ def test_controlnet_version(controlnet_available):
 def test_controlnet_models(controlnet_available):
     models = controlnet_available.get_controlnet_models()
     assert isinstance(models.model_list, list) and len(models.model_list) > 0
-    # "None" is always offered as the no-op model choice.
-    assert any(name.lower() == 'none' for name in models.model_list)
+    assert all(isinstance(name, str) and name for name in models.model_list)
+    # The Forge forks list a no-op 'None' model and sd-webui-controlnet doesn't; discovery leaves it out either way.
+    assert all(model.full_model_name.lower() != 'none'
+               for model in controlnet_available.list_controlnet_models())
 
 
 def test_controlnet_modules(controlnet_available):

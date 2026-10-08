@@ -111,6 +111,8 @@ def test_upscale_basic(service, output_dir):
 
 
 def test_interrogate_returns_caption(service):
+    if not service.get_capabilities().interrogate:
+        pytest.skip('/sdapi/v1/interrogate not exposed by this build')
     source = make_test_image()
     caption = service.interrogate(source)
     assert isinstance(caption, str)
