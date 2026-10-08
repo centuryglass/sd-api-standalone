@@ -163,6 +163,16 @@ def test_comfyui_discovers_every_recorded_preprocessor(recording):
 
 
 @pytest.mark.parametrize('recording', COMFYUI_RECORDINGS)
+def test_comfyui_discovery_lists_recorded_models(recording):
+    """Checkpoints, ControlNet models and samplers list under the names ComfyUI reported."""
+    responses = recording['responses']
+    service = _comfy(recording)
+    assert [option.name for option in service.list_checkpoints()] == responses['/models/checkpoints']
+    assert [model.full_model_name for model in service.list_controlnet_models()] == responses['/models/controlnet']
+    assert [option.name for option in service.list_samplers()] == service.get_sampler_names()
+
+
+@pytest.mark.parametrize('recording', COMFYUI_RECORDINGS)
 def test_comfyui_finished_history_entry(recording):
     """The recorded job's /history entry reads as FINISHED, with the image references it produced."""
     meta = recording['meta']
@@ -196,6 +206,17 @@ def test_webui_option_lists(recording):
     assert service.get_latent_upscale_modes()
     scripts = service.get_scripts()
     assert isinstance(scripts.txt2img, list) and isinstance(scripts.img2img, list)
+
+
+@pytest.mark.parametrize('recording', WEBUI_RECORDINGS)
+def test_webui_discovery_lists_recorded_samplers_and_controlnet_models(recording):
+    """Samplers list under shared names labelled with WebUI's names, and ControlNet models match model_list."""
+    service = _webui(recording)
+    samplers = service.list_samplers()
+    assert [option.display_name for option in samplers] == [sampler.name for sampler in service.get_samplers()]
+    assert any(option.name == 'euler_ancestral' for option in samplers)
+    assert [model.full_model_name for model in service.list_controlnet_models()] == \
+        service.get_controlnet_models().model_list
 
 
 @pytest.mark.parametrize('recording', WEBUI_RECORDINGS)

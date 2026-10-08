@@ -4,6 +4,7 @@ through Stable Diffusion.
 """
 import json
 import logging
+import re
 from copy import deepcopy
 from typing import Optional, Any, Callable, cast, TYPE_CHECKING
 from typing_extensions import TypedDict
@@ -18,8 +19,11 @@ from sd_backend_client.api.shared_data.controlnet.controlnet_preprocessor import
 from sd_backend_client.api.shared_data.api_datatypes import DiffusionUpscalingParams, REDRAW_MODES, SEAM_FIX_MODES
 from sd_backend_client.api.shared_data.backend import Backend, require_init_image, require_mask, \
     require_upscale_size
+from sd_backend_client.api.shared_data.backend_options import BackendCapabilities, BackendOption
+from sd_backend_client.api.shared_data.controlnet.controlnet_model import ControlNetModel
 from sd_backend_client.api.shared_data.controlnet.controlnet_unit import ControlNetUnit
 from sd_backend_client.api.shared_data.diffusion_params import DiffusionParams
+from sd_backend_client.api.shared_data.sampler_names import comfyui_sampler_name, comfyui_scheduler_name
 from sd_backend_client.api.webservice import WebService, DEFAULT_REQUEST_TIMEOUT
 from sd_backend_client.api.webui.controlnet_webui_constants import (ControlNetModelResponse, ControlNetModuleResponse,
                                                       ControlTypeDef, ControlTypeResponse,
@@ -52,14 +56,16 @@ INTERROGATE_DEFAULT_MODEL = 'clip'
 DEFAULT_GENERATION_TIMEOUT = 600.0
 MAX_LOGIN_ATTEMPTS = 3
 SETTINGS_UPDATE_TIMEOUT = 90
+# The " [hash]" suffix WebUI appends to a checkpoint's relative file name to form its title, once it has hashed it.
+CHECKPOINT_TITLE_HASH_PATTERN = r' \[[0-9a-fA-F]+\]$'
 
 
 class A1111Webservice(WebService, Backend):
     """
     A1111Webservice provides access to the a1111/stable-diffusion-webui through the REST API.
 
-    Its `submit_*` methods implement `Backend`. The blocking `txt2img`, `img2img`, `upscale` and
-    `controlnet_preprocessor_preview` methods are WebUI-specific.
+    Its `submit_*`, `list_*` and `get_capabilities` methods implement `Backend`. The blocking `txt2img`, `img2img`,
+    `upscale` and `controlnet_preprocessor_preview` methods are WebUI-specific.
     """
 
     # noinspection SpellCheckingInspection
@@ -79,6 +85,7 @@ class A1111Webservice(WebService, Backend):
         SCRIPTS = '/sdapi/v1/scripts'
         SCRIPT_INFO = '/sdapi/v1/script-info'
         SAMPLERS = '/sdapi/v1/samplers'
+        SCHEDULERS = '/sdapi/v1/schedulers'
         UPSCALERS = '/sdapi/v1/upscalers'
         LATENT_UPSCALE_MODES = '/sdapi/v1/latent-upscale-modes'
         HYPERNETWORKS = '/sdapi/v1/hypernetworks'
@@ -693,6 +700,83 @@ class A1111Webservice(WebService, Backend):
         except (SDBackendError, OSError, ValueError) as err:
             logger.error(f'Failed to load thumbnail "{file_path}": {err}')
             return None
+
+    def _get_if_present(self, endpoint: str) -> Optional[Any]:
+        """GET `endpoint` and return its JSON body, or None if the server answers 404 (an extension or feature it
+        lacks)."""
+        try:
+            return self.get(endpoint).json()
+        except ServerError as err:
+            if err.status_code == 404:
+                return None
+            raise
+
+    # Backend discovery methods:
+
+    def list_checkpoints(self) -> list[BackendOption]:
+        """List checkpoints, implementing `Backend.list_checkpoints`.
+
+        Each `name` is the checkpoint's file name relative to the models directory, which stays the same once the
+        server hashes the file. `display_name` is its title as WebUI shows it.
+        """
+        return [BackendOption(name=re.sub(CHECKPOINT_TITLE_HASH_PATTERN, '', model.title), display_name=model.title)
+                for model in self.get_models()]
+
+    def list_vaes(self) -> list[BackendOption]:
+        """List VAE models, implementing `Backend.list_vaes`."""
+        return [BackendOption(name=vae.model_name) for vae in self.get_vae()]
+
+    def list_loras(self) -> list[BackendOption]:
+        """List LoRA models, implementing `Backend.list_loras`. `display_name` is the LoRA's alias, if it differs."""
+        return [BackendOption(name=lora.name, display_name=lora.alias if lora.alias != lora.name else None)
+                for lora in self.get_loras()]
+
+    def list_hypernetworks(self) -> list[BackendOption]:
+        """List hypernetworks, implementing `Backend.list_hypernetworks`."""
+        return [BackendOption(name=name) for name in self.get_hypernetworks()]
+
+    def list_samplers(self) -> list[BackendOption]:
+        """List samplers by shared name, implementing `Backend.list_samplers`. `display_name` is the WebUI name."""
+        return [BackendOption(name=comfyui_sampler_name(sampler.name), display_name=sampler.name)
+                for sampler in self.get_samplers()]
+
+    def list_schedulers(self) -> list[BackendOption]:
+        """List schedulers by shared name, implementing `Backend.list_schedulers`. `display_name` is the WebUI label.
+
+        Servers older than A1111 1.9 have no scheduler list and return an empty one.
+        """
+        schedulers = self._get_if_present(A1111Webservice.Endpoints.SCHEDULERS)
+        if schedulers is None:
+            return []
+        return [BackendOption(name=comfyui_scheduler_name(scheduler['name']), display_name=scheduler.get('label'))
+                for scheduler in schedulers]
+
+    def list_upscalers(self) -> list[BackendOption]:
+        """List upscalers, implementing `Backend.list_upscalers`. WebUI's no-op 'None' upscaler is left out."""
+        return [BackendOption(name=upscaler.name) for upscaler in self.get_upscalers()
+                if upscaler.name.lower() != 'none']
+
+    def list_controlnet_models(self) -> list[ControlNetModel]:
+        """List ControlNet models, implementing `Backend.list_controlnet_models`."""
+        models = self._get_if_present(A1111Webservice.Endpoints.CONTROLNET_MODELS)
+        if models is None:
+            return []
+        return [ControlNetModel(name) for name in ControlNetModelResponse.model_validate(models).model_list
+                if name.lower() != 'none']
+
+    def get_capabilities(self) -> BackendCapabilities:
+        """Report optional features, implementing `Backend.get_capabilities`.
+
+        ControlNet support is detected from `/controlnet/version`, Ultimate SD Upscale from the img2img script list,
+        and scheduler support from `/sdapi/v1/schedulers`.
+        """
+        img2img_scripts = [script.lower() for script in self.get_scripts().img2img]
+        return BackendCapabilities(
+            controlnet=self._get_if_present(A1111Webservice.Endpoints.CONTROLNET_VERSION) is not None,
+            ultimate_upscale=ULTIMATE_UPSCALE_SCRIPT in img2img_scripts,
+            scheduler=self._get_if_present(A1111Webservice.Endpoints.SCHEDULERS) is not None,
+            interrogate=True,
+            free_memory=False)
 
     def login(self, username: str, password: str) -> requests.Response:
         """Attempt to log in with a username and password."""

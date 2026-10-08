@@ -54,6 +54,9 @@ class FakeSession:
         """Record a POST and return its canned response."""
         return self._respond('POST', address, kwargs)
 
+    def close(self) -> None:
+        """Do nothing, as a closed fake keeps answering."""
+
     def of(self, method: str, path: str) -> list[dict[str, Any]]:
         """Recorded requests with the given method and path."""
         return [request for request in self.requests if request['method'] == method and request['path'] == path]

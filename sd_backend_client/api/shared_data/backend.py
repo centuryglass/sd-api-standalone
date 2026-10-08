@@ -1,9 +1,10 @@
-"""The submission interface both backend clients implement, so callers can drive either one the same way.
+"""The interface both backend clients implement, so callers can drive either one the same way.
 
 `A1111Webservice` and `ComfyUiWebservice` subclass `Backend`. Each `submit_*` method copies what it needs from its
 arguments before returning, and returns a `GenerationHandle` for the queued job. Fields that only the other backend
-supports are ignored. Methods outside this class (blocking `txt2img` and `upscale`, model listings, `interrupt`) are
-backend-specific and differ in signature and return type.
+supports are ignored. The `list_*` methods and `get_capabilities` report what the server offers, in the same types on
+both backends. Methods outside this class (blocking `txt2img` and `upscale`, `get_*` listings in each server's own
+format, `interrupt`) are backend-specific and differ in signature and return type.
 """
 from abc import ABC, abstractmethod
 from typing import Optional
@@ -11,6 +12,9 @@ from typing import Optional
 from PIL import Image
 
 from sd_backend_client.api.shared_data.api_datatypes import DiffusionUpscalingParams
+from sd_backend_client.api.shared_data.backend_options import BackendCapabilities, BackendOption
+from sd_backend_client.api.shared_data.controlnet.controlnet_constants import ControlTypeDef
+from sd_backend_client.api.shared_data.controlnet.controlnet_model import ControlNetModel
 from sd_backend_client.api.shared_data.controlnet.controlnet_preprocessor import ControlNetPreprocessor, \
     PreprocessorParams
 from sd_backend_client.api.shared_data.diffusion_params import DiffusionParams
@@ -80,6 +84,61 @@ class Backend(ABC):
         parameter defaults, and a `PreprocessorParams` overrides them with its `parameter_values`. `mask` is passed
         only to preprocessors that take one, such as inpainting preprocessors.
         """
+
+    @abstractmethod
+    def list_checkpoints(self) -> list[BackendOption]:
+        """List the server's Stable Diffusion checkpoints. Each `name` is a valid `DiffusionParams.sd_model_name`."""
+
+    @abstractmethod
+    def list_vaes(self) -> list[BackendOption]:
+        """List the server's VAE models by file name. No `DiffusionParams` field selects one."""
+
+    @abstractmethod
+    def list_loras(self) -> list[BackendOption]:
+        """List the server's LoRA models. Each `name` works in a `<lora:name:weight>` prompt tag."""
+
+    @abstractmethod
+    def list_hypernetworks(self) -> list[BackendOption]:
+        """List the server's hypernetworks. Each `name` works in a `<hypernet:name:weight>` prompt tag."""
+
+    @abstractmethod
+    def list_samplers(self) -> list[BackendOption]:
+        """List the server's samplers. Each `name` is a valid `DiffusionParams.sampler`.
+
+        Names are shared names from `sampler_names` where one exists, so the same sampler has the same name on both
+        backends. `display_name` holds the WebUI name for a sampler that has one.
+        """
+
+    @abstractmethod
+    def list_schedulers(self) -> list[BackendOption]:
+        """List the server's noise schedulers. Each `name` is a valid `DiffusionParams.scheduler`.
+
+        Names are shared names from `sampler_names` where one exists. A server that ignores the scheduler (see
+        `BackendCapabilities.scheduler`) lists none.
+        """
+
+    @abstractmethod
+    def list_upscalers(self) -> list[BackendOption]:
+        """List the server's upscaling models. Each `name` is a valid `DiffusionUpscalingParams.upscaling_mode`."""
+
+    @abstractmethod
+    def list_controlnet_models(self) -> list[ControlNetModel]:
+        """List the server's ControlNet models, for `ControlNetUnit.model`. Empty when the server lacks ControlNet."""
+
+    @abstractmethod
+    def get_controlnet_preprocessors(self, update_cache: bool = False) -> list[ControlNetPreprocessor]:
+        """List the server's ControlNet preprocessors with their parameters.
+
+        The list is cached after the first call; `update_cache` reloads it. Callers may change the returned list.
+        """
+
+    @abstractmethod
+    def get_controlnet_type_categories(self) -> dict[str, ControlTypeDef]:
+        """Group the server's ControlNet preprocessors and models into control types, keyed by type name."""
+
+    @abstractmethod
+    def get_capabilities(self) -> BackendCapabilities:
+        """Report which optional features the server has. Each call queries the server again."""
 
 
 def require_init_image(diffusion_params: DiffusionParams, operation: str) -> None:

@@ -31,6 +31,7 @@ from sd_backend_client.api.a1111_webservice import A1111Webservice
 from sd_backend_client.api.comfyui.comfyui_diffusion_params import ComfyUIDiffusionParams
 from sd_backend_client.api.comfyui.comfyui_types import CONTROLNET_PREPROCESSOR_CATEGORY, NodeInfoResponse
 from sd_backend_client.api.comfyui_webservice import AsyncTaskStatus, ComfyEndpoints, ComfyUiWebservice
+from sd_backend_client.api.shared_data.backend import Backend
 from sd_backend_client.api.webservice import WebService
 from sd_backend_client.errors import ServerError
 
@@ -108,6 +109,15 @@ def _wait_for_finish(service: ComfyUiWebservice, prompt_id: str, number: int) ->
     sys.exit(f'ComfyUI job {prompt_id} did not finish within {GENERATION_TIMEOUT}s')
 
 
+def _run_discovery(service: Backend) -> None:
+    """Call every `Backend` discovery method, so the recording holds the endpoints each one reads."""
+    for list_options in (service.list_checkpoints, service.list_vaes, service.list_loras, service.list_hypernetworks,
+                         service.list_samplers, service.list_schedulers, service.list_upscalers,
+                         service.list_controlnet_models):
+        list_options()
+    service.get_capabilities()
+
+
 def capture_comfyui(url: str, checkpoint: Optional[str]) -> dict[str, Any]:
     """Run the ComfyUI client's read methods and one small txt2img job, recording every response."""
     service = ComfyUiWebservice(url)
@@ -121,6 +131,7 @@ def capture_comfyui(url: str, checkpoint: Optional[str]) -> dict[str, Any]:
     service.get_model_types()
     preprocessors = service.get_controlnet_preprocessors()
     service.get_controlnet_type_categories(preprocessors)
+    _run_discovery(service)
     checkpoints = service.get_sd_checkpoints()
     if checkpoint is None:
         if not checkpoints:
@@ -143,7 +154,7 @@ def capture_comfyui(url: str, checkpoint: Optional[str]) -> dict[str, Any]:
 
 
 def capture_webui(url: str, credentials: Optional[tuple[str, str]]) -> dict[str, Any]:
-    """Run the WebUI client's ControlNet and option-list read methods, recording every response."""
+    """Run the WebUI client's ControlNet, option-list and discovery read methods, recording every response."""
     service = A1111Webservice(url, credentials_provider=lambda: credentials)
     responses: dict[str, Any] = {}
     errors: dict[str, int] = {}
@@ -158,6 +169,7 @@ def capture_webui(url: str, credentials: Optional[tuple[str, str]]) -> dict[str,
         sys.exit(f'{url} has no ControlNet extension; the WebUI capture needs one')
     service.get_controlnet_preprocessors()
     service.get_controlnet_type_categories()
+    _run_discovery(service)
     return {'meta': {'backend': 'webui', 'controlnet_version': version}, 'responses': responses, 'errors': errors}
 
 
