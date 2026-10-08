@@ -34,8 +34,8 @@ WebUI**, and their **ControlNet** extensions, building the request bodies and no
 Everything lives under the `sd_backend_client` package and imports only from within it plus third-party libraries.
 Python **3.11+** (see "Conventions").
 
-Status: under active refactoring. Core txt2img / img2img / inpainting / ControlNet paths work end-to-end on both
-backends; the ComfyUI node classes' pydantic migration and tiled upscaling are still in progress.
+Status: under active refactoring. Core txt2img / img2img / inpainting / upscaling (including tiled Ultimate SD
+Upscale) / ControlNet paths work end-to-end on both backends.
 
 ## Who it serves
 
@@ -141,6 +141,8 @@ The request body is a **node graph**, not JSON fields. This is the most involved
   nodes between builds must clear those nodes' connections after each build.
 - Separate builders exist for upscaling and preprocessor-preview workflows (`basic_upscale_workflow_builder.py`,
   `latent_upscale_workflow_builder.py`, `preprocessor_preview_workflow_builder.py`).
+  `LatentUpscaleWorkflowBuilder.build_workflow`'s docstring notes a limit on the Ultimate SD Upscale path: a target
+  aspect ratio different from the source's isn't honored, since both sides scale by the larger width/height ratio.
 
 ### `util/`
 

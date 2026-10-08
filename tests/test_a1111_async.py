@@ -26,10 +26,17 @@ import pytest
 from PIL import Image
 
 from sd_backend_client.api.a1111_webservice import A1111Webservice
+from sd_backend_client.api.shared_data.api_datatypes import DiffusionUpscalingParams
+from sd_backend_client.api.shared_data.controlnet.controlnet_model import ControlNetModel
+from sd_backend_client.api.shared_data.controlnet.controlnet_preprocessor import (ControlNetPreprocessor,
+                                                                                  PreprocessorParams)
+from sd_backend_client.api.shared_data.controlnet.controlnet_unit import ControlNetUnit
+from sd_backend_client.api.shared_data.diffusion_params import DiffusionParams
 from sd_backend_client.api.shared_data.generation_handle import GenerationError, GenerationStatus
 from sd_backend_client.api.webui.diffusion_request_body import DiffusionRequestBody
 
-from .helpers import add_controlnet_unit, make_controlnet_unit, make_edge_image, make_structured_image, save_output
+from .helpers import (add_controlnet_unit, find_tile_controlnet_pairing, make_controlnet_unit, make_edge_image,
+                      make_structured_image, save_output)
 
 pytestmark = [pytest.mark.integration, pytest.mark.generation]
 
@@ -140,6 +147,30 @@ def test_submit_upscale_lifecycle(service, output_dir):
     assert len(result.images) == 1
     _assert_valid_image(result.images[0], expected_size=256)
     save_output(output_dir, 'async_upscale', result.images[0])
+
+
+def test_submit_upscale_with_ultimate_sd_upscale_lifecycle(service, output_dir):
+    """Ultimate SD Upscale through the async handle: 512x512 -> 2048x2048 with an optional tile ControlNet unit."""
+    if not service.get_capabilities().ultimate_upscale:
+        pytest.skip('Ultimate SD Upscale is not available on this server.')
+
+    tile_controlnet = None
+    pairing = find_tile_controlnet_pairing(service)
+    if pairing is not None:
+        module, model = pairing
+        tile_controlnet = ControlNetUnit(model=ControlNetModel(model),
+                                         preprocessor=PreprocessorParams(typedef=ControlNetPreprocessor(name=module)))
+
+    upscale_params = DiffusionUpscalingParams(
+        use_stable_diffusion_upscaling=True,
+        step_count=8,
+        diffusion_params=DiffusionParams(prompt='a red apple on a wooden table', steps=8),
+        tile_controlnet=tile_controlnet,
+    )
+    result = service.submit_upscale(make_structured_image(512, 512), 2048, 2048, upscale_params).wait(timeout=300)
+    assert len(result.images) == 1
+    _assert_valid_image(result.images[0], expected_size=2048)
+    save_output(output_dir, 'async_upscale_sd', result.images[0])
 
 
 @pytest.mark.controlnet

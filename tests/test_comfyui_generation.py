@@ -8,7 +8,14 @@ Results are saved under the output dir for visual fidelity inspection.
 import pytest
 from PIL import Image
 
-from .comfy_helpers import (COMFY_SIZE, build_comfy_params, make_comfy_mask, wait_for_comfy_images)
+from sd_backend_client.api.comfyui_webservice import ComfyModelType
+from sd_backend_client.api.shared_data.api_datatypes import DiffusionUpscalingParams
+from sd_backend_client.api.shared_data.controlnet.controlnet_model import ControlNetModel
+from sd_backend_client.api.shared_data.controlnet.controlnet_preprocessor import PreprocessorParams
+from sd_backend_client.api.shared_data.controlnet.controlnet_unit import ControlNetUnit
+
+from .comfy_helpers import (COMFY_SIZE, build_comfy_params, find_tile_model, find_tile_preprocessor,
+                            make_comfy_mask, wait_for_comfy_images)
 from .helpers import (images_differ, make_structured_image, region_mean_diff,
                       save_output)
 
@@ -96,9 +103,6 @@ def test_inpaint_respects_mask(comfy_service, comfy_checkpoint, output_dir):
 
 
 def test_upscale(comfy_service, output_dir):
-    from sd_backend_client.api.comfyui_webservice import ComfyModelType
-    from sd_backend_client.api.shared_data.api_datatypes import DiffusionUpscalingParams
-
     upscale_models = comfy_service.get_models(ComfyModelType.UPSCALING)
     if not upscale_models:
         pytest.skip('No upscale models installed on the ComfyUI server.')
@@ -114,6 +118,51 @@ def test_upscale(comfy_service, output_dir):
     assert result.width >= 200 and result.height >= 200
     save_output(output_dir, 'comfy_upscale_source', source)
     save_output(output_dir, 'comfy_upscale_result', result)
+
+
+def test_upscale_with_ultimate_sd_upscale(comfy_service, comfy_checkpoint, output_dir):
+    """Ultimate SD Upscale: a tiled diffusion pass refines a 4x upscale, with an optional tile ControlNet unit.
+
+    512x512 -> 2048x2048 so the tiled pass actually spans multiple tiles at the default 512px tile size.
+    """
+    if not comfy_service.get_capabilities().ultimate_upscale:
+        pytest.skip('Ultimate SD Upscale is not available on this ComfyUI server.')
+
+    tile_controlnet = None
+    tile_model = find_tile_model(comfy_service)
+    tile_preprocessor = find_tile_preprocessor(comfy_service)
+    if tile_model and tile_preprocessor:
+        tile_controlnet = ControlNetUnit(model=ControlNetModel(tile_model),
+                                         preprocessor=PreprocessorParams(typedef=tile_preprocessor))
+
+    upscale_params = DiffusionUpscalingParams(use_stable_diffusion_upscaling=True,
+                                              use_ultimate_upscale_script=True,
+                                              diffusion_params=build_comfy_params(comfy_checkpoint),
+                                              step_count=8,
+                                              tile_controlnet=tile_controlnet)
+    source = make_structured_image(512, 512)
+    response = comfy_service.upscale(source, 2048, 2048, upscale_params)
+    images = wait_for_comfy_images(comfy_service, response, timeout=300.0)
+    assert len(images) == 1
+    result = images[0]
+    _assert_valid_image(result, expected_size=2048)
+    save_output(output_dir, 'comfy_upscale_sd_source', source)
+    save_output(output_dir, 'comfy_upscale_sd_result', result)
+
+
+def test_upscale_fallback_tiled_vae(comfy_service, comfy_checkpoint, output_dir):
+    """Without the Ultimate SD Upscale node, the diffusion upscale path falls back to tiled VAE encode/decode."""
+    upscale_params = DiffusionUpscalingParams(use_stable_diffusion_upscaling=True,
+                                              use_ultimate_upscale_script=False,
+                                              diffusion_params=build_comfy_params(comfy_checkpoint),
+                                              step_count=8)
+    source = make_structured_image(512, 512)
+    response = comfy_service.upscale(source, 2048, 2048, upscale_params)
+    images = wait_for_comfy_images(comfy_service, response, timeout=300.0)
+    assert len(images) == 1
+    result = images[0]
+    _assert_valid_image(result, expected_size=2048)
+    save_output(output_dir, 'comfy_upscale_fallback_result', result)
 
 
 def test_interrupt_is_accepted(comfy_service):

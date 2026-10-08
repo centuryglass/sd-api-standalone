@@ -1,5 +1,6 @@
 """Small shared helpers for the integration tests."""
 import os
+from typing import Optional
 
 from PIL import Image, ImageChops, ImageDraw
 
@@ -96,6 +97,22 @@ def make_controlnet_unit(module: str, model: str, control_image: Image.Image,
         control_start=0.0,
         control_end=1.0,
     )
+
+
+def find_tile_controlnet_pairing(service) -> Optional[tuple[str, str]]:
+    """A (module, model) tile ControlNet pairing from /controlnet/control_types, or None if unavailable.
+
+    Mirrors conftest.controlnet_pairing's usability check, but looks for a category whose name
+    contains "tile" instead of preferring Canny.
+    """
+    control_types = service.get_controlnet_control_types()['control_types']
+    for name, entry in control_types.items():
+        if 'tile' not in name.lower():
+            continue
+        module, model = entry.get('default_option'), entry.get('default_model')
+        if module and model and module.lower() != 'none' and model.lower() != 'none':
+            return module, model
+    return None
 
 
 def add_controlnet_unit(body: DiffusionRequestBody, unit: ControlNetUnit) -> None:

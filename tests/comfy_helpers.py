@@ -60,6 +60,18 @@ def find_canny_model(service: ComfyUiWebservice):
     return next((m for m in models if 'canny' in m.lower()), None)
 
 
+def find_tile_preprocessor(service: ComfyUiWebservice):
+    """Return a tile-style preprocessor object, or None if none is installed."""
+    preprocessors = service.get_controlnet_preprocessors()
+    return next((p for p in preprocessors if 'tile' in p.name.lower()), None)
+
+
+def find_tile_model(service: ComfyUiWebservice):
+    """Return a tile ControlNet model filename, or None if none is installed."""
+    models = service.get_controlnet_models()
+    return next((m for m in models if 'tile' in m.lower()), None)
+
+
 def wait_for_comfy_images(service: ComfyUiWebservice, response, timeout: float = 240.0, poll: float = 1.0):
     """Block until a queued ComfyUI job finishes, returning its downloaded PIL images.
 
