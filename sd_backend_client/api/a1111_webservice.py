@@ -64,8 +64,8 @@ class A1111Webservice(WebService, Backend):
     """
     A1111Webservice provides access to the a1111/stable-diffusion-webui through the REST API.
 
-    Its `submit_*`, `list_*` and `get_capabilities` methods implement `Backend`. The blocking `txt2img`, `img2img`, `upscale` and
-    `controlnet_preprocessor_preview` methods are WebUI-specific.
+    Its `submit_*`, `list_*` and `get_capabilities` methods implement `Backend`. The blocking `txt2img`, `img2img`,
+    `upscale` and `controlnet_preprocessor_preview` methods are WebUI-specific.
     """
 
     # noinspection SpellCheckingInspection

@@ -137,8 +137,9 @@ class ComfyUiWebservice(WebService, Backend):
     """
     ComfyUiWebservice provides access to Stable Diffusion through the ComfyUI REST API.
 
-    Its `submit_*`, `list_*` and `get_capabilities` methods implement `Backend`. The `txt2img`, `img2img`, `inpaint`, `upscale` and
-    `controlnet_preprocessor_preview` methods queue the same jobs but return the raw `QueueAdditionResponse`.
+    Its `submit_*`, `list_*` and `get_capabilities` methods implement `Backend`. The `txt2img`, `img2img`, `inpaint`,
+    `upscale` and `controlnet_preprocessor_preview` methods queue the same jobs but return the raw
+    `QueueAdditionResponse`.
     """
 
     def __init__(self, url: str, request_timeout: Optional[float] = DEFAULT_REQUEST_TIMEOUT,
