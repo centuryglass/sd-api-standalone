@@ -17,8 +17,8 @@ def test_parameter_models_reject_unknown_fields():
         DiffusionUpscalingParams(bogus=1)
 
 
+def test_webui_body_converts_to_comfyui_params_via_shared_fields():
     """Only fields the target model defines are passed between backend subclasses."""
-    """A misspelled field raises instead of silently running with defaults."""
     body = DiffusionRequestBody(prompt='fox', s_noise=0.5)
     shared = {name: getattr(body, name) for name in DiffusionParams.model_fields.keys()}
     assert ComfyUIDiffusionParams(**shared).prompt == 'fox'
