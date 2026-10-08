@@ -32,10 +32,12 @@ from sd_backend_client.api.comfyui.nodes.ksampler_node import KSAMPLER_NAME
 from sd_backend_client.api.comfyui.nodes.ultimate_upscale_node import ULTIMATE_UPSCALE_NODE_NAME
 from sd_backend_client.api.comfyui.preprocessor_preview_workflow_builder import PreprocessorPreviewWorkflowBuilder
 from sd_backend_client.api.shared_data.api_datatypes import DiffusionUpscalingParams
-from sd_backend_client.api.shared_data.backend import Backend, require_init_image, require_mask
+from sd_backend_client.api.shared_data.backend import Backend, require_init_image, require_mask, \
+    require_upscale_size
 from sd_backend_client.api.shared_data.controlnet.controlnet_category_builder import ControlNetCategoryBuilder
 from sd_backend_client.api.shared_data.controlnet.controlnet_constants import ControlTypeDef
-from sd_backend_client.api.shared_data.controlnet.controlnet_preprocessor import ControlNetPreprocessor
+from sd_backend_client.api.shared_data.controlnet.controlnet_preprocessor import ControlNetPreprocessor, \
+    PreprocessorParams
 from sd_backend_client.api.shared_data.controlnet.controlnet_unit import ControlNetUnit
 from sd_backend_client.api.shared_data.diffusion_params import DiffusionParams
 from sd_backend_client.api.webservice import WebService, MULTIPART_FORM_DATA_TYPE, DEFAULT_REQUEST_TIMEOUT
@@ -131,8 +133,8 @@ class ComfyUiWebservice(WebService, Backend):
     """
     ComfyUiWebservice provides access to Stable Diffusion through the ComfyUI REST API.
 
-    Its `submit_*` methods implement `Backend`. The `txt2img`, `img2img` and `inpaint` methods queue the same jobs but
-    return the raw `QueueAdditionResponse`.
+    Its `submit_*` methods implement `Backend`. The `txt2img`, `img2img`, `inpaint`, `upscale` and
+    `controlnet_preprocessor_preview` methods queue the same jobs but return the raw `QueueAdditionResponse`.
     """
 
     def __init__(self, url: str, request_timeout: Optional[float] = DEFAULT_REQUEST_TIMEOUT,
@@ -538,11 +540,17 @@ class ComfyUiWebservice(WebService, Backend):
         return self._generate(diffusion_params)
 
 
-    def controlnet_preprocessor_preview(self, image: Image.Image, mask: Image.Image,
-                                        preprocessor: ControlNetPreprocessor) -> QueueAdditionResponse:
-        """Runs a minimal workflow to load a ControlNet preprocessor preview."""
-        image_reference = self.upload_image(image) if preprocessor.has_image_input else None
-        if image_reference is not None and preprocessor.has_mask_input:
+    def controlnet_preprocessor_preview(self, image: Image.Image, mask: Optional[Image.Image],
+                                        preprocessor: ControlNetPreprocessor | PreprocessorParams
+                                        ) -> QueueAdditionResponse:
+        """Queues a minimal workflow that runs a ControlNet preprocessor on `image`.
+
+        `preprocessor` may be a bare `ControlNetPreprocessor`, which runs with its parameter defaults, or a
+        `PreprocessorParams` to override them. `mask` is uploaded only when the preprocessor takes one.
+        """
+        typedef = preprocessor.typedef if isinstance(preprocessor, PreprocessorParams) else preprocessor
+        image_reference = self.upload_image(image) if typedef.has_image_input else None
+        if image_reference is not None and mask is not None and typedef.has_mask_input:
             mask_reference = self.upload_mask(mask, image_reference)
         else:
             mask_reference = None
@@ -568,22 +576,29 @@ class ComfyUiWebservice(WebService, Backend):
 
     def upscale(self, image: Image.Image, width: int, height: int,
                 upscale_params: Optional[DiffusionUpscalingParams] = None) -> QueueAdditionResponse:
-        """Upscale an image using an upscaling model and/or a latent upscaling workflow."""
+        """Queues a job that upscales an image using an upscaling model and/or a latent upscaling workflow.
+
+        The response's `seed` holds the diffusion pass's seed, or None for a basic upscale. A basic upscale with no
+        `upscaling_mode` uses the server's first upscaling model. Raises ValueError if the requested size does not
+        exceed the image's size, or if a basic upscale names a model the server lacks or the server has none.
+        """
+        require_upscale_size(image, width, height)
         if upscale_params is None:
             upscale_params = DiffusionUpscalingParams()
         upscale_multiplier = max(width / image.width, height / image.height)
-        if upscale_multiplier <= 1.0:
-            raise ValueError(f'Requested size {width}x{height} must exceed the source size '
-                             f'{image.width}x{image.height} in at least one dimension')
-
-        image_reference = self.upload_image(image)
 
         # Check for valid upscaling model:
         upscale_model: Optional[str] = upscale_params.upscaling_mode
         upscale_model_options = self.get_models(ComfyModelType.UPSCALING)
+        if not upscale_model and not upscale_params.use_stable_diffusion_upscaling and upscale_model_options:
+            upscale_model = upscale_model_options[0]
         if upscale_model not in upscale_model_options:
             upscale_model = None
+            if not upscale_params.use_stable_diffusion_upscaling:
+                raise ValueError(f'Upscaling model "{upscale_params.upscaling_mode}" is not installed on the server.'
+                                 ' Basic upscaling needs one of get_models(ComfyModelType.UPSCALING).')
 
+        image_reference = self.upload_image(image)
 
         if upscale_params.use_stable_diffusion_upscaling:
             # Check for the "Ultimate SD Upscale" node:
@@ -614,15 +629,16 @@ class ComfyUiWebservice(WebService, Backend):
             workflow_builder.seam_fix_mask_blur = upscale_params.seam_fix_mask_blur
             workflow_builder.seam_fix_padding = upscale_params.seam_fix_padding
             workflow_node_graph = workflow_builder.build_workflow()
+            seed: Optional[int] = workflow_builder.seed
 
         else:  # Basic upscaling workflow:
-            if upscale_model is None:
-                raise ValueError(f'Upscaling model "{upscale_params.upscaling_mode}" is not installed on the server.'
-                                 ' Basic upscaling needs one of get_models(ComfyModelType.UPSCALING).')
-            workflow_node_graph = build_basic_upscaling_workflow(image_reference, upscale_params.upscaling_mode,
-                                                                Size(width, height))
+            assert upscale_model is not None
+            workflow_node_graph = build_basic_upscaling_workflow(image_reference, upscale_model, Size(width, height))
+            seed = None
 
-        return self._queue_prompt(workflow_node_graph.get_workflow_dict())
+        res = self._queue_prompt(workflow_node_graph.get_workflow_dict())
+        res.seed = seed
+        return res
 
     # Queued/in-progress workflow status and control:
 
@@ -700,20 +716,34 @@ class ComfyUiWebservice(WebService, Backend):
         queue_removal_body = QueueDeletionRequest(delete=[task_id])
         self.post(ComfyEndpoints.QUEUE, body=queue_removal_body.model_dump())
 
+    def _handle(self, response: QueueAdditionResponse) -> 'ComfyGenerationHandle':
+        """Wrap a queue response from this service in a generation handle."""
+        from sd_backend_client.api.comfyui.comfyui_generation_handle import ComfyGenerationHandle
+        return ComfyGenerationHandle.from_queue_response(self, response)
+
     def submit_txt2img(self, diffusion_params: DiffusionParams) -> 'ComfyGenerationHandle':
         """Queue a txt2img job and return its handle, implementing `Backend.submit_txt2img`."""
-        from sd_backend_client.api.comfyui.comfyui_generation_handle import ComfyGenerationHandle
-        return ComfyGenerationHandle.from_queue_response(self, self.txt2img(diffusion_params))
+        return self._handle(self.txt2img(diffusion_params))
 
     def submit_img2img(self, diffusion_params: DiffusionParams) -> 'ComfyGenerationHandle':
         """Queue an img2img job and return its handle, implementing `Backend.submit_img2img`."""
-        from sd_backend_client.api.comfyui.comfyui_generation_handle import ComfyGenerationHandle
-        return ComfyGenerationHandle.from_queue_response(self, self.img2img(diffusion_params))
+        return self._handle(self.img2img(diffusion_params))
 
     def submit_inpaint(self, diffusion_params: DiffusionParams) -> 'ComfyGenerationHandle':
         """Queue an inpaint job and return its handle, implementing `Backend.submit_inpaint`."""
-        from sd_backend_client.api.comfyui.comfyui_generation_handle import ComfyGenerationHandle
-        return ComfyGenerationHandle.from_queue_response(self, self.inpaint(diffusion_params))
+        return self._handle(self.inpaint(diffusion_params))
+
+    def submit_upscale(self, image: Image.Image, width: int, height: int,
+                       upscale_params: Optional[DiffusionUpscalingParams] = None) -> 'ComfyGenerationHandle':
+        """Queue an upscaling job and return its handle, implementing `Backend.submit_upscale`."""
+        return self._handle(self.upscale(image, width, height, upscale_params))
+
+    def submit_preprocessor_preview(self, image: Image.Image,
+                                    preprocessor: ControlNetPreprocessor | PreprocessorParams,
+                                    mask: Optional[Image.Image] = None) -> 'ComfyGenerationHandle':
+        """Queue a preprocessor preview job and return its handle, implementing `Backend.submit_preprocessor_preview`.
+        """
+        return self._handle(self.controlnet_preprocessor_preview(image, mask, preprocessor))
 
     @contextmanager
     def open_websocket(self) -> Generator[websocket.WebSocket, None, None]:

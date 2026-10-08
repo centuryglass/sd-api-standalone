@@ -5,10 +5,10 @@ against a **real** ComfyUI server. ComfyUI is natively async (the server owns th
 WebUI there is no client-side dispatcher — the handle just tracks one ``prompt_id`` and reports the
 server's view of it through the unified :class:`GenerationHandle` interface.
 
-Covered: the submit -> wait lifecycle, live websocket progress, server-side queueing of two jobs,
-interrupt-based cancellation of an ACTIVE job, targeted interrupts that spare other jobs, cancelling a
-still-PENDING job without disturbing the job currently running, and a wait on an unknown job ending
-instead of hanging.
+Covered: the submit -> wait lifecycle (including upscaling and preprocessor previews), live websocket progress,
+server-side queueing of two jobs, interrupt-based cancellation of an ACTIVE job, targeted interrupts that spare
+other jobs, cancelling a still-PENDING job without disturbing the job currently running, and a wait on an unknown
+job ending instead of hanging.
 
 Opt-in like the other generation tests (``--run-generation`` / ``RUN_SD_GENERATION=1``); needs a
 checkpoint installed. The cancellation tests scale a job up (steps/size) so it stays running long enough
@@ -24,8 +24,10 @@ from PIL import Image
 from sd_backend_client.api.comfyui.comfyui_generation_handle import ComfyGenerationHandle
 from sd_backend_client.api.shared_data.generation_handle import GenerationError, GenerationStatus
 
-from .comfy_helpers import build_comfy_params
-from .helpers import save_output
+from sd_backend_client.api.comfyui_webservice import ComfyModelType
+
+from .comfy_helpers import build_comfy_params, find_canny_preprocessor
+from .helpers import make_edge_image, make_structured_image, save_output
 
 pytestmark = [pytest.mark.integration, pytest.mark.generation]
 
@@ -116,6 +118,29 @@ def test_submit_img2img_lifecycle(comfy_service, comfy_checkpoint, output_dir):
     assert len(result.images) >= 1
     _assert_valid_image(result.images[0], expected_size=256)
     save_output(output_dir, 'comfy_async_img2img', result.images[0])
+
+
+def test_submit_upscale_lifecycle(comfy_service, output_dir):
+    """A basic upscale with the server's default model yields one image at the requested size."""
+    if not comfy_service.get_models(ComfyModelType.UPSCALING):
+        pytest.skip('No upscale models installed on the ComfyUI server.')
+    result = comfy_service.submit_upscale(make_structured_image(128, 128), 256, 256).wait(timeout=180)
+    assert len(result.images) == 1
+    _assert_valid_image(result.images[0], expected_size=256)
+    save_output(output_dir, 'comfy_async_upscale', result.images[0])
+
+
+@pytest.mark.controlnet
+def test_submit_preprocessor_preview_lifecycle(comfy_service, output_dir):
+    """A preprocessor preview yields one non-flat control image."""
+    preprocessor = find_canny_preprocessor(comfy_service)
+    if preprocessor is None:
+        pytest.skip('No Canny preprocessor node installed (comfyui_controlnet_aux?).')
+    result = comfy_service.submit_preprocessor_preview(make_edge_image(), preprocessor).wait(timeout=180)
+    assert len(result.images) == 1
+    save_output(output_dir, f'comfy_async_controlnet_preview_{preprocessor.name}', result.images[0])
+    extrema = result.images[0].convert('L').getextrema()
+    assert extrema[0] != extrema[1], 'preprocessor preview is a flat image; preprocessing likely did nothing'
 
 
 def test_active_job_reports_live_progress(comfy_service, comfy_checkpoint):

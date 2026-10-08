@@ -19,6 +19,7 @@ from sd_backend_client.api.comfyui.comfyui_diffusion_params import ComfyUIDiffus
 from sd_backend_client.api.comfyui_webservice import (AsyncTaskStatus, ComfyEndpoints, ComfyModelType,
                                                       ComfyUiWebservice, EXTENDED_TIMEOUT)
 from sd_backend_client.api.shared_data.api_datatypes import DiffusionUpscalingParams
+from sd_backend_client.api.shared_data.controlnet.controlnet_preprocessor import ControlNetPreprocessor
 from sd_backend_client.errors import BackendConnectionError, BackendTimeoutError, ServerError, \
     UnexpectedResponseError, WorkflowValidationError
 from sd_backend_client.util.visual.image_utils import image_to_png_bytes
@@ -433,12 +434,57 @@ def test_queue_info_without_queue_lists_raises_unexpected_response():
 
 
 def test_basic_upscale_without_an_installed_model_raises_value_error():
-    """Basic upscaling with a model the server does not have is a caller error."""
-    service, _ = _service({('POST', ComfyEndpoints.IMG_UPLOAD): _upload_response(),
+    """Basic upscaling with a model the server does not have is a caller error, raised before uploading the image."""
+    service, session = _service({('POST', ComfyEndpoints.IMG_UPLOAD): _upload_response(),
                            ('GET', '/models/upscale_models'): ['4x.pth']})
     params = DiffusionUpscalingParams(upscaling_mode='missing.pth', use_stable_diffusion_upscaling=False)
     with pytest.raises(ValueError, match='missing.pth'):
         service.upscale(Image.new('RGBA', (8, 8)), 16, 16, params)
+    assert not session.of('POST', ComfyEndpoints.IMG_UPLOAD)
+
+
+def test_basic_upscale_without_a_model_name_uses_the_first_installed_model():
+    """A basic upscale with no upscaling_mode loads the server's first upscaling model and reports no seed."""
+    service, session = _service({('POST', ComfyEndpoints.IMG_UPLOAD): _upload_response(),
+                                 ('GET', '/models/upscale_models'): ['4x.pth', '2x.pth'],
+                                 ('POST', ComfyEndpoints.PROMPT): {'prompt_id': PROMPT_ID, 'number': 1}})
+    response = service.upscale(Image.new('RGBA', (8, 8)), 16, 16)
+
+    prompt = session.of('POST', ComfyEndpoints.PROMPT)[0]['json']['prompt']
+    [loader] = [node for node in prompt.values() if node['class_type'] == 'UpscaleModelLoader']
+    assert loader['inputs']['model_name'] == '4x.pth'
+    assert response.seed is None
+
+
+def test_diffusion_upscale_reports_its_seed():
+    """A Stable Diffusion upscale's queue response carries the seed its sampler uses."""
+    service, _ = _service({('GET', '/models/configs'): [],
+                           ('POST', ComfyEndpoints.IMG_UPLOAD): _upload_response(),
+                           ('GET', '/models/upscale_models'): [],
+                           ('GET', ComfyEndpoints.OBJECT_INFO): {},
+                           ('POST', ComfyEndpoints.PROMPT): {'prompt_id': PROMPT_ID, 'number': 1}})
+    params = DiffusionUpscalingParams(use_stable_diffusion_upscaling=True, use_ultimate_upscale_script=False,
+                                      diffusion_params=ComfyUIDiffusionParams(sd_model_name='model.safetensors',
+                                                                              seed=4321))
+    assert service.upscale(Image.new('RGBA', (8, 8)), 16, 16, params).seed == 4321
+
+
+@pytest.mark.parametrize('mask', [None, Image.new('L', (8, 8), 255)])
+@pytest.mark.parametrize('has_mask_input', [False, True])
+def test_preprocessor_preview_uploads_a_mask_only_when_given_and_accepted(mask: Optional[Image.Image],
+                                                                          has_mask_input: bool):
+    """The preview uploads the source image, and the mask only when one is given and the preprocessor takes it."""
+    service, session = _service({('POST', ComfyEndpoints.IMG_UPLOAD): _upload_response(),
+                                 ('POST', ComfyEndpoints.MASK_UPLOAD): _upload_response('mask.png'),
+                                 ('POST', ComfyEndpoints.PROMPT): {'prompt_id': PROMPT_ID, 'number': 1}})
+    preprocessor = ControlNetPreprocessor(name='InpaintPreprocessor', has_mask_input=has_mask_input)
+    service.controlnet_preprocessor_preview(Image.new('RGBA', (8, 8)), mask, preprocessor)
+
+    assert len(session.of('POST', ComfyEndpoints.IMG_UPLOAD)) == 1
+    mask_sent = mask is not None and has_mask_input
+    assert len(session.of('POST', ComfyEndpoints.MASK_UPLOAD)) == int(mask_sent)
+    prompt = session.of('POST', ComfyEndpoints.PROMPT)[0]['json']['prompt']
+    assert any(node['class_type'] == 'LoadImageMask' for node in prompt.values()) is mask_sent
 
 
 def test_img2img_uploads_init_image_and_wires_it_into_the_workflow():

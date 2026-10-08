@@ -8,9 +8,11 @@ from PIL import Image
 from sd_backend_client.api.a1111_webservice import A1111Webservice, DEFAULT_GENERATION_TIMEOUT
 from sd_backend_client.api.shared_data.api_datatypes import DiffusionUpscalingParams
 from sd_backend_client.api.shared_data.controlnet.controlnet_model import ControlNetModel
-from sd_backend_client.api.shared_data.controlnet.controlnet_preprocessor import ControlNetPreprocessor
+from sd_backend_client.api.shared_data.controlnet.controlnet_preprocessor import ControlNetPreprocessor, \
+    ParameterDef, PreprocessorParams
 from sd_backend_client.api.shared_data.controlnet.controlnet_unit import ControlNetUnit
 from sd_backend_client.api.shared_data.diffusion_params import DiffusionParams
+from sd_backend_client.api.webui.controlnet_webui_constants import FIRST_GENERIC_PARAMETER_KEY
 from sd_backend_client.api.webui.diffusion_request_body import DiffusionRequestBody
 from sd_backend_client.api.webservice import DEFAULT_REQUEST_TIMEOUT
 from sd_backend_client.errors import SDBackendError, ServerError, UnexpectedResponseError
@@ -113,6 +115,11 @@ def test_img2img_does_not_modify_request_body(monkeypatch):
     assert len(sent[0][1]['init_images']) == 1
     assert 'mask' in sent[0][1]
 
+
+_IDLE_PROGRESS = {'progress': 0.0, 'eta_relative': 0.0, 'current_image': None, 'textinfo': None,
+                  'state': {'skipped': False, 'interrupted': False, 'stopping_generation': False, 'job': '',
+                            'job_count': 0, 'job_timestamp': '0', 'job_no': 0, 'sampling_step': 0,
+                            'sampling_steps': 0}}
 
 UPSCALERS = [{'name': name, 'model_name': None, 'model_path': None, 'model_url': None, 'scale': 4.0}
              for name in ('None', 'Lanczos', 'R-ESRGAN 4x+')]
@@ -326,3 +333,58 @@ def test_submit_txt2img_sends_no_source_image_or_mask(monkeypatch):
     assert 'init_images' not in sent[0][1]
     assert 'mask' not in sent[0][1]
     assert params.init_images is not None and params.mask is not None
+
+
+def test_submit_upscale_uses_image_and_params_as_they_were_at_submit_time(monkeypatch):
+    """Changing the image or upscale params after submit_upscale changes neither the request nor the result."""
+    service, sent = _service_with_routes(monkeypatch, {A1111Webservice.Endpoints.UPSCALERS: UPSCALERS,
+                                                       A1111Webservice.Endpoints.PROGRESS: _IDLE_PROGRESS},
+                                         {'image': image_to_base64(Image.new('RGBA', (8, 4)))})
+    image = Image.new('RGBA', (4, 2), (10, 20, 30, 255))
+    params = DiffusionUpscalingParams(upscaling_mode='R-ESRGAN 4x+')
+    handle = service.submit_upscale(image, 8, 4, params)
+    image.putpixel((0, 0), (0, 0, 0, 0))
+    params.upscaling_mode = 'Lanczos'
+    result = handle.wait(timeout=5.0, poll_interval=0.01)
+
+    endpoint, body = sent[0]
+    assert endpoint == A1111Webservice.Endpoints.UPSCALE
+    assert body['upscaler_1'] == 'R-ESRGAN 4x+'
+    assert image_from_base64(body['image']).getpixel((0, 0)) == (10, 20, 30, 255)
+    assert result.images[0].size == (8, 4)
+
+
+@pytest.mark.parametrize('params, interruptible', [
+    (None, False),
+    (DiffusionUpscalingParams(use_stable_diffusion_upscaling=False), False),
+    (DiffusionUpscalingParams(use_stable_diffusion_upscaling=True), True),
+])
+def test_submit_upscale_is_interruptible_only_for_diffusion_upscaling(params: DiffusionUpscalingParams | None,
+                                                                      interruptible: bool):
+    """Only a Stable Diffusion upscale runs through img2img, which the server's interrupt can stop."""
+    service = A1111Webservice('http://unused.invalid')
+    dispatcher = MagicMock()
+    service._dispatcher = dispatcher  # pylint: disable=protected-access
+    service.submit_upscale(Image.new('RGBA', (4, 4)), 8, 8, params)
+    assert dispatcher.submit.call_args.kwargs['interruptible'] is interruptible
+
+
+def test_submit_preprocessor_preview_sends_overrides_and_mask_and_cannot_be_interrupted(monkeypatch):
+    """The preview job posts to /controlnet/detect with the image, mask and parameter overrides, uninterruptibly."""
+    service, sent = _service_with_stubbed_post(monkeypatch)
+    submit = MagicMock(wraps=service._generation_dispatcher.submit)  # pylint: disable=protected-access
+    monkeypatch.setattr(service._generation_dispatcher, 'submit', submit)  # pylint: disable=protected-access
+    preprocessor = PreprocessorParams(
+        typedef=ControlNetPreprocessor(name='canny', parameters=[
+            ParameterDef(key=FIRST_GENERIC_PARAMETER_KEY, default_value=100)]),
+        parameter_values={FIRST_GENERIC_PARAMETER_KEY: 50})
+    result = service.submit_preprocessor_preview(Image.new('RGBA', (2, 2)), preprocessor,
+                                                 Image.new('L', (2, 2))).wait(timeout=5.0, poll_interval=0.01)
+
+    endpoint, body = sent[0]
+    assert endpoint == A1111Webservice.Endpoints.CONTROLNET_PREVIEW
+    assert body['controlnet_module'] == 'canny'
+    assert body['controlnet_threshold_a'] == 50
+    assert len(body['controlnet_input_images']) == 2
+    assert len(result.images) == 1 and result.info is None
+    assert submit.call_args.kwargs['interruptible'] is False

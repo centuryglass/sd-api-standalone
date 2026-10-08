@@ -95,7 +95,7 @@ class ComfyGenerationHandle(GenerationHandle):
     @classmethod
     def from_queue_response(cls, service: 'ComfyUiWebservice',
                             response: 'QueueAdditionResponse') -> 'ComfyGenerationHandle':
-        """Build a handle from a ``txt2img`` / ``img2img`` / ``inpaint`` queue response.
+        """Build a handle from any of the service's queue responses.
 
         Raises ``WorkflowValidationError`` if the response has no ``prompt_id``, which means the server rejected
         the workflow.

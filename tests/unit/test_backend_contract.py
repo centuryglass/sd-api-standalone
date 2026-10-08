@@ -13,7 +13,10 @@ from PIL import Image
 from sd_backend_client.api.a1111_webservice import A1111Webservice
 from sd_backend_client.api.comfyui.comfyui_diffusion_params import ComfyUIDiffusionParams
 from sd_backend_client.api.comfyui_webservice import ComfyEndpoints, ComfyUiWebservice
+from sd_backend_client.api.shared_data.api_datatypes import DiffusionUpscalingParams
 from sd_backend_client.api.shared_data.backend import Backend
+from sd_backend_client.api.shared_data.controlnet.controlnet_preprocessor import ControlNetPreprocessor, \
+    ParameterDef, PreprocessorParams
 from sd_backend_client.api.shared_data.diffusion_params import DiffusionParams
 from sd_backend_client.api.shared_data.generation_handle import GenerationHandle, GenerationStatus
 from sd_backend_client.api.webui.diffusion_request_body import DiffusionRequestBody
@@ -23,6 +26,7 @@ from .fake_session import FakeSession
 
 PROMPT_ID = '7d4c0f0e-6a3b-4c1e-9f6e-0a1b2c3d4e5f'
 RESULT_PIXEL = (12, 34, 56, 255)
+UPSCALER_NAME = 'upscaler.pth'
 WAIT_TIMEOUT_S = 5.0
 
 
@@ -50,6 +54,11 @@ def _webui() -> _Harness:
     session = FakeSession({
         ('POST', A1111Webservice.Endpoints.TXT2IMG): image_response,
         ('POST', A1111Webservice.Endpoints.IMG2IMG): image_response,
+        ('POST', A1111Webservice.Endpoints.UPSCALE): {'image': image_to_base64(_result_image())},
+        ('POST', A1111Webservice.Endpoints.CONTROLNET_PREVIEW): image_response,
+        ('GET', A1111Webservice.Endpoints.UPSCALERS): [
+            {'name': name, 'model_name': None, 'model_path': None, 'model_url': None, 'scale': 4.0}
+            for name in ('None', UPSCALER_NAME)],
         ('GET', A1111Webservice.Endpoints.PROGRESS): {
             'progress': 0.5, 'eta_relative': 1.0, 'current_image': None, 'textinfo': None,
             'state': {'skipped': False, 'interrupted': False, 'stopping_generation': False, 'job': '',
@@ -79,6 +88,7 @@ def _comfyui() -> _Harness:
     }}
     session = FakeSession({
         ('GET', '/models/configs'): [],
+        ('GET', f'{ComfyEndpoints.MODELS}/upscale_models'): [UPSCALER_NAME],
         ('POST', ComfyEndpoints.IMG_UPLOAD): upload,
         ('POST', ComfyEndpoints.MASK_UPLOAD): upload,
         ('POST', ComfyEndpoints.PROMPT): {'prompt_id': PROMPT_ID, 'number': 1, 'node_errors': {}},
@@ -181,3 +191,42 @@ def test_missing_inputs_raise_before_contacting_the_server(harness: _Harness, op
     with pytest.raises(ValueError, match=message):
         submit(harness.service, params)
     assert not harness.session.requests
+
+
+PREPROCESSOR = ControlNetPreprocessor(name='canny', parameters=[ParameterDef(key='low_threshold', default_value=100)])
+
+
+@pytest.mark.parametrize('upscale_params', [None, DiffusionUpscalingParams(upscaling_mode=UPSCALER_NAME)])
+def test_submit_upscale_then_wait_returns_the_upscaled_image(harness: _Harness,
+                                                             upscale_params: DiffusionUpscalingParams | None):
+    """`submit_upscale` yields a handle that finishes with the one upscaled image."""
+    handle = harness.service.submit_upscale(Image.new('RGBA', (8, 8)), 16, 16, upscale_params)
+    result = handle.wait(timeout=WAIT_TIMEOUT_S, poll_interval=0.01)
+
+    assert isinstance(handle, GenerationHandle)
+    assert handle.task_id is not None and result.task_id == handle.task_id
+    assert [image.getpixel((0, 0)) for image in result.images] == [RESULT_PIXEL]
+
+
+@pytest.mark.parametrize('size', [(8, 8), (4, 8), (0, 16)])
+def test_upscale_to_a_size_no_larger_raises_before_contacting_the_server(harness: _Harness, size: tuple[int, int]):
+    """A requested size that does not exceed the source in some dimension raises ValueError, without any request."""
+    with pytest.raises(ValueError, match='must exceed the source size'):
+        harness.service.submit_upscale(Image.new('RGBA', (8, 8)), *size)
+    assert not harness.session.requests
+
+
+@pytest.mark.parametrize('preprocessor', [PREPROCESSOR,
+                                          PreprocessorParams(typedef=PREPROCESSOR,
+                                                             parameter_values={'low_threshold': 50})])
+@pytest.mark.parametrize('mask', [False, True])
+def test_submit_preprocessor_preview_then_wait_returns_the_control_image(
+        harness: _Harness, preprocessor: ControlNetPreprocessor | PreprocessorParams, mask: bool):
+    """`submit_preprocessor_preview` takes either preprocessor form, with or without a mask, and yields one image."""
+    handle = harness.service.submit_preprocessor_preview(Image.new('RGBA', (8, 8)), preprocessor,
+                                                         Image.new('L', (8, 8), 255) if mask else None)
+    result = handle.wait(timeout=WAIT_TIMEOUT_S, poll_interval=0.01)
+
+    assert isinstance(handle, GenerationHandle)
+    assert handle.task_id is not None and result.task_id == handle.task_id
+    assert [image.getpixel((0, 0)) for image in result.images] == [RESULT_PIXEL]
