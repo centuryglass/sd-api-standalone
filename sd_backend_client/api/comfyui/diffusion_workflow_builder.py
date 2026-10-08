@@ -610,7 +610,7 @@ class DiffusionWorkflowBuilder:
         """
         if not isinstance(diffusion_params, ComfyUIDiffusionParams):
             diffusion_params = ComfyUIDiffusionParams(**{name: getattr(diffusion_params, name)
-                                                       for name in DiffusionParams.model_fields})
+                                                       for name in DiffusionParams.model_fields.keys()})
         self.sd_model = diffusion_params.sd_model_name
         self.batch_size = diffusion_params.batch_size
         self.prompt = diffusion_params.prompt
