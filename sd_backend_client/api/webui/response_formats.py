@@ -61,7 +61,7 @@ class SamplerInfo(BaseModel):
     """Data used to define Stable Diffusion samplers in WebUI API responses from the /sdap1/v1/samplers endpoint."""
     name: str
     aliases: list[str]
-    options: dict[str, str]
+    options: dict[str, Any]  # A1111 sends strings; Forge sends flags such as `second_order` as booleans.
 
 
 class UpscalerInfo(BaseModel):
@@ -147,8 +147,9 @@ class PromptStyleData(BaseModel):
     """Data used to define prompt styles in API responses from the /sdapi/v1/prompt-style endpoint, after parsing from
        JSON string."""
     name: str
-    prompt: str
-    negative_prompt: str
+    # Forge lists divider entries such as "---- STYLES ----" with null prompts.
+    prompt: Optional[str]
+    negative_prompt: Optional[str]
 
 
 class InterrogateResponse(BaseModel):

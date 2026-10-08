@@ -210,13 +210,15 @@ def test_webui_option_lists(recording):
 
 @pytest.mark.parametrize('recording', WEBUI_RECORDINGS)
 def test_webui_discovery_lists_recorded_samplers_and_controlnet_models(recording):
-    """Samplers list under shared names labelled with WebUI's names, and ControlNet models match model_list."""
+    """Samplers list under shared names labelled with WebUI's names, and ControlNet models match model_list.
+
+    Forge's model_list starts with a 'None' entry, which discovery leaves out."""
     service = _webui(recording)
     samplers = service.list_samplers()
     assert [option.display_name for option in samplers] == [sampler.name for sampler in service.get_samplers()]
     assert any(option.name == 'euler_ancestral' for option in samplers)
     assert [model.full_model_name for model in service.list_controlnet_models()] == \
-        service.get_controlnet_models().model_list
+        [name for name in service.get_controlnet_models().model_list if name.lower() != 'none']
 
 
 @pytest.mark.parametrize('recording', WEBUI_RECORDINGS)

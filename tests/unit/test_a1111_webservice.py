@@ -210,6 +210,27 @@ def test_get_vae_falls_back_to_forge_endpoint(monkeypatch):
     assert [vae.model_name for vae in service.get_vae()] == ['ae']
 
 
+def test_get_samplers_accepts_forge_boolean_options(monkeypatch):
+    """Forge's sampler options mix strings with boolean flags."""
+    service, _ = _service_with_routes(monkeypatch, {A1111Webservice.Endpoints.SAMPLERS: [
+        {'name': 'DPM++ SDE', 'aliases': ['k_dpmpp_sde'],
+         'options': {'scheduler': 'karras', 'second_order': True, 'brownian_noise': True}},
+    ]}, None)
+    [sampler] = service.get_samplers()
+    assert sampler.options == {'scheduler': 'karras', 'second_order': True, 'brownian_noise': True}
+
+
+def test_get_styles_accepts_forge_divider_entries(monkeypatch):
+    """Forge lists section dividers as styles with null prompts."""
+    service, _ = _service_with_routes(monkeypatch, {A1111Webservice.Endpoints.STYLES: [
+        {'name': '---------------- STYLES ----------------', 'prompt': None, 'negative_prompt': None},
+        {'name': 'cinematic', 'prompt': '{prompt}, film grain', 'negative_prompt': ''},
+    ]}, None)
+    styles = service.get_styles()
+    assert (styles[0].prompt, styles[0].negative_prompt) == (None, None)
+    assert styles[1].prompt == '{prompt}, film grain'
+
+
 def test_controlnet_preprocessors_are_fetched_once_and_returned_as_copies(monkeypatch):
     """The parsed module list is cached, and callers get copies they can modify."""
     calls: list[str] = []
