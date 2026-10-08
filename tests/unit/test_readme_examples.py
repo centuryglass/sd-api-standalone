@@ -148,7 +148,8 @@ def test_examples_import_only_the_public_api(path: Path):
     """Examples import from the package root, and only names in `__all__`, so they show the supported API."""
     sources = _python_blocks(path) if path.suffix == '.md' else [path.read_text(encoding='utf-8')]
     imports = [found for code in sources for found in _package_imports(code)]
-    assert imports, f'{path.name} imports nothing from sd_backend_client'
+    # Scripts built on `examples/_common.py` may take everything they need from it.
+    assert imports or 'from _common import' in sources[0], f'{path.name} imports nothing from sd_backend_client'
     for module, names in imports:
         assert module == 'sd_backend_client', f'{path.name} imports from internal module {module}'
         for name in names:
@@ -187,14 +188,21 @@ def test_docs_page_examples_run(page: Path, recording: dict[str, Any], connect_o
 
 
 @pytest.mark.parametrize('recording', RECORDINGS)
-def test_canny_example_sets_thresholds(recording: dict[str, Any], connect_offline, tmp_path: Path,
-                                       monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]):
-    """The canny preview script finds the server's canny preprocessor and passes it the requested thresholds."""
+def test_preprocess_example_sets_parameters(recording: dict[str, Any], connect_offline, tmp_path: Path,
+                                            monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]):
+    """The preprocess script finds a recorded preprocessor and passes it the requested parameter value."""
+    # The value is the parameter's default, which is always in range.
     del capsys
     backend = connect_offline(recording)
     _create_opened_images("Image.open('in.png')", tmp_path)
-    example = _load_example(REPO_ROOT / 'examples' / 'canny_preprocessor_preview.py')
-    monkeypatch.setattr(sys, 'argv', ['canny', 'in.png', 'out.png', '--low', '42', '--high', '99'])
+    monkeypatch.syspath_prepend(str(REPO_ROOT / 'examples'))
+    example = _load_example(REPO_ROOT / 'examples' / 'preprocess.py')
+    numeric = next((p, d) for p in backend.get_controlnet_preprocessors() for d in p.parameters
+                   if isinstance(d.default_value, int) and not isinstance(d.default_value, bool))
+    preprocessor, parameter = numeric
+    monkeypatch.setattr(sys, 'argv', ['preprocess', 'in.png', 'out.png', '--preprocessor', preprocessor.name,
+                                      '--param', f'{parameter.key}={parameter.default_value}'])
+    monkeypatch.setattr(example, 'connect', lambda _args: backend)
 
     example.main()
 
@@ -202,4 +210,5 @@ def test_canny_example_sets_thresholds(recording: dict[str, Any], connect_offlin
     submit: Any = backend.submit_preprocessor_preview
     params: Optional[PreprocessorParams] = submit.call_args.args[1]
     assert isinstance(params, PreprocessorParams)
-    assert sorted(value for value in params.parameter_values.values() if value in (42, 99)) == [42, 99]
+    assert params.typedef.name == preprocessor.name
+    assert params.parameter_values[parameter.key] == parameter.default_value

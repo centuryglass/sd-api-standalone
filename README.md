@@ -149,7 +149,7 @@ backend.submit_txt2img(params).wait().images[0].save('controlled.png')
 
 `PreprocessorParams` fills in the preprocessor's required parameters from their defaults. Set others by key in
 `parameter_values`; `preprocessor.parameters` lists each key with its type, default and range.
-[`examples/canny_preprocessor_preview.py`](examples/canny_preprocessor_preview.py) shows a complete script.
+[`examples/preprocess.py`](examples/preprocess.py) shows a complete script.
 
 ## Discovering what a server offers
 
