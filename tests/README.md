@@ -107,8 +107,9 @@ endpoint a recording lacks, the replay fails and names it; re-run the capture to
   routes `/controlnet/version` and `/controlnet/settings` skip individually if a build
   (e.g. reForge) drops them.
 - **`test_a1111_generation.py`** *(opt-in)* — real round-trips: txt2img (single/batch,
-  seed echo), img2img, inpaint-with-mask, basic upscale, interrogate (skipped where the
-  server has no `/sdapi/v1/interrogate`), interrupt.
+  seed echo), img2img, inpaint-with-mask, basic upscale, Ultimate SD Upscale (with an
+  optional tile ControlNet unit, skipped when no tile model is installed), interrogate
+  (skipped where the server has no `/sdapi/v1/interrogate`), interrupt.
 - **`test_a1111_controlnet_generation.py`** *(opt-in)* — ControlNet diffusion. Includes a
   **silent-failure detector**: the same seed + prompt is generated with and without a
   control unit, and the test fails unless the two images actually differ.
@@ -123,7 +124,9 @@ workflow builders read from.
   checkpoints, VAE/LoRA/ControlNet/hypernetwork/upscale models, embeddings, extensions,
   sampler & scheduler names, `is_node_available`, queue info).
 - **`test_comfyui_generation.py`** *(opt-in)* — real round-trips: txt2img (seed echo),
-  img2img, inpaint-with-mask, upscale, interrupt.
+  img2img, inpaint-with-mask, upscale, Ultimate SD Upscale and its tiled-VAE fallback
+  (with an optional tile ControlNet unit, skipped when no tile model is installed),
+  interrupt.
 - **`test_comfyui_controlnet_generation.py`** *(opt-in)* — Canny preprocessor preview
   plus the same **silent-failure detector** A/B (with vs. without a control unit).
 
@@ -168,6 +171,10 @@ From `test_a1111_generation.py`, `test_a1111_async.py` and `test_shared_params.p
   `inpaint_source.png` pixel for pixel, with a crisp boundary (`mask_blur=0`). A changed border around an untouched
   center means the mask was inverted.
 - [ ] `upscale_result.png`: `upscale_source.png` at 256x256, with the same composition and no added content.
+- [ ] `upscale_sd_result.png`: `upscale_sd_source.png` at 2048x2048, refined by a tiled Ultimate SD Upscale pass
+  (visibly sharper than a plain resize, same composition). Missing when the server has no Ultimate SD Upscale
+  script.
+- [ ] `async_upscale_sd.png` (2048x2048): the async-handle counterpart of `upscale_sd_result.png`.
 - [ ] `async_txt2img.png` (512x512, 20 steps, as are the other `async_*` images): a red apple on a wooden table.
 - [ ] `async_img2img.png`: an oil-painting look in blue-dominant colors, from a flat blue source.
 - [ ] `async_serialize_1.png` is a blue teapot and `async_serialize_2.png` is a green frog. Swapped or identical
@@ -190,6 +197,11 @@ are 256x256 at 8 steps.
   center means `ComfyUiWebservice.upload_mask` converted the mask polarity wrong.
 - [ ] `comfy_upscale_result.png`: `comfy_upscale_source.png` at 256x256, sharper than a plain resize, with no new
   content. It is missing when the server has no upscale model installed.
+- [ ] `comfy_upscale_sd_result.png`: `comfy_upscale_sd_source.png` at 2048x2048, refined by Ultimate SD Upscale
+  (visibly sharper, same composition). Missing when the server has no Ultimate SD Upscale node.
+- [ ] `comfy_upscale_fallback_result.png`: the same 2048x2048 upscale via the tiled VAE encode/decode fallback
+  (`use_ultimate_upscale_script=False`), run regardless of whether the node is installed.
+- [ ] `comfy_async_upscale_sd.png` (2048x2048): the async-handle counterpart of `comfy_upscale_sd_result.png`.
 - [ ] `comfy_async_txt2img.png`: identical to `comfy_txt2img.png`, since both use the same prompt, seed, size and
   steps. A visible difference means the async path builds a different workflow.
 - [ ] `comfy_async_img2img.png`: an oil-painting look in blue-dominant colors, from a flat blue source.

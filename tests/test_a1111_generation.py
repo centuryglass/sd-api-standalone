@@ -8,7 +8,14 @@ a handful of steps) so a round-trip is as cheap as possible.
 import pytest
 from PIL import Image
 
-from .helpers import (fast_request_body, images_differ, make_mask,
+from sd_backend_client.api.shared_data.api_datatypes import DiffusionUpscalingParams
+from sd_backend_client.api.shared_data.controlnet.controlnet_model import ControlNetModel
+from sd_backend_client.api.shared_data.controlnet.controlnet_preprocessor import (ControlNetPreprocessor,
+                                                                                  PreprocessorParams)
+from sd_backend_client.api.shared_data.controlnet.controlnet_unit import ControlNetUnit
+from sd_backend_client.api.shared_data.diffusion_params import DiffusionParams
+
+from .helpers import (fast_request_body, find_tile_controlnet_pairing, images_differ, make_mask,
                       make_structured_image, make_test_image, region_mean_diff, save_output, TEST_SIZE)
 
 pytestmark = [pytest.mark.integration, pytest.mark.generation]
@@ -108,6 +115,36 @@ def test_upscale_basic(service, output_dir):
     assert result.width >= 200 and result.height >= 200
     save_output(output_dir, 'upscale_source', source)
     save_output(output_dir, 'upscale_result', result)
+
+
+def test_upscale_with_ultimate_sd_upscale(service, output_dir):
+    """Ultimate SD Upscale: a tiled diffusion pass refines a 4x upscale, with an optional tile ControlNet unit.
+
+    512x512 -> 2048x2048 so the tiled pass actually spans multiple tiles at the default 512px tile size.
+    """
+    if not service.get_capabilities().ultimate_upscale:
+        pytest.skip('Ultimate SD Upscale is not available on this server.')
+
+    tile_controlnet = None
+    pairing = find_tile_controlnet_pairing(service)
+    if pairing is not None:
+        module, model = pairing
+        tile_controlnet = ControlNetUnit(model=ControlNetModel(model),
+                                         preprocessor=PreprocessorParams(typedef=ControlNetPreprocessor(name=module)))
+
+    upscale_params = DiffusionUpscalingParams(
+        use_stable_diffusion_upscaling=True,
+        step_count=8,
+        diffusion_params=DiffusionParams(prompt='a red apple on a wooden table', steps=8),
+        tile_controlnet=tile_controlnet,
+    )
+    source = make_structured_image(512, 512)
+    response = service.upscale(source, 2048, 2048, upscale_params)
+    assert len(response['images']) == 1
+    result = response['images'][0]
+    _assert_valid_image(result, expected_size=2048)
+    save_output(output_dir, 'upscale_sd_source', source)
+    save_output(output_dir, 'upscale_sd_result', result)
 
 
 def test_interrogate_returns_caption(service):

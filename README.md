@@ -14,8 +14,7 @@ can use it without the rest of the editor. It has no Qt or GUI dependency.
 ## Status
 
 Under active refactoring, and the API may still change between minor versions. txt2img, img2img, inpainting,
-upscaling and ControlNet work end-to-end on both backends. Still in progress: moving the ComfyUI node classes to
-pydantic, and tiled upscaling.
+upscaling (including tiled Ultimate SD Upscale) and ControlNet work end-to-end on both backends.
 
 ## Installation
 
@@ -62,6 +61,9 @@ at submit time, so you can change and reuse a params object afterwards.
 | `submit_inpaint(params)` | Inpaint the region of `params.init_images[0]` that `params.mask` marks. |
 | `submit_upscale(image, width, height, upscale_params=None)` | Upscale one image. |
 | `submit_preprocessor_preview(image, preprocessor, mask=None)` | Run a ControlNet preprocessor and return its control image. |
+
+On ComfyUI, `submit_upscale`'s Ultimate SD Upscale path scales both sides by the larger of the requested
+width/height ratios, so a target aspect ratio different from the source's isn't honored.
 
 A handle offers:
 

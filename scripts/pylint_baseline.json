@@ -1,6 +1,6 @@
 {
   "(repository)": {
-    "duplicate-code": 7
+    "duplicate-code": 9
   },
   "sd_backend_client/api/a1111_webservice.py": {
     "import-outside-toplevel": 2
@@ -98,7 +98,6 @@
     "redefined-outer-name": 2
   },
   "tests/test_comfyui_generation.py": {
-    "import-outside-toplevel": 2,
     "missing-function-docstring": 5
   },
   "tests/test_comfyui_metadata.py": {
