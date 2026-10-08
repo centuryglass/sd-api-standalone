@@ -23,7 +23,7 @@ In scope is the code in this repository, in particular:
 - how the client builds requests and parses responses from a server it is pointed at, including a malicious or
   compromised one.
 
-Vulnerabilities in ComfyUI, Stable Diffusion WebUI (Automatic1111, Forge, reForge) or their extensions belong with
+Vulnerabilities in ComfyUI, Stable Diffusion WebUI (Automatic1111, Forge, reForge, Forge Neo) or their extensions belong with
 those projects.
 
 ## Using the client safely

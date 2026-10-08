@@ -1,7 +1,8 @@
 {
  "errors": {
   "/controlnet/version": 404,
-  "/sdapi/v1/interrogate": 405,
+  "/sdapi/v1/hypernetworks": 404,
+  "/sdapi/v1/interrogate": 404,
   "/sdapi/v1/sd-vae": 404
  },
  "meta": {
@@ -9,7 +10,7 @@
   "capabilities": {
    "controlnet": true,
    "free_memory": false,
-   "interrogate": true,
+   "interrogate": false,
    "scheduler": true,
    "ultimate_upscale": true
   },
@@ -24,118 +25,112 @@
      "default_option": "none",
      "model_list": [
       "None",
-      "TTPLANET_Controlnet_Tile_realistic_v2_fp16 [c32b8550]",
-      "TTPLANET_Controlnet_Tile_realistic_v2_rank256 [119c13e6]",
-      "control_canny-fp16 [e3fe7712]",
-      "control_depth-fp16 [400750f6]",
-      "control_hed-fp16 [13fee50b]",
-      "control_mlsd-fp16 [e3705cfa]",
-      "control_normal-fp16 [63f96f7c]",
-      "control_openpose-fp16 [9ca67cc5]",
-      "control_scribble-fp16 [c508311e]",
-      "control_seg-fp16 [b9c1cc12]",
-      "control_v11e_sd15_ip2p [c4bb465c]",
-      "control_v11e_sd15_shuffle [526bfdae]",
-      "control_v11f1e_sd15_tile [a371b31b]",
-      "control_v11f1p_sd15_depth [cfd03158]",
-      "control_v11p_sd15_canny [d14c016b]",
-      "control_v11p_sd15_inpaint [ebff9138]",
-      "control_v11p_sd15_lineart [43d4be0d]",
-      "control_v11p_sd15_mlsd [aca30ff0]",
-      "control_v11p_sd15_openpose [cab727d4]",
-      "control_v11p_sd15_scribble [d4ba51ff]",
-      "control_v11p_sd15_seg [e1f51eb9]",
-      "control_v11p_sd15_softedge [a8575a2a]",
-      "controlnetQRPatternQR_v2Sd15 [2d8d5750]",
-      "ip-adapter-plus-face_sd15 [71693645]",
-      "ip-adapter_sd15 [6a3f6166]",
-      "ip-adapter_sd15_plus [32cd8f7f]",
-      "ip-adapter_xl [4209e9f7]",
-      "t2iadapter_canny-fp16 [f2e7f7cd]",
-      "t2iadapter_color-fp16 [743b5c62]",
-      "t2iadapter_depth-fp16 [2c829a81]",
-      "t2iadapter_keypose-fp16 [e3943bb9]",
-      "t2iadapter_openpose-fp16 [4286314e]",
-      "t2iadapter_seg-fp16 [0e677718]",
-      "t2iadapter_sketch-fp16 [75b15924]",
-      "t2iadapter_style-fp16 [0e2e8330]",
-      "xinsirControlnetCanny_v20 [ab7dc06d]"
+      "TTPLANET_Controlnet_Tile_realistic_v2_fp16",
+      "TTPLANET_Controlnet_Tile_realistic_v2_rank256",
+      "control_canny-fp16",
+      "control_depth-fp16",
+      "control_hed-fp16",
+      "control_mlsd-fp16",
+      "control_normal-fp16",
+      "control_openpose-fp16",
+      "control_scribble-fp16",
+      "control_seg-fp16",
+      "control_v11e_sd15_ip2p",
+      "control_v11e_sd15_shuffle",
+      "control_v11f1e_sd15_tile",
+      "control_v11f1p_sd15_depth",
+      "control_v11p_sd15_canny",
+      "control_v11p_sd15_inpaint",
+      "control_v11p_sd15_lineart",
+      "control_v11p_sd15_mlsd",
+      "control_v11p_sd15_openpose",
+      "control_v11p_sd15_scribble",
+      "control_v11p_sd15_seg",
+      "control_v11p_sd15_softedge",
+      "controlnetQRPatternQR_v2Sd15",
+      "ip-adapter-plus-face_sd15",
+      "ip-adapter_sd15",
+      "ip-adapter_sd15_plus",
+      "ip-adapter_xl",
+      "t2iadapter_canny-fp16",
+      "t2iadapter_color-fp16",
+      "t2iadapter_depth-fp16",
+      "t2iadapter_keypose-fp16",
+      "t2iadapter_openpose-fp16",
+      "t2iadapter_seg-fp16",
+      "t2iadapter_sketch-fp16",
+      "t2iadapter_style-fp16",
+      "xinsirControlnetCanny_v20"
      ],
      "module_list": [
       "None",
-      "softedge_pidinet",
-      "shuffle",
-      "seg_ofade20k",
-      "scribble_pidinet",
-      "reference_only",
-      "openpose_full",
-      "normalbae",
-      "mlsd",
-      "lineart_standard (from white bg & black line)",
-      "depth_midas",
-      "depth_marigold",
-      "canny",
-      "invert (from white bg & black line)",
-      "InsightFace+CLIP-H (IPAdapter)",
-      "CLIP-ViT-bigG (IPAdapter)",
       "CLIP-ViT-H (IPAdapter)",
+      "CLIP-ViT-bigG (IPAdapter)",
       "InsightFace (InstantID)",
-      "CLIP-G (Revision)",
-      "CLIP-G (Revision ignore prompt)",
-      "tile_resample",
-      "tile_colorfix+sharp",
-      "tile_colorfix",
-      "threshold",
-      "t2ia_sketch_pidi",
-      "t2ia_color_grid",
-      "softedge_teed",
-      "softedge_pidisafe",
-      "softedge_hedsafe",
-      "softedge_hed",
-      "seg_ufade20k",
-      "seg_ofcoco",
-      "seg_anime_face",
-      "scribble_xdog",
-      "scribble_hed",
-      "reference_adain+attn",
-      "reference_adain",
-      "recolor_luminance",
-      "recolor_intensity",
-      "openpose_hand",
-      "openpose_faceonly",
-      "openpose_face",
-      "openpose",
-      "normal_midas",
-      "mediapipe_face",
-      "lineart_realistic",
-      "lineart_coarse",
-      "lineart_anime_denoise",
-      "lineart_anime",
-      "instant_id_face_keypoints",
-      "inpaint_only+lama",
-      "inpaint_only",
-      "inpaint_global_harmonious",
-      "dw_openpose_full",
-      "depth_zoe",
-      "depth_leres++",
-      "depth_leres",
-      "depth_hand_refiner",
-      "depth_anything_v2",
-      "depth_anything",
-      "densepose_parula (black bg & blue torso)",
-      "densepose (pruple bg & purple torso)",
+      "InsightFace+CLIP-H (IPAdapter)",
+      "animal_openpose",
       "blur_gaussian",
-      "animal_openpose"
+      "canny",
+      "densepose (pruple bg & purple torso)",
+      "densepose_parula (black bg & blue torso)",
+      "depth_anything",
+      "depth_anything_v2",
+      "depth_leres",
+      "depth_leres++",
+      "depth_midas",
+      "depth_zoe",
+      "dw_openpose_full",
+      "inpaint_global_harmonious",
+      "inpaint_noobai",
+      "inpaint_only",
+      "inpaint_only+lama",
+      "instant_id_face_keypoints",
+      "invert (from white bg & black line)",
+      "lineart_anime",
+      "lineart_anime_denoise",
+      "lineart_coarse",
+      "lineart_realistic",
+      "lineart_standard (from white bg & black line)",
+      "mediapipe_face",
+      "mlsd",
+      "normal_midas",
+      "openpose",
+      "openpose_face",
+      "openpose_faceonly",
+      "openpose_full",
+      "openpose_hand",
+      "reference_adain",
+      "reference_adain+attn",
+      "reference_only",
+      "scribble_hed",
+      "scribble_pidinet",
+      "scribble_xdog",
+      "seg_anime_face",
+      "seg_ofade20k",
+      "seg_ofcoco",
+      "seg_ufade20k",
+      "shuffle",
+      "softedge_hed",
+      "softedge_hedsafe",
+      "softedge_pidinet",
+      "softedge_pidisafe",
+      "softedge_teed",
+      "t2ia_color_grid",
+      "t2ia_sketch_pidi",
+      "threshold",
+      "tile_colorfix",
+      "tile_colorfix+sharp",
+      "tile_resample"
      ]
     },
     "Blur": {
-     "default_model": "control_v11f1e_sd15_tile [a371b31b]",
+     "default_model": "control_v11f1e_sd15_tile",
      "default_option": "blur_gaussian",
      "model_list": [
       "None",
-      "TTPLANET_Controlnet_Tile_realistic_v2_fp16 [c32b8550]",
-      "TTPLANET_Controlnet_Tile_realistic_v2_rank256 [119c13e6]",
-      "control_v11f1e_sd15_tile [a371b31b]"
+      "TTPLANET_Controlnet_Tile_realistic_v2_fp16",
+      "TTPLANET_Controlnet_Tile_realistic_v2_rank256",
+      "control_v11f1e_sd15_tile"
      ],
      "module_list": [
       "None",
@@ -143,14 +138,14 @@
      ]
     },
     "Canny": {
-     "default_model": "control_v11p_sd15_canny [d14c016b]",
+     "default_model": "control_v11p_sd15_canny",
      "default_option": "canny",
      "model_list": [
       "None",
-      "control_canny-fp16 [e3fe7712]",
-      "control_v11p_sd15_canny [d14c016b]",
-      "t2iadapter_canny-fp16 [f2e7f7cd]",
-      "xinsirControlnetCanny_v20 [ab7dc06d]"
+      "control_canny-fp16",
+      "control_v11p_sd15_canny",
+      "t2iadapter_canny-fp16",
+      "xinsirControlnetCanny_v20"
      ],
      "module_list": [
       "None",
@@ -159,55 +154,54 @@
      ]
     },
     "Depth": {
-     "default_model": "control_v11f1p_sd15_depth [cfd03158]",
-     "default_option": "depth_midas",
+     "default_model": "control_v11f1p_sd15_depth",
+     "default_option": "depth_anything",
      "model_list": [
       "None",
-      "control_depth-fp16 [400750f6]",
-      "control_v11f1p_sd15_depth [cfd03158]",
-      "t2iadapter_depth-fp16 [2c829a81]"
+      "control_depth-fp16",
+      "control_v11f1p_sd15_depth",
+      "t2iadapter_depth-fp16"
      ],
      "module_list": [
       "None",
-      "depth_midas",
-      "depth_marigold",
-      "depth_zoe",
-      "depth_leres++",
-      "depth_leres",
-      "depth_hand_refiner",
+      "depth_anything",
       "depth_anything_v2",
-      "depth_anything"
+      "depth_leres",
+      "depth_leres++",
+      "depth_midas",
+      "depth_zoe"
      ]
     },
     "IP-Adapter": {
-     "default_model": "ip-adapter-plus-face_sd15 [71693645]",
-     "default_option": "InsightFace+CLIP-H (IPAdapter)",
+     "default_model": "ip-adapter-plus-face_sd15",
+     "default_option": "CLIP-ViT-H (IPAdapter)",
      "model_list": [
       "None",
-      "ip-adapter-plus-face_sd15 [71693645]",
-      "ip-adapter_sd15 [6a3f6166]",
-      "ip-adapter_sd15_plus [32cd8f7f]",
-      "ip-adapter_xl [4209e9f7]"
+      "ip-adapter-plus-face_sd15",
+      "ip-adapter_sd15",
+      "ip-adapter_sd15_plus",
+      "ip-adapter_xl"
      ],
      "module_list": [
       "None",
-      "InsightFace+CLIP-H (IPAdapter)",
+      "CLIP-ViT-H (IPAdapter)",
       "CLIP-ViT-bigG (IPAdapter)",
-      "CLIP-ViT-H (IPAdapter)"
+      "InsightFace+CLIP-H (IPAdapter)"
      ]
     },
     "Inpaint": {
-     "default_model": "control_v11p_sd15_inpaint [ebff9138]",
-     "default_option": "inpaint_only+lama",
+     "default_model": "control_v11p_sd15_inpaint",
+     "default_option": "inpaint_global_harmonious",
      "model_list": [
       "None",
-      "control_v11p_sd15_inpaint [ebff9138]"
+      "control_v11p_sd15_inpaint"
      ],
      "module_list": [
       "None",
-      "inpaint_only+lama",
+      "inpaint_global_harmonious",
+      "inpaint_noobai",
       "inpaint_only",
-      "inpaint_global_harmonious"
+      "inpaint_only+lama"
      ]
     },
     "Instant-ID": {
@@ -223,149 +217,133 @@
      ]
     },
     "Lineart": {
-     "default_model": "control_v11p_sd15_lineart [43d4be0d]",
-     "default_option": "lineart_standard (from white bg & black line)",
+     "default_model": "control_v11p_sd15_lineart",
+     "default_option": "invert (from white bg & black line)",
      "model_list": [
       "None",
-      "control_v11p_sd15_lineart [43d4be0d]"
+      "control_v11p_sd15_lineart"
      ],
      "module_list": [
       "None",
-      "lineart_standard (from white bg & black line)",
       "invert (from white bg & black line)",
-      "lineart_realistic",
-      "lineart_coarse",
+      "lineart_anime",
       "lineart_anime_denoise",
-      "lineart_anime"
+      "lineart_coarse",
+      "lineart_realistic",
+      "lineart_standard (from white bg & black line)"
      ]
     },
     "MLSD": {
-     "default_model": "control_v11p_sd15_mlsd [aca30ff0]",
-     "default_option": "mlsd",
+     "default_model": "control_v11p_sd15_mlsd",
+     "default_option": "invert (from white bg & black line)",
      "model_list": [
       "None",
-      "control_mlsd-fp16 [e3705cfa]",
-      "control_v11p_sd15_mlsd [aca30ff0]"
+      "control_mlsd-fp16",
+      "control_v11p_sd15_mlsd"
      ],
      "module_list": [
       "None",
-      "mlsd",
-      "invert (from white bg & black line)"
+      "invert (from white bg & black line)",
+      "mlsd"
      ]
     },
     "NormalMap": {
-     "default_model": "control_normal-fp16 [63f96f7c]",
-     "default_option": "normalbae",
+     "default_model": "control_normal-fp16",
+     "default_option": "normal_midas",
      "model_list": [
       "None",
-      "control_normal-fp16 [63f96f7c]"
+      "control_normal-fp16"
      ],
      "module_list": [
       "None",
-      "normalbae",
       "normal_midas"
      ]
     },
     "OpenPose": {
-     "default_model": "control_v11p_sd15_openpose [cab727d4]",
-     "default_option": "openpose_full",
+     "default_model": "control_v11p_sd15_openpose",
+     "default_option": "animal_openpose",
      "model_list": [
       "None",
-      "control_openpose-fp16 [9ca67cc5]",
-      "control_v11p_sd15_openpose [cab727d4]",
-      "t2iadapter_openpose-fp16 [4286314e]"
+      "control_openpose-fp16",
+      "control_v11p_sd15_openpose",
+      "t2iadapter_openpose-fp16"
      ],
      "module_list": [
       "None",
-      "openpose_full",
-      "openpose_hand",
-      "openpose_faceonly",
-      "openpose_face",
-      "openpose",
-      "dw_openpose_full",
-      "densepose_parula (black bg & blue torso)",
+      "animal_openpose",
       "densepose (pruple bg & purple torso)",
-      "animal_openpose"
-     ]
-    },
-    "Recolor": {
-     "default_model": "t2iadapter_color-fp16 [743b5c62]",
-     "default_option": "recolor_luminance",
-     "model_list": [
-      "None",
-      "t2iadapter_color-fp16 [743b5c62]"
-     ],
-     "module_list": [
-      "None",
-      "recolor_luminance",
-      "recolor_intensity"
+      "densepose_parula (black bg & blue torso)",
+      "dw_openpose_full",
+      "openpose",
+      "openpose_face",
+      "openpose_faceonly",
+      "openpose_full",
+      "openpose_hand"
      ]
     },
     "Reference": {
      "default_model": "None",
-     "default_option": "reference_only",
+     "default_option": "reference_adain",
      "model_list": [
       "None"
      ],
      "module_list": [
       "None",
-      "reference_only",
+      "reference_adain",
       "reference_adain+attn",
-      "reference_adain"
+      "reference_only"
      ]
     },
-    "Revision": {
+    "Region": {
      "default_model": "None",
-     "default_option": "CLIP-G (Revision)",
+     "default_option": "None",
      "model_list": [
       "None"
      ],
      "module_list": [
-      "None",
-      "CLIP-G (Revision)",
-      "CLIP-G (Revision ignore prompt)"
+      "None"
      ]
     },
     "Scribble": {
-     "default_model": "control_v11p_sd15_scribble [d4ba51ff]",
-     "default_option": "scribble_pidinet",
+     "default_model": "control_v11p_sd15_scribble",
+     "default_option": "invert (from white bg & black line)",
      "model_list": [
       "None",
-      "control_scribble-fp16 [c508311e]",
-      "control_v11p_sd15_scribble [d4ba51ff]",
-      "t2iadapter_sketch-fp16 [75b15924]"
+      "control_scribble-fp16",
+      "control_v11p_sd15_scribble",
+      "t2iadapter_sketch-fp16"
      ],
      "module_list": [
       "None",
-      "scribble_pidinet",
       "invert (from white bg & black line)",
-      "scribble_xdog",
-      "scribble_hed"
+      "scribble_hed",
+      "scribble_pidinet",
+      "scribble_xdog"
      ]
     },
     "Segmentation": {
-     "default_model": "control_v11p_sd15_seg [e1f51eb9]",
-     "default_option": "seg_ofade20k",
+     "default_model": "control_v11p_sd15_seg",
+     "default_option": "seg_anime_face",
      "model_list": [
       "None",
-      "control_seg-fp16 [b9c1cc12]",
-      "control_v11p_sd15_seg [e1f51eb9]",
-      "t2iadapter_seg-fp16 [0e677718]"
+      "control_seg-fp16",
+      "control_v11p_sd15_seg",
+      "t2iadapter_seg-fp16"
      ],
      "module_list": [
       "None",
+      "seg_anime_face",
       "seg_ofade20k",
-      "seg_ufade20k",
       "seg_ofcoco",
-      "seg_anime_face"
+      "seg_ufade20k"
      ]
     },
     "Shuffle": {
-     "default_model": "control_v11e_sd15_shuffle [526bfdae]",
+     "default_model": "control_v11e_sd15_shuffle",
      "default_option": "shuffle",
      "model_list": [
       "None",
-      "control_v11e_sd15_shuffle [526bfdae]"
+      "control_v11e_sd15_shuffle"
      ],
      "module_list": [
       "None",
@@ -373,73 +351,73 @@
      ]
     },
     "Sketch": {
-     "default_model": "control_v11p_sd15_scribble [d4ba51ff]",
-     "default_option": "scribble_pidinet",
+     "default_model": "control_v11p_sd15_scribble",
+     "default_option": "invert (from white bg & black line)",
      "model_list": [
       "None",
-      "control_scribble-fp16 [c508311e]",
-      "control_v11p_sd15_scribble [d4ba51ff]",
-      "t2iadapter_sketch-fp16 [75b15924]"
+      "control_scribble-fp16",
+      "control_v11p_sd15_scribble",
+      "t2iadapter_sketch-fp16"
      ],
      "module_list": [
       "None",
-      "scribble_pidinet",
       "invert (from white bg & black line)",
-      "scribble_xdog",
-      "scribble_hed"
+      "scribble_hed",
+      "scribble_pidinet",
+      "scribble_xdog"
      ]
     },
     "SoftEdge": {
-     "default_model": "control_v11p_sd15_softedge [a8575a2a]",
-     "default_option": "softedge_pidinet",
+     "default_model": "control_v11p_sd15_softedge",
+     "default_option": "softedge_hed",
      "model_list": [
       "None",
-      "control_v11p_sd15_softedge [a8575a2a]"
+      "control_v11p_sd15_softedge"
      ],
      "module_list": [
       "None",
-      "softedge_pidinet",
-      "softedge_teed",
-      "softedge_pidisafe",
+      "softedge_hed",
       "softedge_hedsafe",
-      "softedge_hed"
+      "softedge_pidinet",
+      "softedge_pidisafe",
+      "softedge_teed"
      ]
     },
     "T2I-Adapter": {
-     "default_model": "t2iadapter_canny-fp16 [f2e7f7cd]",
-     "default_option": "t2ia_sketch_pidi",
+     "default_model": "t2iadapter_canny-fp16",
+     "default_option": "t2ia_color_grid",
      "model_list": [
       "None",
-      "t2iadapter_canny-fp16 [f2e7f7cd]",
-      "t2iadapter_color-fp16 [743b5c62]",
-      "t2iadapter_depth-fp16 [2c829a81]",
-      "t2iadapter_keypose-fp16 [e3943bb9]",
-      "t2iadapter_openpose-fp16 [4286314e]",
-      "t2iadapter_seg-fp16 [0e677718]",
-      "t2iadapter_sketch-fp16 [75b15924]",
-      "t2iadapter_style-fp16 [0e2e8330]"
+      "t2iadapter_canny-fp16",
+      "t2iadapter_color-fp16",
+      "t2iadapter_depth-fp16",
+      "t2iadapter_keypose-fp16",
+      "t2iadapter_openpose-fp16",
+      "t2iadapter_seg-fp16",
+      "t2iadapter_sketch-fp16",
+      "t2iadapter_style-fp16"
      ],
      "module_list": [
       "None",
-      "t2ia_sketch_pidi",
-      "t2ia_color_grid"
+      "t2ia_color_grid",
+      "t2ia_sketch_pidi"
      ]
     },
     "Tile": {
-     "default_model": "control_v11f1e_sd15_tile [a371b31b]",
-     "default_option": "tile_resample",
+     "default_model": "control_v11f1e_sd15_tile",
+     "default_option": "blur_gaussian",
      "model_list": [
       "None",
-      "TTPLANET_Controlnet_Tile_realistic_v2_fp16 [c32b8550]",
-      "TTPLANET_Controlnet_Tile_realistic_v2_rank256 [119c13e6]",
-      "control_v11f1e_sd15_tile [a371b31b]"
+      "TTPLANET_Controlnet_Tile_realistic_v2_fp16",
+      "TTPLANET_Controlnet_Tile_realistic_v2_rank256",
+      "control_v11f1e_sd15_tile"
      ],
      "module_list": [
       "None",
-      "tile_resample",
-      "tile_colorfix+sharp",
+      "blur_gaussian",
       "tile_colorfix",
-      "blur_gaussian"
+      "tile_colorfix+sharp",
+      "tile_resample"
      ]
     }
    }
@@ -447,122 +425,106 @@
   "/controlnet/model_list": {
    "model_list": [
     "None",
-    "TTPLANET_Controlnet_Tile_realistic_v2_fp16 [c32b8550]",
-    "TTPLANET_Controlnet_Tile_realistic_v2_rank256 [119c13e6]",
-    "control_canny-fp16 [e3fe7712]",
-    "control_depth-fp16 [400750f6]",
-    "control_hed-fp16 [13fee50b]",
-    "control_mlsd-fp16 [e3705cfa]",
-    "control_normal-fp16 [63f96f7c]",
-    "control_openpose-fp16 [9ca67cc5]",
-    "control_scribble-fp16 [c508311e]",
-    "control_seg-fp16 [b9c1cc12]",
-    "control_v11e_sd15_ip2p [c4bb465c]",
-    "control_v11e_sd15_shuffle [526bfdae]",
-    "control_v11f1e_sd15_tile [a371b31b]",
-    "control_v11f1p_sd15_depth [cfd03158]",
-    "control_v11p_sd15_canny [d14c016b]",
-    "control_v11p_sd15_inpaint [ebff9138]",
-    "control_v11p_sd15_lineart [43d4be0d]",
-    "control_v11p_sd15_mlsd [aca30ff0]",
-    "control_v11p_sd15_openpose [cab727d4]",
-    "control_v11p_sd15_scribble [d4ba51ff]",
-    "control_v11p_sd15_seg [e1f51eb9]",
-    "control_v11p_sd15_softedge [a8575a2a]",
-    "controlnetQRPatternQR_v2Sd15 [2d8d5750]",
-    "ip-adapter-plus-face_sd15 [71693645]",
-    "ip-adapter_sd15 [6a3f6166]",
-    "ip-adapter_sd15_plus [32cd8f7f]",
-    "ip-adapter_xl [4209e9f7]",
-    "t2iadapter_canny-fp16 [f2e7f7cd]",
-    "t2iadapter_color-fp16 [743b5c62]",
-    "t2iadapter_depth-fp16 [2c829a81]",
-    "t2iadapter_keypose-fp16 [e3943bb9]",
-    "t2iadapter_openpose-fp16 [4286314e]",
-    "t2iadapter_seg-fp16 [0e677718]",
-    "t2iadapter_sketch-fp16 [75b15924]",
-    "t2iadapter_style-fp16 [0e2e8330]",
-    "xinsirControlnetCanny_v20 [ab7dc06d]"
+    "TTPLANET_Controlnet_Tile_realistic_v2_fp16",
+    "TTPLANET_Controlnet_Tile_realistic_v2_rank256",
+    "control_canny-fp16",
+    "control_depth-fp16",
+    "control_hed-fp16",
+    "control_mlsd-fp16",
+    "control_normal-fp16",
+    "control_openpose-fp16",
+    "control_scribble-fp16",
+    "control_seg-fp16",
+    "control_v11e_sd15_ip2p",
+    "control_v11e_sd15_shuffle",
+    "control_v11f1e_sd15_tile",
+    "control_v11f1p_sd15_depth",
+    "control_v11p_sd15_canny",
+    "control_v11p_sd15_inpaint",
+    "control_v11p_sd15_lineart",
+    "control_v11p_sd15_mlsd",
+    "control_v11p_sd15_openpose",
+    "control_v11p_sd15_scribble",
+    "control_v11p_sd15_seg",
+    "control_v11p_sd15_softedge",
+    "controlnetQRPatternQR_v2Sd15",
+    "ip-adapter-plus-face_sd15",
+    "ip-adapter_sd15",
+    "ip-adapter_sd15_plus",
+    "ip-adapter_xl",
+    "t2iadapter_canny-fp16",
+    "t2iadapter_color-fp16",
+    "t2iadapter_depth-fp16",
+    "t2iadapter_keypose-fp16",
+    "t2iadapter_openpose-fp16",
+    "t2iadapter_seg-fp16",
+    "t2iadapter_sketch-fp16",
+    "t2iadapter_style-fp16",
+    "xinsirControlnetCanny_v20"
    ]
   },
   "/controlnet/module_list": {
    "module_list": [
     "None",
-    "softedge_pidinet",
-    "shuffle",
-    "seg_ofade20k",
-    "scribble_pidinet",
-    "reference_only",
-    "openpose_full",
-    "normalbae",
-    "mlsd",
-    "lineart_standard (from white bg & black line)",
-    "depth_midas",
-    "depth_marigold",
-    "canny",
-    "invert (from white bg & black line)",
-    "InsightFace+CLIP-H (IPAdapter)",
-    "CLIP-ViT-bigG (IPAdapter)",
     "CLIP-ViT-H (IPAdapter)",
+    "CLIP-ViT-bigG (IPAdapter)",
     "InsightFace (InstantID)",
-    "CLIP-G (Revision)",
-    "CLIP-G (Revision ignore prompt)",
-    "tile_resample",
-    "tile_colorfix+sharp",
-    "tile_colorfix",
-    "threshold",
-    "t2ia_sketch_pidi",
-    "t2ia_color_grid",
-    "softedge_teed",
-    "softedge_pidisafe",
-    "softedge_hedsafe",
-    "softedge_hed",
-    "seg_ufade20k",
-    "seg_ofcoco",
-    "seg_anime_face",
-    "scribble_xdog",
-    "scribble_hed",
-    "reference_adain+attn",
-    "reference_adain",
-    "recolor_luminance",
-    "recolor_intensity",
-    "openpose_hand",
-    "openpose_faceonly",
-    "openpose_face",
-    "openpose",
-    "normal_midas",
-    "mediapipe_face",
-    "lineart_realistic",
-    "lineart_coarse",
-    "lineart_anime_denoise",
-    "lineart_anime",
-    "instant_id_face_keypoints",
-    "inpaint_only+lama",
-    "inpaint_only",
-    "inpaint_global_harmonious",
-    "dw_openpose_full",
-    "depth_zoe",
-    "depth_leres++",
-    "depth_leres",
-    "depth_hand_refiner",
-    "depth_anything_v2",
-    "depth_anything",
-    "densepose_parula (black bg & blue torso)",
-    "densepose (pruple bg & purple torso)",
+    "InsightFace+CLIP-H (IPAdapter)",
+    "animal_openpose",
     "blur_gaussian",
-    "animal_openpose"
+    "canny",
+    "densepose (pruple bg & purple torso)",
+    "densepose_parula (black bg & blue torso)",
+    "depth_anything",
+    "depth_anything_v2",
+    "depth_leres",
+    "depth_leres++",
+    "depth_midas",
+    "depth_zoe",
+    "dw_openpose_full",
+    "inpaint_global_harmonious",
+    "inpaint_noobai",
+    "inpaint_only",
+    "inpaint_only+lama",
+    "instant_id_face_keypoints",
+    "invert (from white bg & black line)",
+    "lineart_anime",
+    "lineart_anime_denoise",
+    "lineart_coarse",
+    "lineart_realistic",
+    "lineart_standard (from white bg & black line)",
+    "mediapipe_face",
+    "mlsd",
+    "normal_midas",
+    "openpose",
+    "openpose_face",
+    "openpose_faceonly",
+    "openpose_full",
+    "openpose_hand",
+    "reference_adain",
+    "reference_adain+attn",
+    "reference_only",
+    "scribble_hed",
+    "scribble_pidinet",
+    "scribble_xdog",
+    "seg_anime_face",
+    "seg_ofade20k",
+    "seg_ofcoco",
+    "seg_ufade20k",
+    "shuffle",
+    "softedge_hed",
+    "softedge_hedsafe",
+    "softedge_pidinet",
+    "softedge_pidisafe",
+    "softedge_teed",
+    "t2ia_color_grid",
+    "t2ia_sketch_pidi",
+    "threshold",
+    "tile_colorfix",
+    "tile_colorfix+sharp",
+    "tile_resample"
    ]
   },
-  "/sdapi/v1/hypernetworks": [
-   {
-    "name": "By bad artist -neg",
-    "path": "/opt/stabilitymatrix/Data/Packages/Stable Diffusion WebUI Forge/models/hypernetworks/By bad artist -neg.pt"
-   },
-   {
-    "name": "CyberRealistic_Negative_v3",
-    "path": "/opt/stabilitymatrix/Data/Packages/Stable Diffusion WebUI Forge/models/hypernetworks/CyberRealistic_Negative_v3.pt"
-   }
-  ],
   "/sdapi/v1/latent-upscale-modes": [
    {
     "name": "Latent"
@@ -588,7 +550,7 @@
     "alias": "3DMM_V11",
     "metadata": {},
     "name": "3DMM_V11",
-    "path": "/opt/stabilitymatrix/Data/Packages/Stable Diffusion WebUI Forge/models/Lora/3DMM_V11.safetensors"
+    "path": "/opt/stabilitymatrix/Data/Packages/Stable Diffusion WebUI Forge - Neo/models/Lora/3DMM_V11.safetensors"
    },
    {
     "alias": "80s Movie Poster Style v2",
@@ -709,7 +671,7 @@
      "sshs_model_hash": "422c40df3445bff890e00a900fc6bc10930677dcc48d0e2aeab4eb8a4ce9f811"
     },
     "name": "80s Movie Poster Style v1.5",
-    "path": "/opt/stabilitymatrix/Data/Packages/Stable Diffusion WebUI Forge/models/Lora/80s Movie Poster Style v1.5.safetensors"
+    "path": "/opt/stabilitymatrix/Data/Packages/Stable Diffusion WebUI Forge - Neo/models/Lora/80s Movie Poster Style v1.5.safetensors"
    },
    {
     "alias": "90VHS",
@@ -910,7 +872,7 @@
      "sshs_model_hash": "0f2f2728b5fdac953cc154e647a4f44a9f29bef5014f86d667f84475ccc41454"
     },
     "name": "90VHS-03",
-    "path": "/opt/stabilitymatrix/Data/Packages/Stable Diffusion WebUI Forge/models/Lora/90VHS-03.safetensors"
+    "path": "/opt/stabilitymatrix/Data/Packages/Stable Diffusion WebUI Forge - Neo/models/Lora/90VHS-03.safetensors"
    },
    {
     "alias": "sdxl",
@@ -1269,7 +1231,7 @@
      "sshs_model_hash": "0ed6b34a67d3505790f401aadc9959d92776361b0342ac00ab7c51f0fc78d049"
     },
     "name": "Alchemy_sdxl",
-    "path": "/opt/stabilitymatrix/Data/Packages/Stable Diffusion WebUI Forge/models/Lora/Alchemy_sdxl.safetensors"
+    "path": "/opt/stabilitymatrix/Data/Packages/Stable Diffusion WebUI Forge - Neo/models/Lora/Alchemy_sdxl.safetensors"
    },
    {
     "alias": "ascii_art",
@@ -1335,7 +1297,7 @@
      "sshs_model_hash": "49eefbdb8e4999663d9d7414f264b9e1df46efb1bf11cc93a6c0493d6961f8af"
     },
     "name": "ascii_art-10",
-    "path": "/opt/stabilitymatrix/Data/Packages/Stable Diffusion WebUI Forge/models/Lora/ascii_art-10.safetensors"
+    "path": "/opt/stabilitymatrix/Data/Packages/Stable Diffusion WebUI Forge - Neo/models/Lora/ascii_art-10.safetensors"
    },
    {
     "alias": "Astraali_GRAFFITI",
@@ -1415,19 +1377,19 @@
      "sshs_model_hash": "0ed7e392bc72e0a58d889be2785618a7e07940e9f0e4ef2bdb730b742658c97d"
     },
     "name": "Astraali_GRAFFITI",
-    "path": "/opt/stabilitymatrix/Data/Packages/Stable Diffusion WebUI Forge/models/Lora/Astraali_GRAFFITI.safetensors"
+    "path": "/opt/stabilitymatrix/Data/Packages/Stable Diffusion WebUI Forge - Neo/models/Lora/Astraali_GRAFFITI.safetensors"
    },
    {
     "alias": "badvhs_v1",
     "metadata": {},
     "name": "badvhs_v1",
-    "path": "/opt/stabilitymatrix/Data/Packages/Stable Diffusion WebUI Forge/models/Lora/badvhs_v1.safetensors"
+    "path": "/opt/stabilitymatrix/Data/Packages/Stable Diffusion WebUI Forge - Neo/models/Lora/badvhs_v1.safetensors"
    },
    {
     "alias": "bichu-v0612",
     "metadata": {},
     "name": "bichu-v0612",
-    "path": "/opt/stabilitymatrix/Data/Packages/Stable Diffusion WebUI Forge/models/Lora/bichu-v0612.safetensors"
+    "path": "/opt/stabilitymatrix/Data/Packages/Stable Diffusion WebUI Forge - Neo/models/Lora/bichu-v0612.safetensors"
    },
    {
     "alias": "caravaggio_resize",
@@ -1453,7 +1415,7 @@
      "sshs_model_hash": "81c05b1ace1b48d78293a83040d19b706bab33f34c489a4f6b35b02551b6bbf5"
     },
     "name": "caravaggio_resize",
-    "path": "/opt/stabilitymatrix/Data/Packages/Stable Diffusion WebUI Forge/models/Lora/caravaggio_resize.safetensors"
+    "path": "/opt/stabilitymatrix/Data/Packages/Stable Diffusion WebUI Forge - Neo/models/Lora/caravaggio_resize.safetensors"
    },
    {
     "alias": "chaplin_resize",
@@ -1479,7 +1441,7 @@
      "sshs_model_hash": "6838667400c15f46a364b3b5debad3b8cf07c9eff0108541dc24e4c141e131da"
     },
     "name": "chaplin_resize",
-    "path": "/opt/stabilitymatrix/Data/Packages/Stable Diffusion WebUI Forge/models/Lora/chaplin_resize.safetensors"
+    "path": "/opt/stabilitymatrix/Data/Packages/Stable Diffusion WebUI Forge - Neo/models/Lora/chaplin_resize.safetensors"
    },
    {
     "alias": "CircleArt_Sora",
@@ -1783,13 +1745,13 @@
      "sshs_model_hash": "e065bbf925ecdf23c71e4785a2f1b58433ef0c07eec180b557563b03d941b931"
     },
     "name": "CircleArt_Sora_SD15",
-    "path": "/opt/stabilitymatrix/Data/Packages/Stable Diffusion WebUI Forge/models/Lora/CircleArt_Sora_SD15.safetensors"
+    "path": "/opt/stabilitymatrix/Data/Packages/Stable Diffusion WebUI Forge - Neo/models/Lora/CircleArt_Sora_SD15.safetensors"
    },
    {
     "alias": "Claysculpt_v1_R64",
     "metadata": {},
     "name": "Claysculpt_v1_R64",
-    "path": "/opt/stabilitymatrix/Data/Packages/Stable Diffusion WebUI Forge/models/Lora/Claysculpt_v1_R64.safetensors"
+    "path": "/opt/stabilitymatrix/Data/Packages/Stable Diffusion WebUI Forge - Neo/models/Lora/Claysculpt_v1_R64.safetensors"
    },
    {
     "alias": "corpoart2",
@@ -2214,7 +2176,7 @@
      "sshs_model_hash": "f54dd20092b28bec57115623e4a4ee2fa5bd21ea2b5c354fcccc3a4e340556b5"
     },
     "name": "corpoart2",
-    "path": "/opt/stabilitymatrix/Data/Packages/Stable Diffusion WebUI Forge/models/Lora/corpoart2.safetensors"
+    "path": "/opt/stabilitymatrix/Data/Packages/Stable Diffusion WebUI Forge - Neo/models/Lora/corpoart2.safetensors"
    },
    {
     "alias": "crayon-v1.1",
@@ -2423,7 +2385,7 @@
      "sshs_model_hash": "d6a53c4bb2035133cf656d328da7042153280f0f22e2d476bdc2b77caecfba31"
     },
     "name": "crayon-v1.1-000005",
-    "path": "/opt/stabilitymatrix/Data/Packages/Stable Diffusion WebUI Forge/models/Lora/crayon-v1.1-000005.safetensors"
+    "path": "/opt/stabilitymatrix/Data/Packages/Stable Diffusion WebUI Forge - Neo/models/Lora/crayon-v1.1-000005.safetensors"
    },
    {
     "alias": "cyber_tech",
@@ -2489,7 +2451,7 @@
      "sshs_model_hash": "607e100e4f96221e718cdd5ba5046a9ae56d68cebb00ed9759017d4846ccb070"
     },
     "name": "cyber_tech-10",
-    "path": "/opt/stabilitymatrix/Data/Packages/Stable Diffusion WebUI Forge/models/Lora/cyber_tech-10.safetensors"
+    "path": "/opt/stabilitymatrix/Data/Packages/Stable Diffusion WebUI Forge - Neo/models/Lora/cyber_tech-10.safetensors"
    },
    {
     "alias": "Cyclops",
@@ -2682,7 +2644,7 @@
      "sshs_model_hash": "a2370844c04e63c1c6990f5cc6c560e2a3beae37945c74616f75f3c74d1d624b"
     },
     "name": "Cyclops-sd15",
-    "path": "/opt/stabilitymatrix/Data/Packages/Stable Diffusion WebUI Forge/models/Lora/Cyclops-sd15.safetensors"
+    "path": "/opt/stabilitymatrix/Data/Packages/Stable Diffusion WebUI Forge - Neo/models/Lora/Cyclops-sd15.safetensors"
    },
    {
     "alias": "detail_slider_v4",
@@ -2708,7 +2670,7 @@
      "version": "1.0"
     },
     "name": "detail_slider_v4",
-    "path": "/opt/stabilitymatrix/Data/Packages/Stable Diffusion WebUI Forge/models/Lora/detail_slider_v4.safetensors"
+    "path": "/opt/stabilitymatrix/Data/Packages/Stable Diffusion WebUI Forge - Neo/models/Lora/detail_slider_v4.safetensors"
    },
    {
     "alias": "Emotive_Corporate",
@@ -3128,19 +3090,19 @@
      "sshs_model_hash": "f1c6b594dc5be6543fd87a32ba899fabc7a1c62b48001f0a13a5df5c4b2ae71c"
     },
     "name": "Emotive_Corporate",
-    "path": "/opt/stabilitymatrix/Data/Packages/Stable Diffusion WebUI Forge/models/Lora/Emotive_Corporate.safetensors"
+    "path": "/opt/stabilitymatrix/Data/Packages/Stable Diffusion WebUI Forge - Neo/models/Lora/Emotive_Corporate.safetensors"
    },
    {
     "alias": "epi_noiseoffset2",
     "metadata": {},
     "name": "epi_noiseoffset2",
-    "path": "/opt/stabilitymatrix/Data/Packages/Stable Diffusion WebUI Forge/models/Lora/epi_noiseoffset2.safetensors"
+    "path": "/opt/stabilitymatrix/Data/Packages/Stable Diffusion WebUI Forge - Neo/models/Lora/epi_noiseoffset2.safetensors"
    },
    {
     "alias": "epiNoiseoffset_v2",
     "metadata": {},
     "name": "epiNoiseoffset_v2",
-    "path": "/opt/stabilitymatrix/Data/Packages/Stable Diffusion WebUI Forge/models/Lora/epiNoiseoffset_v2.safetensors"
+    "path": "/opt/stabilitymatrix/Data/Packages/Stable Diffusion WebUI Forge - Neo/models/Lora/epiNoiseoffset_v2.safetensors"
    },
    {
     "alias": "FaeTech",
@@ -3229,7 +3191,7 @@
      "sshs_model_hash": "8be704ae8315e2ed73d02ab5db8d118bd1e1ca8bf77ba3093c30d91af6f6ed45"
     },
     "name": "FaeTech-30",
-    "path": "/opt/stabilitymatrix/Data/Packages/Stable Diffusion WebUI Forge/models/Lora/FaeTech-30.safetensors"
+    "path": "/opt/stabilitymatrix/Data/Packages/Stable Diffusion WebUI Forge - Neo/models/Lora/FaeTech-30.safetensors"
    },
    {
     "alias": "fidus_v2_7200",
@@ -3671,7 +3633,7 @@
      "unet:9:up": "lora_unet_down_blocks_0_attentions_1_transformer_blocks_0_attn1_to_q.lora_up.weight"
     },
     "name": "fidus_v2_7200",
-    "path": "/opt/stabilitymatrix/Data/Packages/Stable Diffusion WebUI Forge/models/Lora/fidus_v2_7200.safetensors"
+    "path": "/opt/stabilitymatrix/Data/Packages/Stable Diffusion WebUI Forge - Neo/models/Lora/fidus_v2_7200.safetensors"
    },
    {
     "alias": "GemTech",
@@ -3821,7 +3783,7 @@
      "sshs_model_hash": "fe028512a4903abefee092c0d3bb5704437c95fd15aa4afefeaedc174d91490d"
     },
     "name": "GemTech-22",
-    "path": "/opt/stabilitymatrix/Data/Packages/Stable Diffusion WebUI Forge/models/Lora/GemTech-22.safetensors"
+    "path": "/opt/stabilitymatrix/Data/Packages/Stable Diffusion WebUI Forge - Neo/models/Lora/GemTech-22.safetensors"
    },
    {
     "alias": "glassart1rep2",
@@ -4122,7 +4084,7 @@
      "sshs_model_hash": "1429b59398c40005ba5f882f39b0dfcd1ca6db593355d83554872c538481575d"
     },
     "name": "glassart600",
-    "path": "/opt/stabilitymatrix/Data/Packages/Stable Diffusion WebUI Forge/models/Lora/glassart600.safetensors"
+    "path": "/opt/stabilitymatrix/Data/Packages/Stable Diffusion WebUI Forge - Neo/models/Lora/glassart600.safetensors"
    },
    {
     "alias": "Graphic",
@@ -4331,7 +4293,7 @@
      "sshs_model_hash": "071e3486a168f4328d8f84b717e64ceae0697444f4489ab7b376f40ad2f87001"
     },
     "name": "Graphic",
-    "path": "/opt/stabilitymatrix/Data/Packages/Stable Diffusion WebUI Forge/models/Lora/Graphic.safetensors"
+    "path": "/opt/stabilitymatrix/Data/Packages/Stable Diffusion WebUI Forge - Neo/models/Lora/Graphic.safetensors"
    },
    {
     "alias": "Graphic_Portrait_SD15",
@@ -4675,7 +4637,7 @@
      "sshs_model_hash": "584a81932a0a46b8427eface3a5d29dc778db25304b46bae08343e8cf1298f91"
     },
     "name": "Graphic_Portrait_SD15",
-    "path": "/opt/stabilitymatrix/Data/Packages/Stable Diffusion WebUI Forge/models/Lora/Graphic_Portrait_SD15.safetensors"
+    "path": "/opt/stabilitymatrix/Data/Packages/Stable Diffusion WebUI Forge - Neo/models/Lora/Graphic_Portrait_SD15.safetensors"
    },
    {
     "alias": "H4LFT0N3_XL",
@@ -4754,7 +4716,7 @@
      "sshs_model_hash": "1d885134db9f615027aa690670d06383f9925f3bbf92781d1b79104746e6085f"
     },
     "name": "H4LFT0N3_XL",
-    "path": "/opt/stabilitymatrix/Data/Packages/Stable Diffusion WebUI Forge/models/Lora/H4LFT0N3_XL.safetensors"
+    "path": "/opt/stabilitymatrix/Data/Packages/Stable Diffusion WebUI Forge - Neo/models/Lora/H4LFT0N3_XL.safetensors"
    },
    {
     "alias": "Healing",
@@ -5056,7 +5018,7 @@
      "sshs_model_hash": "4aba1a04a905ee3e96b029bd84776d40ef315b4c84727d1408ba9f7d0ce29a69"
     },
     "name": "Healing-000010",
-    "path": "/opt/stabilitymatrix/Data/Packages/Stable Diffusion WebUI Forge/models/Lora/Healing-000010.safetensors"
+    "path": "/opt/stabilitymatrix/Data/Packages/Stable Diffusion WebUI Forge - Neo/models/Lora/Healing-000010.safetensors"
    },
    {
     "alias": "J_comic_book",
@@ -5508,7 +5470,7 @@
      "sshs_model_hash": "cf275ebbf0a2eb7f8eac478c88d9396e0dad1676cf256117328c98496a2fea24"
     },
     "name": "J_comic_book",
-    "path": "/opt/stabilitymatrix/Data/Packages/Stable Diffusion WebUI Forge/models/Lora/J_comic_book.safetensors"
+    "path": "/opt/stabilitymatrix/Data/Packages/Stable Diffusion WebUI Forge - Neo/models/Lora/J_comic_book.safetensors"
    },
    {
     "alias": "jaggy_lines_noise_taged",
@@ -9181,7 +9143,7 @@
      "sshs_model_hash": "e5d5f2d66431d590dad5e353694ea52a9d2d55c87952b41f39e192d528c1d492"
     },
     "name": "jaggy_lines_noise_taged-000012",
-    "path": "/opt/stabilitymatrix/Data/Packages/Stable Diffusion WebUI Forge/models/Lora/jaggy_lines_noise_taged-000012.safetensors"
+    "path": "/opt/stabilitymatrix/Data/Packages/Stable Diffusion WebUI Forge - Neo/models/Lora/jaggy_lines_noise_taged-000012.safetensors"
    },
    {
     "alias": "JJsFloorPlan_v2",
@@ -10775,7 +10737,7 @@
      "sshs_model_hash": "948e16d55fbec2361c03e8f117e5d41b324ac6e5f709d8c6f93c2318b301169f"
     },
     "name": "JJsFloorPlan_v2",
-    "path": "/opt/stabilitymatrix/Data/Packages/Stable Diffusion WebUI Forge/models/Lora/JJsFloorPlan_v2.safetensors"
+    "path": "/opt/stabilitymatrix/Data/Packages/Stable Diffusion WebUI Forge - Neo/models/Lora/JJsFloorPlan_v2.safetensors"
    },
    {
     "alias": "KawaiiTech",
@@ -10857,7 +10819,7 @@
      "sshs_model_hash": "2268585fbf19a1e97eeee876589395ac37e951bbdca40f13a82f201d47817467"
     },
     "name": "KawaiiTech-20",
-    "path": "/opt/stabilitymatrix/Data/Packages/Stable Diffusion WebUI Forge/models/Lora/KawaiiTech-20.safetensors"
+    "path": "/opt/stabilitymatrix/Data/Packages/Stable Diffusion WebUI Forge - Neo/models/Lora/KawaiiTech-20.safetensors"
    },
    {
     "alias": "banhua",
@@ -11099,7 +11061,7 @@
      "sshs_model_hash": "852334b4f22b13be6c0d0a75193fb1db4cffa97fb2642258e9a836847c02371e"
     },
     "name": "laomanhua",
-    "path": "/opt/stabilitymatrix/Data/Packages/Stable Diffusion WebUI Forge/models/Lora/laomanhua.safetensors"
+    "path": "/opt/stabilitymatrix/Data/Packages/Stable Diffusion WebUI Forge - Neo/models/Lora/laomanhua.safetensors"
    },
    {
     "alias": "lcm-lora-sdv1-5",
@@ -11107,7 +11069,7 @@
      "format": "pt"
     },
     "name": "lcm-lora-sdv1-5",
-    "path": "/opt/stabilitymatrix/Data/Packages/Stable Diffusion WebUI Forge/models/Lora/lcm-lora-sdv1-5.safetensors"
+    "path": "/opt/stabilitymatrix/Data/Packages/Stable Diffusion WebUI Forge - Neo/models/Lora/lcm-lora-sdv1-5.safetensors"
    },
    {
     "alias": "lcm-lora-sdxl",
@@ -11129,7 +11091,7 @@
      "sshs_model_hash": "2fa7e8e56b09cf8506a5f289c1da8dce12d1bca2f2d842d3e9862cc638c70965"
     },
     "name": "lcm-lora-sdxl",
-    "path": "/opt/stabilitymatrix/Data/Packages/Stable Diffusion WebUI Forge/models/Lora/lcm-lora-sdxl.safetensors"
+    "path": "/opt/stabilitymatrix/Data/Packages/Stable Diffusion WebUI Forge - Neo/models/Lora/lcm-lora-sdxl.safetensors"
    },
    {
     "alias": "lego_v2.0.768",
@@ -12025,7 +11987,7 @@
      "sshs_model_hash": "59b0ba1247ebb0eb7bf81bf6c3bbfe652da81322d13227bc5ab06b64a3ef22bb"
     },
     "name": "lego_v2.0.768",
-    "path": "/opt/stabilitymatrix/Data/Packages/Stable Diffusion WebUI Forge/models/Lora/lego_v2.0.768.safetensors"
+    "path": "/opt/stabilitymatrix/Data/Packages/Stable Diffusion WebUI Forge - Neo/models/Lora/lego_v2.0.768.safetensors"
    },
    {
     "alias": "MapSatimageEU_V1.0_ST_LoRa",
@@ -12036,7 +11998,7 @@
      "sshs_model_hash": "99114c419ea8ea42c5f0c97ee5d649d1abdb5c98a3b87002bff82a167df32981"
     },
     "name": "MapSatimageEU_V1.0_ST_LoRa",
-    "path": "/opt/stabilitymatrix/Data/Packages/Stable Diffusion WebUI Forge/models/Lora/MapSatimageEU_V1.0_ST_LoRa.safetensors"
+    "path": "/opt/stabilitymatrix/Data/Packages/Stable Diffusion WebUI Forge - Neo/models/Lora/MapSatimageEU_V1.0_ST_LoRa.safetensors"
    },
    {
     "alias": "Meme_AwkwardCatPhoto",
@@ -12051,7 +12013,7 @@
      "ot_revision": "9560751"
     },
     "name": "Meme_AwkwardCatPhoto",
-    "path": "/opt/stabilitymatrix/Data/Packages/Stable Diffusion WebUI Forge/models/Lora/Meme_AwkwardCatPhoto.safetensors"
+    "path": "/opt/stabilitymatrix/Data/Packages/Stable Diffusion WebUI Forge - Neo/models/Lora/Meme_AwkwardCatPhoto.safetensors"
    },
    {
     "alias": "methurlant",
@@ -12272,7 +12234,7 @@
      "sshs_model_hash": "a6e9ebbee184cf01267dac0351deda90b73659828bc15168b2b7d70a5042ecd6"
     },
     "name": "methurlant",
-    "path": "/opt/stabilitymatrix/Data/Packages/Stable Diffusion WebUI Forge/models/Lora/methurlant.safetensors"
+    "path": "/opt/stabilitymatrix/Data/Packages/Stable Diffusion WebUI Forge - Neo/models/Lora/methurlant.safetensors"
    },
    {
     "alias": "microverse_creator",
@@ -12338,7 +12300,7 @@
      "sshs_model_hash": "d5c39e7aed09fae03c779b6a008159f2d9aec0dec5f86b50922cc225eade9566"
     },
     "name": "microverse_creator-10",
-    "path": "/opt/stabilitymatrix/Data/Packages/Stable Diffusion WebUI Forge/models/Lora/microverse_creator-10.safetensors"
+    "path": "/opt/stabilitymatrix/Data/Packages/Stable Diffusion WebUI Forge - Neo/models/Lora/microverse_creator-10.safetensors"
    },
    {
     "alias": "mshn",
@@ -12502,7 +12464,7 @@
      "sshs_model_hash": "2297fb239bd060e7df7abae551f23904e22c6f8fd4a70da6b881dbc85d4ef52c"
     },
     "name": "mshn",
-    "path": "/opt/stabilitymatrix/Data/Packages/Stable Diffusion WebUI Forge/models/Lora/mshn.safetensors"
+    "path": "/opt/stabilitymatrix/Data/Packages/Stable Diffusion WebUI Forge - Neo/models/Lora/mshn.safetensors"
    },
    {
     "alias": "Neon_Cyberpunk_Cyberspace_SD1.5",
@@ -12601,7 +12563,7 @@
      "sshs_model_hash": "dd35cf4a6eefb2178eab43d9a194e8e3d93a8ea664f32234b80ee72aaa46b8e5"
     },
     "name": "Neon_Cyberpunk_Cyberspace_SD1.5",
-    "path": "/opt/stabilitymatrix/Data/Packages/Stable Diffusion WebUI Forge/models/Lora/Neon_Cyberpunk_Cyberspace_SD1.5.safetensors"
+    "path": "/opt/stabilitymatrix/Data/Packages/Stable Diffusion WebUI Forge - Neo/models/Lora/Neon_Cyberpunk_Cyberspace_SD1.5.safetensors"
    },
    {
     "alias": "PE_TerribleFanArtV1",
@@ -12778,7 +12740,7 @@
      "sshs_model_hash": "8df587ea6fefcc3c17cde0d3666b2179eacec2353354af7a1571a4039067bbda"
     },
     "name": "PE_TerribleFanArtV1",
-    "path": "/opt/stabilitymatrix/Data/Packages/Stable Diffusion WebUI Forge/models/Lora/PE_TerribleFanArtV1.safetensors"
+    "path": "/opt/stabilitymatrix/Data/Packages/Stable Diffusion WebUI Forge - Neo/models/Lora/PE_TerribleFanArtV1.safetensors"
    },
    {
     "alias": "pixelbuildings128-v2",
@@ -12895,7 +12857,7 @@
      "sshs_model_hash": "dbe5cdf5f8f454327c23d9c24d8e92002c0064a9692d18d4efe7d93fcd640cd8"
     },
     "name": "pixel-art-xl-v1.1",
-    "path": "/opt/stabilitymatrix/Data/Packages/Stable Diffusion WebUI Forge/models/Lora/pixel-art-xl-v1.1.safetensors"
+    "path": "/opt/stabilitymatrix/Data/Packages/Stable Diffusion WebUI Forge - Neo/models/Lora/pixel-art-xl-v1.1.safetensors"
    },
    {
     "alias": "psychedelic_noir",
@@ -12961,7 +12923,7 @@
      "sshs_model_hash": "70e8cda502517259fb873fd254b652478b0d26ab0e83eeef0cb080f1a05aeb13"
     },
     "name": "psychedelic_noir-10",
-    "path": "/opt/stabilitymatrix/Data/Packages/Stable Diffusion WebUI Forge/models/Lora/psychedelic_noir-10.safetensors"
+    "path": "/opt/stabilitymatrix/Data/Packages/Stable Diffusion WebUI Forge - Neo/models/Lora/psychedelic_noir-10.safetensors"
    },
    {
     "alias": "RetroGlitch",
@@ -13241,7 +13203,7 @@
      "sshs_model_hash": "a21c9735a70296b116ed651cc8fb283bbd3726056a69c5fddf09baac2805a406"
     },
     "name": "RetroGlitch",
-    "path": "/opt/stabilitymatrix/Data/Packages/Stable Diffusion WebUI Forge/models/Lora/RetroGlitch.safetensors"
+    "path": "/opt/stabilitymatrix/Data/Packages/Stable Diffusion WebUI Forge - Neo/models/Lora/RetroGlitch.safetensors"
    },
    {
     "alias": "SilverSapphireAI",
@@ -13338,7 +13300,7 @@
      "sshs_model_hash": "af4b1ebe6d4251c2dabf85a969b4b9bfb4fe72f75333f323d3fdb62f9dd3a73f"
     },
     "name": "SilverSapphireAI",
-    "path": "/opt/stabilitymatrix/Data/Packages/Stable Diffusion WebUI Forge/models/Lora/SilverSapphireAI.safetensors"
+    "path": "/opt/stabilitymatrix/Data/Packages/Stable Diffusion WebUI Forge - Neo/models/Lora/SilverSapphireAI.safetensors"
    },
    {
     "alias": "SolarPunk_Buildings",
@@ -13551,7 +13513,7 @@
      "sshs_model_hash": "615c952e9c174755cea5870fc512f5a24df0900b231abdca5313ac745e9b2a68"
     },
     "name": "SolarPunk_Buildings",
-    "path": "/opt/stabilitymatrix/Data/Packages/Stable Diffusion WebUI Forge/models/Lora/SolarPunk_Buildings.safetensors"
+    "path": "/opt/stabilitymatrix/Data/Packages/Stable Diffusion WebUI Forge - Neo/models/Lora/SolarPunk_Buildings.safetensors"
    },
    {
     "alias": "20240113-1705136141854",
@@ -13704,7 +13666,7 @@
      "sshs_model_hash": "0f1fbe4e69e868c02594540f68e41ca9944c14e4e72626f4e399303dd20d1727"
     },
     "name": "splash_water",
-    "path": "/opt/stabilitymatrix/Data/Packages/Stable Diffusion WebUI Forge/models/Lora/splash_water.safetensors"
+    "path": "/opt/stabilitymatrix/Data/Packages/Stable Diffusion WebUI Forge - Neo/models/Lora/splash_water.safetensors"
    },
    {
     "alias": "stone_statue",
@@ -13870,7 +13832,7 @@
      "sshs_model_hash": "c94d2066ebf589aec9bf2a5be942b8d48e9f26d09d8df94d00775c183961a3f1"
     },
     "name": "stone_statue",
-    "path": "/opt/stabilitymatrix/Data/Packages/Stable Diffusion WebUI Forge/models/Lora/stone_statue.safetensors"
+    "path": "/opt/stabilitymatrix/Data/Packages/Stable Diffusion WebUI Forge - Neo/models/Lora/stone_statue.safetensors"
    },
    {
     "alias": "Surreal Harmony",
@@ -13955,7 +13917,7 @@
      "sshs_model_hash": "defca0bb9d0ca9012f3efae0718a60e84109dd59369300f1c1ec195850bdf36c"
     },
     "name": "Surreal Harmony",
-    "path": "/opt/stabilitymatrix/Data/Packages/Stable Diffusion WebUI Forge/models/Lora/Surreal Harmony.safetensors"
+    "path": "/opt/stabilitymatrix/Data/Packages/Stable Diffusion WebUI Forge - Neo/models/Lora/Surreal Harmony.safetensors"
    },
    {
     "alias": "Vector_illustration_V2",
@@ -14113,7 +14075,7 @@
      "sshs_model_hash": "3bf334bb22001b853bcbe78c1bb5551f28e2078b94c39308af6c19cf001adc48"
     },
     "name": "Vector_illustration_V2",
-    "path": "/opt/stabilitymatrix/Data/Packages/Stable Diffusion WebUI Forge/models/Lora/Vector_illustration_V2.safetensors"
+    "path": "/opt/stabilitymatrix/Data/Packages/Stable Diffusion WebUI Forge - Neo/models/Lora/Vector_illustration_V2.safetensors"
    },
    {
     "alias": "VHSfootage",
@@ -14349,7 +14311,7 @@
      "sshs_model_hash": "a26d9208bbb22668e8175a7b3896257a5b88d9b08bb9f3a85b47e4c7963e8e40"
     },
     "name": "VHSfootage",
-    "path": "/opt/stabilitymatrix/Data/Packages/Stable Diffusion WebUI Forge/models/Lora/VHSfootage.safetensors"
+    "path": "/opt/stabilitymatrix/Data/Packages/Stable Diffusion WebUI Forge - Neo/models/Lora/VHSfootage.safetensors"
    },
    {
     "alias": "Vintage_vibes_SD15",
@@ -14671,7 +14633,7 @@
      "sshs_model_hash": "796dbbb481d7b841716c56a574e857a753f6575e7330b898a79cc99dc8d0f341"
     },
     "name": "Vintage_vibes_SD15",
-    "path": "/opt/stabilitymatrix/Data/Packages/Stable Diffusion WebUI Forge/models/Lora/Vintage_vibes_SD15.safetensors"
+    "path": "/opt/stabilitymatrix/Data/Packages/Stable Diffusion WebUI Forge - Neo/models/Lora/Vintage_vibes_SD15.safetensors"
    },
    {
     "alias": "last",
@@ -14780,7 +14742,7 @@
      "sshs_model_hash": "796529775279bf5f4e0d65d98426ef482163668414ef68b883855e7231dccf25"
     },
     "name": "VoxelXL_v1",
-    "path": "/opt/stabilitymatrix/Data/Packages/Stable Diffusion WebUI Forge/models/Lora/VoxelXL_v1.safetensors"
+    "path": "/opt/stabilitymatrix/Data/Packages/Stable Diffusion WebUI Forge - Neo/models/Lora/VoxelXL_v1.safetensors"
    },
    {
     "alias": "Worl",
@@ -14885,7 +14847,7 @@
      "sshs_model_hash": "8cd2239771361738ffda97a0deb7964239a55df95790c1b8844f82fed8b772ea"
     },
     "name": "Worl-10",
-    "path": "/opt/stabilitymatrix/Data/Packages/Stable Diffusion WebUI Forge/models/Lora/Worl-10.safetensors"
+    "path": "/opt/stabilitymatrix/Data/Packages/Stable Diffusion WebUI Forge - Neo/models/Lora/Worl-10.safetensors"
    },
    {
     "alias": "xk3mt1ks",
@@ -14907,7 +14869,7 @@
      "sshs_model_hash": "0af43f2a186cb7451894add80995361933173bdac6d5a3fe3bd4e8347c20f509"
     },
     "name": "xk3mt1ks",
-    "path": "/opt/stabilitymatrix/Data/Packages/Stable Diffusion WebUI Forge/models/Lora/xk3mt1ks.safetensors"
+    "path": "/opt/stabilitymatrix/Data/Packages/Stable Diffusion WebUI Forge - Neo/models/Lora/xk3mt1ks.safetensors"
    }
   ],
   "/sdapi/v1/progress?skip_current_image=true": {
@@ -14915,13 +14877,13 @@
    "eta_relative": 0.0,
    "progress": 0.0,
    "state": {
-    "interrupted": false,
+    "interrupted": true,
     "job": "",
     "job_count": 0,
-    "job_no": 0,
-    "job_timestamp": "0",
+    "job_no": 1,
+    "job_timestamp": "20261008123043",
     "sampling_step": 0,
-    "sampling_steps": 0,
+    "sampling_steps": 4,
     "skipped": false,
     "stopping_generation": false
    },
@@ -14960,28 +14922,6 @@
    },
    {
     "aliases": [
-     "k_dpmpp_2m_sde_heun"
-    ],
-    "name": "DPM++ 2M SDE Heun",
-    "options": {
-     "brownian_noise": true,
-     "scheduler": "exponential",
-     "solver_type": "heun"
-    }
-   },
-   {
-    "aliases": [
-     "k_dpmpp_2s_a"
-    ],
-    "name": "DPM++ 2S a",
-    "options": {
-     "scheduler": "karras",
-     "second_order": true,
-     "uses_ensd": true
-    }
-   },
-   {
-    "aliases": [
      "k_dpmpp_3m_sde"
     ],
     "name": "DPM++ 3M SDE",
@@ -14990,6 +14930,13 @@
      "discard_next_to_last_sigma": true,
      "scheduler": "exponential"
     }
+   },
+   {
+    "aliases": [
+     "sample_dpmpp_2s_ancestral_RF"
+    ],
+    "name": "DPM++ 2s a RF",
+    "options": {}
    },
    {
     "aliases": [
@@ -15006,6 +14953,20 @@
      "k_euler"
     ],
     "name": "Euler",
+    "options": {}
+   },
+   {
+    "aliases": [
+     "er_sde"
+    ],
+    "name": "ER SDE",
+    "options": {}
+   },
+   {
+    "aliases": [
+     "k_lcm"
+    ],
+    "name": "LCM",
     "options": {}
    },
    {
@@ -15037,33 +14998,17 @@
    },
    {
     "aliases": [
-     "k_dpm_2_a"
+     "res_multistep"
     ],
-    "name": "DPM2 a",
-    "options": {
-     "discard_next_to_last_sigma": true,
-     "scheduler": "karras",
-     "second_order": true,
-     "uses_ensd": true
-    }
+    "name": "Res Multistep",
+    "options": {}
    },
    {
     "aliases": [
-     "k_dpm_fast"
+     "Kohaku_LoNyu_Yog"
     ],
-    "name": "DPM fast",
-    "options": {
-     "uses_ensd": true
-    }
-   },
-   {
-    "aliases": [
-     "k_dpm_ad"
-    ],
-    "name": "DPM adaptive",
-    "options": {
-     "uses_ensd": true
-    }
+    "name": "Kohaku LoNyu Yog",
+    "options": {}
    },
    {
     "aliases": [
@@ -15077,44 +15022,18 @@
    },
    {
     "aliases": [
-     "heunpp2"
+     "unipc"
     ],
-    "name": "HeunPP2",
-    "options": {}
-   },
-   {
-    "aliases": [
-     "ipndm"
-    ],
-    "name": "IPNDM",
-    "options": {}
-   },
-   {
-    "aliases": [
-     "ipndm_v"
-    ],
-    "name": "IPNDM_V",
-    "options": {}
-   },
-   {
-    "aliases": [
-     "deis"
-    ],
-    "name": "DEIS",
-    "options": {}
+    "name": "UniPC",
+    "options": {
+     "discard_next_to_last_sigma": true
+    }
    },
    {
     "aliases": [
      "ddim"
     ],
     "name": "DDIM",
-    "options": {}
-   },
-   {
-    "aliases": [
-     "ddim_cfgpp"
-    ],
-    "name": "DDIM CFG++",
     "options": {}
    },
    {
@@ -15126,23 +15045,27 @@
    },
    {
     "aliases": [
-     "unipc"
+     "dpmpp_2m_cfg_pp"
     ],
-    "name": "UniPC",
-    "options": {}
+    "name": "DPM++ 2M CFG++",
+    "options": {
+     "scheduler": "karras"
+    }
    },
    {
     "aliases": [
-     "k_lcm"
+     "euler_ancestral_cfg_pp"
     ],
-    "name": "LCM",
-    "options": {}
+    "name": "Euler a CFG++",
+    "options": {
+     "uses_ensd": true
+    }
    },
    {
     "aliases": [
-     "ddpm"
+     "euler_cfg_pp"
     ],
-    "name": "DDPM",
+    "name": "Euler CFG++",
     "options": {}
    }
   ],
@@ -15153,13 +15076,6 @@
     "label": "Automatic",
     "name": "automatic",
     "need_inner_model": false
-   },
-   {
-    "aliases": null,
-    "default_rho": -1.0,
-    "label": "Uniform",
-    "name": "uniform",
-    "need_inner_model": true
    },
    {
     "aliases": null,
@@ -15183,27 +15099,11 @@
     "need_inner_model": false
    },
    {
-    "aliases": [
-     "SGMUniform"
-    ],
+    "aliases": null,
     "default_rho": -1.0,
-    "label": "SGM Uniform",
-    "name": "sgm_uniform",
+    "label": "Normal",
+    "name": "normal",
     "need_inner_model": true
-   },
-   {
-    "aliases": null,
-    "default_rho": -1.0,
-    "label": "KL Optimal",
-    "name": "kl_optimal",
-    "need_inner_model": false
-   },
-   {
-    "aliases": null,
-    "default_rho": -1.0,
-    "label": "Align Your Steps",
-    "name": "align_your_steps",
-    "need_inner_model": false
    },
    {
     "aliases": null,
@@ -15215,9 +15115,32 @@
    {
     "aliases": null,
     "default_rho": -1.0,
-    "label": "Normal",
-    "name": "normal",
+    "label": "Uniform",
+    "name": "uniform",
     "need_inner_model": true
+   },
+   {
+    "aliases": [
+     "SGMUniform"
+    ],
+    "default_rho": -1.0,
+    "label": "SGM Uniform",
+    "name": "sgm_uniform",
+    "need_inner_model": true
+   },
+   {
+    "aliases": null,
+    "default_rho": -1.0,
+    "label": "Linear Quadratic",
+    "name": "linear_quadratic",
+    "need_inner_model": false
+   },
+   {
+    "aliases": null,
+    "default_rho": -1.0,
+    "label": "KL Optimal",
+    "name": "kl_optimal",
+    "need_inner_model": false
    },
    {
     "aliases": null,
@@ -15225,6 +15148,13 @@
     "label": "DDIM",
     "name": "ddim",
     "need_inner_model": true
+   },
+   {
+    "aliases": null,
+    "default_rho": -1.0,
+    "label": "Align Your Steps",
+    "name": "align_your_steps",
+    "need_inner_model": false
    },
    {
     "aliases": null,
@@ -15243,46 +15173,40 @@
    {
     "aliases": null,
     "default_rho": -1.0,
-    "label": "Align Your Steps GITS",
-    "name": "align_your_steps_GITS",
+    "label": "Bong Tangent",
+    "name": "bong_tangent",
     "need_inner_model": false
    },
    {
     "aliases": null,
     "default_rho": -1.0,
-    "label": "Align Your Steps 11",
-    "name": "align_your_steps_11",
-    "need_inner_model": false
+    "label": "FlowMatchEulerDiscrete",
+    "name": "flow_match",
+    "need_inner_model": true
    },
    {
     "aliases": null,
     "default_rho": -1.0,
-    "label": "Align Your Steps 32",
-    "name": "align_your_steps_32",
+    "label": "Flux2",
+    "name": "flux2",
     "need_inner_model": false
    }
   ],
   "/sdapi/v1/scripts": {
    "img2img": [
-    "img2img alternative test",
     "loopback",
-    "outpainting mk2",
-    "poor man's outpainting",
     "prompt matrix",
     "prompts from file or textbox",
     "sd upscale",
     "x/y/z plot",
     "extra options",
+    "torch compile integrated",
     "controlnet",
-    "dynamicthresholding (cfg-fix) integrated",
-    "freeu integrated (sd 1.x, sd 2.x, sdxl)",
-    "kohya hrfix integrated",
-    "latentmodifier integrated",
+    "imagestitch integrated",
     "multidiffusion integrated",
     "never oom integrated",
-    "perturbedattentionguidance integrated",
-    "selfattentionguidance integrated (sd 1.x, sd 2.x, sdxl)",
-    "stylealign integrated",
+    "sparse attention integrated",
+    "spectrum integrated",
     "soft inpainting",
     "ultimate sd upscale",
     "refiner",
@@ -15294,16 +15218,12 @@
     "prompts from file or textbox",
     "x/y/z plot",
     "extra options",
+    "torch compile integrated",
     "controlnet",
-    "dynamicthresholding (cfg-fix) integrated",
-    "freeu integrated (sd 1.x, sd 2.x, sdxl)",
-    "kohya hrfix integrated",
-    "latentmodifier integrated",
-    "multidiffusion integrated",
+    "imagestitch integrated",
     "never oom integrated",
-    "perturbedattentionguidance integrated",
-    "selfattentionguidance integrated (sd 1.x, sd 2.x, sdxl)",
-    "stylealign integrated",
+    "sparse attention integrated",
+    "spectrum integrated",
     "refiner",
     "sampler",
     "seed"
@@ -15312,15 +15232,7 @@
   "/sdapi/v1/sd-models": [
    {
     "config": null,
-    "filename": "/opt/stabilitymatrix/Data/Packages/Stable Diffusion WebUI Forge/models/Stable-diffusion/sd/arthemyComics_v70.safetensors",
-    "hash": null,
-    "model_name": "sd_arthemyComics_v70",
-    "sha256": null,
-    "title": "sd/arthemyComics_v70.safetensors"
-   },
-   {
-    "config": null,
-    "filename": "/opt/stabilitymatrix/Data/Packages/Stable Diffusion WebUI Forge/models/Stable-diffusion/sd/aZovyaRPGArtistTools_v4.safetensors",
+    "filename": "/opt/stabilitymatrix/Data/Packages/Stable Diffusion WebUI Forge - Neo/models/Stable-diffusion/sd/aZovyaRPGArtistTools_v4.safetensors",
     "hash": null,
     "model_name": "sd_aZovyaRPGArtistTools_v4",
     "sha256": null,
@@ -15328,39 +15240,7 @@
    },
    {
     "config": null,
-    "filename": "/opt/stabilitymatrix/Data/Packages/Stable Diffusion WebUI Forge/models/Stable-diffusion/sd/commoncanvas_s_c.safetensors",
-    "hash": null,
-    "model_name": "sd_commoncanvas_s_c",
-    "sha256": null,
-    "title": "sd/commoncanvas_s_c.safetensors"
-   },
-   {
-    "config": null,
-    "filename": "/opt/stabilitymatrix/Data/Packages/Stable Diffusion WebUI Forge/models/Stable-diffusion/sd/commoncanvas_s_nc.safetensors",
-    "hash": null,
-    "model_name": "sd_commoncanvas_s_nc",
-    "sha256": null,
-    "title": "sd/commoncanvas_s_nc.safetensors"
-   },
-   {
-    "config": null,
-    "filename": "/opt/stabilitymatrix/Data/Packages/Stable Diffusion WebUI Forge/models/Stable-diffusion/sd/commoncanvas_xl_c.safetensors",
-    "hash": null,
-    "model_name": "sd_commoncanvas_xl_c",
-    "sha256": null,
-    "title": "sd/commoncanvas_xl_c.safetensors"
-   },
-   {
-    "config": null,
-    "filename": "/opt/stabilitymatrix/Data/Packages/Stable Diffusion WebUI Forge/models/Stable-diffusion/sd/commoncanvas_xl_nc.safetensors",
-    "hash": null,
-    "model_name": "sd_commoncanvas_xl_nc",
-    "sha256": null,
-    "title": "sd/commoncanvas_xl_nc.safetensors"
-   },
-   {
-    "config": null,
-    "filename": "/opt/stabilitymatrix/Data/Packages/Stable Diffusion WebUI Forge/models/Stable-diffusion/sd/cyberrealistic_v80.safetensors",
+    "filename": "/opt/stabilitymatrix/Data/Packages/Stable Diffusion WebUI Forge - Neo/models/Stable-diffusion/sd/cyberrealistic_v80.safetensors",
     "hash": null,
     "model_name": "sd_cyberrealistic_v80",
     "sha256": null,
@@ -15368,95 +15248,7 @@
    },
    {
     "config": null,
-    "filename": "/opt/stabilitymatrix/Data/Packages/Stable Diffusion WebUI Forge/models/Stable-diffusion/sd/deliberate_v3-inpainting.safetensors",
-    "hash": null,
-    "model_name": "sd_deliberate_v3-inpainting",
-    "sha256": null,
-    "title": "sd/deliberate_v3-inpainting.safetensors"
-   },
-   {
-    "config": null,
-    "filename": "/opt/stabilitymatrix/Data/Packages/Stable Diffusion WebUI Forge/models/Stable-diffusion/sd/deliberate_v3.safetensors",
-    "hash": null,
-    "model_name": "sd_deliberate_v3",
-    "sha256": null,
-    "title": "sd/deliberate_v3.safetensors"
-   },
-   {
-    "config": null,
-    "filename": "/opt/stabilitymatrix/Data/Packages/Stable Diffusion WebUI Forge/models/Stable-diffusion/sd/dreamlabsoil_v2.safetensors",
-    "hash": null,
-    "model_name": "sd_dreamlabsoil_v2",
-    "sha256": null,
-    "title": "sd/dreamlabsoil_v2.safetensors"
-   },
-   {
-    "config": null,
-    "filename": "/opt/stabilitymatrix/Data/Packages/Stable Diffusion WebUI Forge/models/Stable-diffusion/sd/dreamlikeDiffusion_v10.ckpt",
-    "hash": null,
-    "model_name": "sd_dreamlikeDiffusion_v10",
-    "sha256": null,
-    "title": "sd/dreamlikeDiffusion_v10.ckpt"
-   },
-   {
-    "config": null,
-    "filename": "/opt/stabilitymatrix/Data/Packages/Stable Diffusion WebUI Forge/models/Stable-diffusion/sd/dreamshaper_v8.safetensors",
-    "hash": null,
-    "model_name": "sd_dreamshaper_v8",
-    "sha256": null,
-    "title": "sd/dreamshaper_v8.safetensors"
-   },
-   {
-    "config": null,
-    "filename": "/opt/stabilitymatrix/Data/Packages/Stable Diffusion WebUI Forge/models/Stable-diffusion/sd/etherBluMix_v7.safetensors",
-    "hash": null,
-    "model_name": "sd_etherBluMix_v7",
-    "sha256": null,
-    "title": "sd/etherBluMix_v7.safetensors"
-   },
-   {
-    "config": null,
-    "filename": "/opt/stabilitymatrix/Data/Packages/Stable Diffusion WebUI Forge/models/Stable-diffusion/sd/etherRealMix_v4.safetensors",
-    "hash": null,
-    "model_name": "sd_etherRealMix_v4",
-    "sha256": null,
-    "title": "sd/etherRealMix_v4.safetensors"
-   },
-   {
-    "config": null,
-    "filename": "/opt/stabilitymatrix/Data/Packages/Stable Diffusion WebUI Forge/models/Stable-diffusion/sd/FlatIllustration_v10.safetensors",
-    "hash": null,
-    "model_name": "sd_FlatIllustration_v10",
-    "sha256": null,
-    "title": "sd/FlatIllustration_v10.safetensors"
-   },
-   {
-    "config": null,
-    "filename": "/opt/stabilitymatrix/Data/Packages/Stable Diffusion WebUI Forge/models/Stable-diffusion/sd/illustriousXL_v20.safetensors",
-    "hash": null,
-    "model_name": "sd_illustriousXL_v20",
-    "sha256": null,
-    "title": "sd/illustriousXL_v20.safetensors"
-   },
-   {
-    "config": null,
-    "filename": "/opt/stabilitymatrix/Data/Packages/Stable Diffusion WebUI Forge/models/Stable-diffusion/sd/juggernaut_reborn.safetensors",
-    "hash": null,
-    "model_name": "sd_juggernaut_reborn",
-    "sha256": null,
-    "title": "sd/juggernaut_reborn.safetensors"
-   },
-   {
-    "config": null,
-    "filename": "/opt/stabilitymatrix/Data/Packages/Stable Diffusion WebUI Forge/models/Stable-diffusion/sd/juggernautXL_lightning.safetensors",
-    "hash": null,
-    "model_name": "sd_juggernautXL_lightning",
-    "sha256": null,
-    "title": "sd/juggernautXL_lightning.safetensors"
-   },
-   {
-    "config": null,
-    "filename": "/opt/stabilitymatrix/Data/Packages/Stable Diffusion WebUI Forge/models/Stable-diffusion/sd/juggernautXL_v7.safetensors",
+    "filename": "/opt/stabilitymatrix/Data/Packages/Stable Diffusion WebUI Forge - Neo/models/Stable-diffusion/sd/juggernautXL_v7.safetensors",
     "hash": null,
     "model_name": "sd_juggernautXL_v7",
     "sha256": null,
@@ -15464,63 +15256,95 @@
    },
    {
     "config": null,
-    "filename": "/opt/stabilitymatrix/Data/Packages/Stable Diffusion WebUI Forge/models/Stable-diffusion/sd/landscapesupermix_v21.safetensors",
+    "filename": "/opt/stabilitymatrix/Data/Packages/Stable Diffusion WebUI Forge - Neo/models/Stable-diffusion/sd/dreamlabsoil_v2.safetensors",
     "hash": null,
-    "model_name": "sd_landscapesupermix_v21",
+    "model_name": "sd_dreamlabsoil_v2",
     "sha256": null,
-    "title": "sd/landscapesupermix_v21.safetensors"
+    "title": "sd/dreamlabsoil_v2.safetensors"
    },
    {
     "config": null,
-    "filename": "/opt/stabilitymatrix/Data/Packages/Stable Diffusion WebUI Forge/models/Stable-diffusion/sd/lyriel_v16.safetensors",
+    "filename": "/opt/stabilitymatrix/Data/Packages/Stable Diffusion WebUI Forge - Neo/models/Stable-diffusion/sd/illustriousXL_v20.safetensors",
     "hash": null,
-    "model_name": "sd_lyriel_v16",
+    "model_name": "sd_illustriousXL_v20",
     "sha256": null,
-    "title": "sd/lyriel_v16.safetensors"
+    "title": "sd/illustriousXL_v20.safetensors"
    },
    {
     "config": null,
-    "filename": "/opt/stabilitymatrix/Data/Packages/Stable Diffusion WebUI Forge/models/Stable-diffusion/sd/nextphoto_v30.safetensors",
+    "filename": "/opt/stabilitymatrix/Data/Packages/Stable Diffusion WebUI Forge - Neo/models/Stable-diffusion/sd/etherBluMix_v7.safetensors",
     "hash": null,
-    "model_name": "sd_nextphoto_v30",
+    "model_name": "sd_etherBluMix_v7",
     "sha256": null,
-    "title": "sd/nextphoto_v30.safetensors"
+    "title": "sd/etherBluMix_v7.safetensors"
    },
    {
     "config": null,
-    "filename": "/opt/stabilitymatrix/Data/Packages/Stable Diffusion WebUI Forge/models/Stable-diffusion/sd/oilPainting_v10.safetensors",
+    "filename": "/opt/stabilitymatrix/Data/Packages/Stable Diffusion WebUI Forge - Neo/models/Stable-diffusion/sd/etherRealMix_v4.safetensors",
     "hash": null,
-    "model_name": "sd_oilPainting_v10",
+    "model_name": "sd_etherRealMix_v4",
     "sha256": null,
-    "title": "sd/oilPainting_v10.safetensors"
+    "title": "sd/etherRealMix_v4.safetensors"
    },
    {
     "config": null,
-    "filename": "/opt/stabilitymatrix/Data/Packages/Stable Diffusion WebUI Forge/models/Stable-diffusion/sd/photon_v1.safetensors",
+    "filename": "/opt/stabilitymatrix/Data/Packages/Stable Diffusion WebUI Forge - Neo/models/Stable-diffusion/sd/FlatIllustration_v10.safetensors",
     "hash": null,
-    "model_name": "sd_photon_v1",
+    "model_name": "sd_FlatIllustration_v10",
     "sha256": null,
-    "title": "sd/photon_v1.safetensors"
+    "title": "sd/FlatIllustration_v10.safetensors"
    },
    {
     "config": null,
-    "filename": "/opt/stabilitymatrix/Data/Packages/Stable Diffusion WebUI Forge/models/Stable-diffusion/sd/pirsusArtstation_v10.safetensors",
+    "filename": "/opt/stabilitymatrix/Data/Packages/Stable Diffusion WebUI Forge - Neo/models/Stable-diffusion/sd/commoncanvas_s_nc.safetensors",
     "hash": null,
-    "model_name": "sd_pirsusArtstation_v10",
+    "model_name": "sd_commoncanvas_s_nc",
     "sha256": null,
-    "title": "sd/pirsusArtstation_v10.safetensors"
+    "title": "sd/commoncanvas_s_nc.safetensors"
    },
    {
     "config": null,
-    "filename": "/opt/stabilitymatrix/Data/Packages/Stable Diffusion WebUI Forge/models/Stable-diffusion/sd/realisticVision_v60.safetensors",
+    "filename": "/opt/stabilitymatrix/Data/Packages/Stable Diffusion WebUI Forge - Neo/models/Stable-diffusion/sd/arthemyComics_v70.safetensors",
     "hash": null,
-    "model_name": "sd_realisticVision_v60",
+    "model_name": "sd_arthemyComics_v70",
     "sha256": null,
-    "title": "sd/realisticVision_v60.safetensors"
+    "title": "sd/arthemyComics_v70.safetensors"
    },
    {
     "config": null,
-    "filename": "/opt/stabilitymatrix/Data/Packages/Stable Diffusion WebUI Forge/models/Stable-diffusion/sd/sd_xl_refiner_1.0.safetensors",
+    "filename": "/opt/stabilitymatrix/Data/Packages/Stable Diffusion WebUI Forge - Neo/models/Stable-diffusion/sd/commoncanvas_xl_nc.safetensors",
+    "hash": null,
+    "model_name": "sd_commoncanvas_xl_nc",
+    "sha256": null,
+    "title": "sd/commoncanvas_xl_nc.safetensors"
+   },
+   {
+    "config": null,
+    "filename": "/opt/stabilitymatrix/Data/Packages/Stable Diffusion WebUI Forge - Neo/models/Stable-diffusion/sd/v1-5-pruned-emaonly.ckpt",
+    "hash": null,
+    "model_name": "sd_v1-5-pruned-emaonly",
+    "sha256": null,
+    "title": "sd/v1-5-pruned-emaonly.ckpt"
+   },
+   {
+    "config": null,
+    "filename": "/opt/stabilitymatrix/Data/Packages/Stable Diffusion WebUI Forge - Neo/models/Stable-diffusion/sd/juggernautXL_lightning.safetensors",
+    "hash": null,
+    "model_name": "sd_juggernautXL_lightning",
+    "sha256": null,
+    "title": "sd/juggernautXL_lightning.safetensors"
+   },
+   {
+    "config": null,
+    "filename": "/opt/stabilitymatrix/Data/Packages/Stable Diffusion WebUI Forge - Neo/models/Stable-diffusion/sd/commoncanvas_s_c.safetensors",
+    "hash": null,
+    "model_name": "sd_commoncanvas_s_c",
+    "sha256": null,
+    "title": "sd/commoncanvas_s_c.safetensors"
+   },
+   {
+    "config": null,
+    "filename": "/opt/stabilitymatrix/Data/Packages/Stable Diffusion WebUI Forge - Neo/models/Stable-diffusion/sd/sd_xl_refiner_1.0.safetensors",
     "hash": null,
     "model_name": "sd_sd_xl_refiner_1.0",
     "sha256": null,
@@ -15528,11 +15352,107 @@
    },
    {
     "config": null,
-    "filename": "/opt/stabilitymatrix/Data/Packages/Stable Diffusion WebUI Forge/models/Stable-diffusion/sd/v1-5-pruned-emaonly.ckpt",
+    "filename": "/opt/stabilitymatrix/Data/Packages/Stable Diffusion WebUI Forge - Neo/models/Stable-diffusion/sd/dreamshaper_v8.safetensors",
     "hash": null,
-    "model_name": "sd_v1-5-pruned-emaonly",
+    "model_name": "sd_dreamshaper_v8",
     "sha256": null,
-    "title": "sd/v1-5-pruned-emaonly.ckpt"
+    "title": "sd/dreamshaper_v8.safetensors"
+   },
+   {
+    "config": null,
+    "filename": "/opt/stabilitymatrix/Data/Packages/Stable Diffusion WebUI Forge - Neo/models/Stable-diffusion/sd/realisticVision_v60.safetensors",
+    "hash": null,
+    "model_name": "sd_realisticVision_v60",
+    "sha256": null,
+    "title": "sd/realisticVision_v60.safetensors"
+   },
+   {
+    "config": null,
+    "filename": "/opt/stabilitymatrix/Data/Packages/Stable Diffusion WebUI Forge - Neo/models/Stable-diffusion/sd/deliberate_v3.safetensors",
+    "hash": null,
+    "model_name": "sd_deliberate_v3",
+    "sha256": null,
+    "title": "sd/deliberate_v3.safetensors"
+   },
+   {
+    "config": null,
+    "filename": "/opt/stabilitymatrix/Data/Packages/Stable Diffusion WebUI Forge - Neo/models/Stable-diffusion/sd/nextphoto_v30.safetensors",
+    "hash": null,
+    "model_name": "sd_nextphoto_v30",
+    "sha256": null,
+    "title": "sd/nextphoto_v30.safetensors"
+   },
+   {
+    "config": null,
+    "filename": "/opt/stabilitymatrix/Data/Packages/Stable Diffusion WebUI Forge - Neo/models/Stable-diffusion/sd/dreamlikeDiffusion_v10.ckpt",
+    "hash": null,
+    "model_name": "sd_dreamlikeDiffusion_v10",
+    "sha256": null,
+    "title": "sd/dreamlikeDiffusion_v10.ckpt"
+   },
+   {
+    "config": null,
+    "filename": "/opt/stabilitymatrix/Data/Packages/Stable Diffusion WebUI Forge - Neo/models/Stable-diffusion/sd/commoncanvas_xl_c.safetensors",
+    "hash": null,
+    "model_name": "sd_commoncanvas_xl_c",
+    "sha256": null,
+    "title": "sd/commoncanvas_xl_c.safetensors"
+   },
+   {
+    "config": null,
+    "filename": "/opt/stabilitymatrix/Data/Packages/Stable Diffusion WebUI Forge - Neo/models/Stable-diffusion/sd/deliberate_v3-inpainting.safetensors",
+    "hash": null,
+    "model_name": "sd_deliberate_v3-inpainting",
+    "sha256": null,
+    "title": "sd/deliberate_v3-inpainting.safetensors"
+   },
+   {
+    "config": null,
+    "filename": "/opt/stabilitymatrix/Data/Packages/Stable Diffusion WebUI Forge - Neo/models/Stable-diffusion/sd/photon_v1.safetensors",
+    "hash": null,
+    "model_name": "sd_photon_v1",
+    "sha256": null,
+    "title": "sd/photon_v1.safetensors"
+   },
+   {
+    "config": null,
+    "filename": "/opt/stabilitymatrix/Data/Packages/Stable Diffusion WebUI Forge - Neo/models/Stable-diffusion/sd/lyriel_v16.safetensors",
+    "hash": null,
+    "model_name": "sd_lyriel_v16",
+    "sha256": null,
+    "title": "sd/lyriel_v16.safetensors"
+   },
+   {
+    "config": null,
+    "filename": "/opt/stabilitymatrix/Data/Packages/Stable Diffusion WebUI Forge - Neo/models/Stable-diffusion/sd/landscapesupermix_v21.safetensors",
+    "hash": null,
+    "model_name": "sd_landscapesupermix_v21",
+    "sha256": null,
+    "title": "sd/landscapesupermix_v21.safetensors"
+   },
+   {
+    "config": null,
+    "filename": "/opt/stabilitymatrix/Data/Packages/Stable Diffusion WebUI Forge - Neo/models/Stable-diffusion/sd/oilPainting_v10.safetensors",
+    "hash": null,
+    "model_name": "sd_oilPainting_v10",
+    "sha256": null,
+    "title": "sd/oilPainting_v10.safetensors"
+   },
+   {
+    "config": null,
+    "filename": "/opt/stabilitymatrix/Data/Packages/Stable Diffusion WebUI Forge - Neo/models/Stable-diffusion/sd/juggernaut_reborn.safetensors",
+    "hash": "338b85bc4f",
+    "model_name": "sd_juggernaut_reborn",
+    "sha256": "338b85bc4f7628bc42cce336242e79154a57c2a4360531436e97f7793568f18c",
+    "title": "sd/juggernaut_reborn.safetensors [338b85bc4f]"
+   },
+   {
+    "config": null,
+    "filename": "/opt/stabilitymatrix/Data/Packages/Stable Diffusion WebUI Forge - Neo/models/Stable-diffusion/sd/pirsusArtstation_v10.safetensors",
+    "hash": null,
+    "model_name": "sd_pirsusArtstation_v10",
+    "sha256": null,
+    "title": "sd/pirsusArtstation_v10.safetensors"
    }
   ],
   "/sdapi/v1/sd-modules": [],
@@ -15559,66 +15479,10 @@
     "scale": 4.0
    },
    {
-    "model_name": null,
-    "model_path": "https://huggingface.co/w-e-w/DAT/resolve/main/experiments/pretrained_models/DAT/DAT_x2.pth",
-    "model_url": null,
-    "name": "DAT x2",
-    "scale": 2.0
-   },
-   {
-    "model_name": null,
-    "model_path": "https://huggingface.co/w-e-w/DAT/resolve/main/experiments/pretrained_models/DAT/DAT_x3.pth",
-    "model_url": null,
-    "name": "DAT x3",
-    "scale": 3.0
-   },
-   {
-    "model_name": null,
-    "model_path": "https://huggingface.co/w-e-w/DAT/resolve/main/experiments/pretrained_models/DAT/DAT_x4.pth",
-    "model_url": null,
-    "name": "DAT x4",
-    "scale": 4.0
-   },
-   {
-    "model_name": "ESRGAN_4x",
-    "model_path": "/opt/stabilitymatrix/Data/Packages/Stable Diffusion WebUI Forge/models/ESRGAN/ESRGAN_4x.pth",
+    "model_name": "ESRGAN",
+    "model_path": "/opt/stabilitymatrix/Data/Packages/Stable Diffusion WebUI Forge - Neo/models/ESRGAN/ESRGAN_4x.pth",
     "model_url": null,
     "name": "ESRGAN_4x",
-    "scale": 4.0
-   },
-   {
-    "model_name": null,
-    "model_path": "https://github.com/xinntao/Real-ESRGAN/releases/download/v0.1.0/RealESRGAN_x4plus.pth",
-    "model_url": null,
-    "name": "R-ESRGAN 4x+",
-    "scale": 4.0
-   },
-   {
-    "model_name": null,
-    "model_path": "https://github.com/xinntao/Real-ESRGAN/releases/download/v0.2.2.4/RealESRGAN_x4plus_anime_6B.pth",
-    "model_url": null,
-    "name": "R-ESRGAN 4x+ Anime6B",
-    "scale": 4.0
-   },
-   {
-    "model_name": "ScuNET GAN",
-    "model_path": "https://github.com/cszn/KAIR/releases/download/v1.0/scunet_color_real_gan.pth",
-    "model_url": null,
-    "name": "ScuNET GAN",
-    "scale": 4.0
-   },
-   {
-    "model_name": "ScuNET GAN",
-    "model_path": "https://github.com/cszn/KAIR/releases/download/v1.0/scunet_color_real_psnr.pth",
-    "model_url": null,
-    "name": "ScuNET PSNR",
-    "scale": 4.0
-   },
-   {
-    "model_name": "SwinIR 4x",
-    "model_path": "/opt/stabilitymatrix/Data/Packages/Stable Diffusion WebUI Forge/models/SwinIR/SwinIR_4x.pth",
-    "model_url": null,
-    "name": "SwinIR_4x",
     "scale": 4.0
    }
   ]

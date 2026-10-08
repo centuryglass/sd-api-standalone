@@ -2,8 +2,9 @@
 
 Each run writes one `<label>.json` per reachable backend. Its `responses` map every GET endpoint the client requested
 to the JSON body the server returned, `errors` map endpoints that failed to their HTTP status, and `meta` names the
-backend and its version. The client's own `get` is wrapped while its public methods run, so the recorded endpoints are
-the ones the client requests and `tests/unit/test_recorded_responses.py` can replay them through the same methods.
+backend and its version and holds the `BackendCapabilities` the client reported. The client's own `get` is wrapped
+while its public methods run, so the recorded endpoints are the ones the client requests and
+`tests/unit/test_recorded_responses.py` can replay them through the same methods.
 
 Usage (servers from the integration-test env vars, see tests/README.md):
     python scripts/capture_fixtures.py                     # every reachable backend
@@ -109,13 +110,14 @@ def _wait_for_finish(service: ComfyUiWebservice, prompt_id: str, number: int) ->
     sys.exit(f'ComfyUI job {prompt_id} did not finish within {GENERATION_TIMEOUT}s')
 
 
-def _run_discovery(service: Backend) -> None:
-    """Call every `Backend` discovery method, so the recording holds the endpoints each one reads."""
+def _run_discovery(service: Backend) -> dict[str, bool]:
+    """Call every `Backend` discovery method, so the recording holds the endpoints each one reads, and return the
+    capabilities the server reported."""
     for list_options in (service.list_checkpoints, service.list_vaes, service.list_loras, service.list_hypernetworks,
                          service.list_samplers, service.list_schedulers, service.list_upscalers,
                          service.list_controlnet_models):
         list_options()
-    service.get_capabilities()
+    return service.get_capabilities().model_dump()
 
 
 def capture_comfyui(url: str, checkpoint: Optional[str]) -> dict[str, Any]:
@@ -131,7 +133,7 @@ def capture_comfyui(url: str, checkpoint: Optional[str]) -> dict[str, Any]:
     service.get_model_types()
     preprocessors = service.get_controlnet_preprocessors()
     service.get_controlnet_type_categories(preprocessors)
-    _run_discovery(service)
+    capabilities = _run_discovery(service)
     checkpoints = service.get_sd_checkpoints()
     if checkpoint is None:
         if not checkpoints:
@@ -149,7 +151,7 @@ def capture_comfyui(url: str, checkpoint: Optional[str]) -> dict[str, Any]:
     responses[ComfyEndpoints.OBJECT_INFO] = _trim_object_info(responses[ComfyEndpoints.OBJECT_INFO])
     responses[ComfyEndpoints.SYSTEM_STATS]['system']['argv'] = []
     return {'meta': {'backend': 'comfyui', 'version': stats.system.comfyui_version,
-                     'prompt_id': queued.prompt_id, 'number': queued.number},
+                     'prompt_id': queued.prompt_id, 'number': queued.number, 'capabilities': capabilities},
             'responses': responses, 'errors': errors}
 
 
@@ -175,8 +177,9 @@ def capture_webui(url: str, credentials: Optional[tuple[str, str]]) -> dict[str,
         version = None
     service.get_controlnet_preprocessors()
     service.get_controlnet_type_categories()
-    _run_discovery(service)
-    return {'meta': {'backend': 'webui', 'controlnet_version': version}, 'responses': responses, 'errors': errors}
+    capabilities = _run_discovery(service)
+    return {'meta': {'backend': 'webui', 'controlnet_version': version, 'capabilities': capabilities},
+            'responses': responses, 'errors': errors}
 
 
 def _reachable(url: str) -> bool:

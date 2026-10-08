@@ -2,14 +2,21 @@
  "errors": {},
  "meta": {
   "backend": "comfyui",
-  "captured": "2026-10-06",
+  "capabilities": {
+   "controlnet": true,
+   "free_memory": true,
+   "interrogate": false,
+   "scheduler": true,
+   "ultimate_upscale": true
+  },
+  "captured": "2026-10-08",
   "number": 0,
-  "prompt_id": "ef4ce2d7-82a3-492e-bf3c-f0fd0ac19121",
-  "version": "0.3.64"
+  "prompt_id": "633ded39-37b6-4a00-a7d5-65284a633549",
+  "version": "0.39.0"
  },
  "responses": {
-  "/history/ef4ce2d7-82a3-492e-bf3c-f0fd0ac19121": {
-   "ef4ce2d7-82a3-492e-bf3c-f0fd0ac19121": {
+  "/history/633ded39-37b6-4a00-a7d5-65284a633549": {
+   "633ded39-37b6-4a00-a7d5-65284a633549": {
     "meta": {
      "9": {
       "display_node": "9",
@@ -23,6 +30,11 @@
       "images": [
        {
         "filename": "._00001_.png",
+        "metadata": {
+         "height": 256,
+         "kind": "image",
+         "width": 256
+        },
         "subfolder": "",
         "type": "output"
        }
@@ -31,7 +43,7 @@
     },
     "prompt": [
      0,
-     "ef4ce2d7-82a3-492e-bf3c-f0fd0ac19121",
+     "633ded39-37b6-4a00-a7d5-65284a633549",
      {
       "3": {
        "class_type": "CLIPTextEncode",
@@ -80,8 +92,8 @@
          "3",
          0
         ],
-        "sampler_name": "euler",
-        "scheduler": "karras",
+        "sampler_name": "euler_ancestral",
+        "scheduler": "normal",
         "seed": 1,
         "steps": 4
        }
@@ -119,7 +131,8 @@
       }
      },
      {
-      "client_id": "ee634471-84aa-4f8d-9de0-c5ed74102358"
+      "client_id": "bb6c938c-c550-48c7-b688-527805727a9d",
+      "create_time": 1791481487691
      },
      [
       "9"
@@ -131,23 +144,23 @@
       [
        "execution_start",
        {
-        "prompt_id": "ef4ce2d7-82a3-492e-bf3c-f0fd0ac19121",
-        "timestamp": 1791312349049
+        "prompt_id": "633ded39-37b6-4a00-a7d5-65284a633549",
+        "timestamp": 1791481487692
        }
       ],
       [
        "execution_cached",
        {
         "nodes": [],
-        "prompt_id": "ef4ce2d7-82a3-492e-bf3c-f0fd0ac19121",
-        "timestamp": 1791312349050
+        "prompt_id": "633ded39-37b6-4a00-a7d5-65284a633549",
+        "timestamp": 1791481487693
        }
       ],
       [
        "execution_success",
        {
-        "prompt_id": "ef4ce2d7-82a3-492e-bf3c-f0fd0ac19121",
-        "timestamp": 1791312365647
+        "prompt_id": "633ded39-37b6-4a00-a7d5-65284a633549",
+        "timestamp": 1791481505445
        }
       ]
      ],
@@ -170,15 +183,20 @@
    "controlnet",
    "gligen",
    "upscale_models",
+   "latent_upscale_models",
    "custom_nodes",
+   "datasets",
    "hypernetworks",
    "photomaker",
    "classifiers",
    "model_patches",
    "audio_encoders",
+   "background_removal",
+   "frame_interpolation",
+   "geometry_estimation",
+   "optical_flow",
+   "detection",
    "inpaint",
-   "trellis",
-   "stablex",
    "animatediff_models",
    "animatediff_motion_lora",
    "animatediff_video_formats",
@@ -272,87 +290,37 @@
    "t2iadapter_style-fp16.safetensors",
    "xinsirControlnetCanny_v20.safetensors"
   ],
+  "/models/hypernetworks": [
+   "LuisapPixelArt_v1.pt"
+  ],
+  "/models/loras": [
+   "Hyper-SD15-8steps-CFG-lora.safetensors",
+   "Hyper-SDXL-8steps-CFG-lora.safetensors",
+   "aidmaImageUprader-FLUX-v0.3.safetensors",
+   "aidmaMJ6.1-FLUX-v0.4.safetensors",
+   "lcm-lora-sdv1-5.safetensors",
+   "lcm-lora-sdxl.safetensors",
+   "mshn.safetensors"
+  ],
+  "/models/upscale_models": [
+   "4xUltrasharp_4xUltrasharpV10.pt",
+   "4x_NMKD-Superscale-SP_178000_G.pth",
+   "4x_foolhardy_Remacri.pth",
+   "OmniSR_X2_DIV2K.safetensors",
+   "OmniSR_X3_DIV2K.safetensors",
+   "OmniSR_X4_DIV2K.safetensors"
+  ],
+  "/models/vae": [
+   "Anything-V3.0.vae.pt",
+   "ae.safetensors",
+   "wan_2.1_vae.safetensors"
+  ],
   "/object_info": {
-   "ADE_AnimateDiffSettings": {
-    "category": "Animate Diff \ud83c\udfad\ud83c\udd50\ud83c\udd53/ad settings",
-    "description": "",
-    "display_name": "AnimateDiff Settings \ud83c\udfad\ud83c\udd50\ud83c\udd53",
-    "input": {
-     "hidden": {
-      "autosize": [
-       "ADEAUTOSIZE",
-       {
-        "padding": 0
-       }
-      ]
-     },
-     "optional": {
-      "pe_adjust": [
-       "PE_ADJUST"
-      ],
-      "weight_adjust": [
-       "WEIGHT_ADJUST"
-      ]
-     }
-    },
-    "input_order": {
-     "hidden": [
-      "autosize"
-     ],
-     "optional": [
-      "pe_adjust",
-      "weight_adjust"
-     ]
-    },
-    "name": "ADE_AnimateDiffSettings",
-    "output": [
-     "AD_SETTINGS"
-    ],
-    "output_is_list": [
-     false
-    ],
-    "output_name": [
-     "AD_SETTINGS"
-    ],
-    "output_node": false,
-    "python_module": "custom_nodes.ComfyUI-AnimateDiff-Evolved"
-   },
-   "ADE_LoadCameraPosesFromPath": {
-    "category": "Animate Diff \ud83c\udfad\ud83c\udd50\ud83c\udd53/\u2461 Gen2 nodes \u2461/CameraCtrl/poses",
-    "description": "",
-    "display_name": "Load CameraCtrl Poses (Path) \ud83c\udfad\ud83c\udd50\ud83c\udd53\u2461",
-    "input": {
-     "optional": {
-      "file_path": [
-       "STRING",
-       {
-        "default": "X://path/to/pose_file.txt"
-       }
-      ]
-     }
-    },
-    "input_order": {
-     "optional": [
-      "file_path"
-     ]
-    },
-    "name": "ADE_LoadCameraPosesFromPath",
-    "output": [
-     "CAMERACTRL_POSES"
-    ],
-    "output_is_list": [
-     false
-    ],
-    "output_name": [
-     "CAMERACTRL_POSES"
-    ],
-    "output_node": false,
-    "python_module": "custom_nodes.ComfyUI-AnimateDiff-Evolved"
-   },
    "AIO_Preprocessor": {
     "category": "ControlNet Preprocessors",
     "description": "",
     "display_name": "AIO Aux Preprocessor",
+    "has_intermediate_output": false,
     "input": {
      "optional": {
       "preprocessor": [
@@ -434,6 +402,7 @@
       "image"
      ]
     },
+    "is_input_list": false,
     "name": "AIO_Preprocessor",
     "output": [
      "IMAGE"
@@ -445,12 +414,124 @@
      "IMAGE"
     ],
     "output_node": false,
-    "python_module": "custom_nodes.comfyui_controlnet_aux"
+    "python_module": "custom_nodes.comfyui_controlnet_aux",
+    "search_aliases": []
+   },
+   "AddTextPrefix": {
+    "api_node": false,
+    "category": "text",
+    "deprecated": true,
+    "description": "Add a prefix to all texts.",
+    "dev_only": false,
+    "display_name": "Add Text Prefix (DEPRECATED)",
+    "essentials_category": null,
+    "experimental": true,
+    "has_intermediate_output": false,
+    "input": {
+     "required": {
+      "prefix": [
+       "STRING",
+       {
+        "default": "",
+        "multiline": false,
+        "tooltip": "Prefix to add."
+       }
+      ],
+      "texts": [
+       "STRING",
+       {
+        "multiline": false,
+        "tooltip": "Text to process."
+       }
+      ]
+     }
+    },
+    "input_order": {
+     "required": [
+      "texts",
+      "prefix"
+     ]
+    },
+    "is_input_list": false,
+    "name": "AddTextPrefix",
+    "output": [
+     "STRING"
+    ],
+    "output_is_list": [
+     null
+    ],
+    "output_matchtypes": null,
+    "output_name": [
+     "texts"
+    ],
+    "output_node": false,
+    "output_tooltips": [
+     "Processed texts"
+    ],
+    "price_badge": null,
+    "python_module": "comfy_extras.nodes_dataset",
+    "search_aliases": null
+   },
+   "AddTextSuffix": {
+    "api_node": false,
+    "category": "text",
+    "deprecated": true,
+    "description": "Add a suffix to all texts.",
+    "dev_only": false,
+    "display_name": "Add Text Suffix (DEPRECATED)",
+    "essentials_category": null,
+    "experimental": true,
+    "has_intermediate_output": false,
+    "input": {
+     "required": {
+      "suffix": [
+       "STRING",
+       {
+        "default": "",
+        "multiline": false,
+        "tooltip": "Suffix to add."
+       }
+      ],
+      "texts": [
+       "STRING",
+       {
+        "multiline": false,
+        "tooltip": "Text to process."
+       }
+      ]
+     }
+    },
+    "input_order": {
+     "required": [
+      "texts",
+      "suffix"
+     ]
+    },
+    "is_input_list": false,
+    "name": "AddTextSuffix",
+    "output": [
+     "STRING"
+    ],
+    "output_is_list": [
+     null
+    ],
+    "output_matchtypes": null,
+    "output_name": [
+     "texts"
+    ],
+    "output_node": false,
+    "output_tooltips": [
+     "Processed texts"
+    ],
+    "price_badge": null,
+    "python_module": "comfy_extras.nodes_dataset",
+    "search_aliases": null
    },
    "AnimalPosePreprocessor": {
     "category": "ControlNet Preprocessors/Faces and Poses Estimators",
     "description": "",
     "display_name": "AnimalPose Estimator (AP10K)",
+    "has_intermediate_output": false,
     "input": {
      "optional": {
       "bbox_detector": [
@@ -500,6 +581,7 @@
       "image"
      ]
     },
+    "is_input_list": false,
     "name": "AnimalPosePreprocessor",
     "output": [
      "IMAGE",
@@ -514,12 +596,14 @@
      "POSE_KEYPOINT"
     ],
     "output_node": false,
-    "python_module": "custom_nodes.comfyui_controlnet_aux"
+    "python_module": "custom_nodes.comfyui_controlnet_aux",
+    "search_aliases": []
    },
    "AnimeFace_SemSegPreprocessor": {
     "category": "ControlNet Preprocessors/Semantic Segmentation",
     "description": "",
     "display_name": "Anime Face Segmentor",
+    "has_intermediate_output": false,
     "input": {
      "optional": {
       "remove_background_using_abg": [
@@ -553,6 +637,7 @@
       "image"
      ]
     },
+    "is_input_list": false,
     "name": "AnimeFace_SemSegPreprocessor",
     "output": [
      "IMAGE",
@@ -567,12 +652,14 @@
      "ABG_CHARACTER_MASK (MASK)"
     ],
     "output_node": false,
-    "python_module": "custom_nodes.comfyui_controlnet_aux"
+    "python_module": "custom_nodes.comfyui_controlnet_aux",
+    "search_aliases": []
    },
    "AnimeLineArtPreprocessor": {
     "category": "ControlNet Preprocessors/Line Extractors",
     "description": "",
     "display_name": "Anime Lineart",
+    "has_intermediate_output": false,
     "input": {
      "optional": {
       "resolution": [
@@ -599,6 +686,7 @@
       "image"
      ]
     },
+    "is_input_list": false,
     "name": "AnimeLineArtPreprocessor",
     "output": [
      "IMAGE"
@@ -610,12 +698,14 @@
      "IMAGE"
     ],
     "output_node": false,
-    "python_module": "custom_nodes.comfyui_controlnet_aux"
+    "python_module": "custom_nodes.comfyui_controlnet_aux",
+    "search_aliases": []
    },
    "AnyLineArtPreprocessor_aux": {
     "category": "ControlNet Preprocessors/Line Extractors",
     "description": "",
     "display_name": "AnyLine Lineart",
+    "has_intermediate_output": false,
     "input": {
      "optional": {
       "lineart_lower_bound": [
@@ -694,6 +784,7 @@
       "image"
      ]
     },
+    "is_input_list": false,
     "name": "AnyLineArtPreprocessor_aux",
     "output": [
      "IMAGE"
@@ -705,12 +796,14 @@
      "image"
     ],
     "output_node": false,
-    "python_module": "custom_nodes.comfyui_controlnet_aux"
+    "python_module": "custom_nodes.comfyui_controlnet_aux",
+    "search_aliases": []
    },
    "BAE-NormalMapPreprocessor": {
     "category": "ControlNet Preprocessors/Normal and Depth Estimators",
     "description": "",
     "display_name": "BAE Normal Map",
+    "has_intermediate_output": false,
     "input": {
      "optional": {
       "resolution": [
@@ -737,6 +830,7 @@
       "image"
      ]
     },
+    "is_input_list": false,
     "name": "BAE-NormalMapPreprocessor",
     "output": [
      "IMAGE"
@@ -748,12 +842,14 @@
      "IMAGE"
     ],
     "output_node": false,
-    "python_module": "custom_nodes.comfyui_controlnet_aux"
+    "python_module": "custom_nodes.comfyui_controlnet_aux",
+    "search_aliases": []
    },
    "BinaryPreprocessor": {
     "category": "ControlNet Preprocessors/Line Extractors",
     "description": "",
     "display_name": "Binary Lines",
+    "has_intermediate_output": false,
     "input": {
      "optional": {
       "bin_threshold": [
@@ -790,6 +886,7 @@
       "image"
      ]
     },
+    "is_input_list": false,
     "name": "BinaryPreprocessor",
     "output": [
      "IMAGE"
@@ -801,12 +898,14 @@
      "IMAGE"
     ],
     "output_node": false,
-    "python_module": "custom_nodes.comfyui_controlnet_aux"
+    "python_module": "custom_nodes.comfyui_controlnet_aux",
+    "search_aliases": []
    },
    "CLIPTextEncode": {
-    "category": "conditioning",
+    "category": "model/conditioning",
     "description": "Encodes a text prompt using a CLIP model into an embedding that can be used to guide the diffusion model towards generating specific images.",
     "display_name": "CLIP Text Encode (Prompt)",
+    "has_intermediate_output": false,
     "input": {
      "required": {
       "clip": [
@@ -831,6 +930,7 @@
       "clip"
      ]
     },
+    "is_input_list": false,
     "name": "CLIPTextEncode",
     "output": [
      "CONDITIONING"
@@ -845,12 +945,23 @@
     "output_tooltips": [
      "A conditioning containing the embedded text used to guide the diffusion model."
     ],
-    "python_module": "nodes"
+    "python_module": "nodes",
+    "search_aliases": [
+     "text",
+     "prompt",
+     "text prompt",
+     "positive prompt",
+     "negative prompt",
+     "encode text",
+     "text encoder",
+     "encode prompt"
+    ]
    },
    "CannyEdgePreprocessor": {
     "category": "ControlNet Preprocessors/Line Extractors",
     "description": "",
     "display_name": "Canny Edge",
+    "has_intermediate_output": false,
     "input": {
      "optional": {
       "high_threshold": [
@@ -897,6 +1008,7 @@
       "image"
      ]
     },
+    "is_input_list": false,
     "name": "CannyEdgePreprocessor",
     "output": [
      "IMAGE"
@@ -908,12 +1020,14 @@
      "IMAGE"
     ],
     "output_node": false,
-    "python_module": "custom_nodes.comfyui_controlnet_aux"
+    "python_module": "custom_nodes.comfyui_controlnet_aux",
+    "search_aliases": []
    },
    "CheckpointLoaderSimple": {
-    "category": "loaders",
+    "category": "model/loaders",
     "description": "Loads a diffusion model checkpoint, diffusion models are used to denoise latents.",
     "display_name": "Load Checkpoint",
+    "has_intermediate_output": false,
     "input": {
      "required": {
       "ckpt_name": [
@@ -960,6 +1074,7 @@
       "ckpt_name"
      ]
     },
+    "is_input_list": false,
     "name": "CheckpointLoaderSimple",
     "output": [
      "MODEL",
@@ -982,12 +1097,21 @@
      "The CLIP model used for encoding text prompts.",
      "The VAE model used for encoding and decoding images to and from latent space."
     ],
-    "python_module": "nodes"
+    "python_module": "nodes",
+    "search_aliases": [
+     "load model",
+     "checkpoint",
+     "model loader",
+     "load checkpoint",
+     "ckpt",
+     "model"
+    ]
    },
    "ColorPreprocessor": {
     "category": "ControlNet Preprocessors/T2IAdapter-only",
     "description": "",
     "display_name": "Color Pallete",
+    "has_intermediate_output": false,
     "input": {
      "optional": {
       "resolution": [
@@ -1014,6 +1138,7 @@
       "image"
      ]
     },
+    "is_input_list": false,
     "name": "ColorPreprocessor",
     "output": [
      "IMAGE"
@@ -1025,12 +1150,14 @@
      "IMAGE"
     ],
     "output_node": false,
-    "python_module": "custom_nodes.comfyui_controlnet_aux"
+    "python_module": "custom_nodes.comfyui_controlnet_aux",
+    "search_aliases": []
    },
    "ControlNetApplyAdvanced": {
-    "category": "conditioning/controlnet",
+    "category": "model/conditioning/controlnet",
     "description": "",
     "display_name": "Apply ControlNet",
+    "has_intermediate_output": false,
     "input": {
      "optional": {
       "vae": [
@@ -1093,6 +1220,7 @@
       "end_percent"
      ]
     },
+    "is_input_list": false,
     "name": "ControlNetApplyAdvanced",
     "output": [
      "CONDITIONING",
@@ -1107,12 +1235,19 @@
      "negative"
     ],
     "output_node": false,
-    "python_module": "nodes"
+    "python_module": "nodes",
+    "search_aliases": [
+     "controlnet",
+     "apply controlnet",
+     "use controlnet",
+     "control net"
+    ]
    },
    "ControlNetAuxSimpleAddText": {
     "category": "ControlNet Preprocessors",
     "description": "",
     "display_name": "ControlNetAuxSimpleAddText",
+    "has_intermediate_output": false,
     "input": {
      "required": {
       "image": [
@@ -1133,6 +1268,7 @@
       "text"
      ]
     },
+    "is_input_list": false,
     "name": "ControlNetAuxSimpleAddText",
     "output": [
      "IMAGE"
@@ -1144,12 +1280,14 @@
      "IMAGE"
     ],
     "output_node": false,
-    "python_module": "custom_nodes.comfyui_controlnet_aux"
+    "python_module": "custom_nodes.comfyui_controlnet_aux",
+    "search_aliases": []
    },
    "ControlNetPreprocessorSelector": {
     "category": "ControlNet Preprocessors",
     "description": "",
     "display_name": "Preprocessor Selector",
+    "has_intermediate_output": false,
     "input": {
      "required": {
       "preprocessor": [
@@ -1210,6 +1348,7 @@
       "preprocessor"
      ]
     },
+    "is_input_list": false,
     "name": "ControlNetPreprocessorSelector",
     "output": [
      [
@@ -1269,12 +1408,14 @@
      "preprocessor"
     ],
     "output_node": false,
-    "python_module": "custom_nodes.comfyui_controlnet_aux"
+    "python_module": "custom_nodes.comfyui_controlnet_aux",
+    "search_aliases": []
    },
    "DSINE-NormalMapPreprocessor": {
     "category": "ControlNet Preprocessors/Normal and Depth Estimators",
     "description": "",
     "display_name": "DSINE Normal Map",
+    "has_intermediate_output": false,
     "input": {
      "optional": {
       "fov": [
@@ -1321,6 +1462,7 @@
       "image"
      ]
     },
+    "is_input_list": false,
     "name": "DSINE-NormalMapPreprocessor",
     "output": [
      "IMAGE"
@@ -1332,12 +1474,14 @@
      "IMAGE"
     ],
     "output_node": false,
-    "python_module": "custom_nodes.comfyui_controlnet_aux"
+    "python_module": "custom_nodes.comfyui_controlnet_aux",
+    "search_aliases": []
    },
    "DWPreprocessor": {
     "category": "ControlNet Preprocessors/Faces and Poses Estimators",
     "description": "",
     "display_name": "DWPose Estimator",
+    "has_intermediate_output": false,
     "input": {
      "optional": {
       "bbox_detector": [
@@ -1428,6 +1572,7 @@
       "image"
      ]
     },
+    "is_input_list": false,
     "name": "DWPreprocessor",
     "output": [
      "IMAGE",
@@ -1442,12 +1587,14 @@
      "POSE_KEYPOINT"
     ],
     "output_node": false,
-    "python_module": "custom_nodes.comfyui_controlnet_aux"
+    "python_module": "custom_nodes.comfyui_controlnet_aux",
+    "search_aliases": []
    },
    "DensePosePreprocessor": {
     "category": "ControlNet Preprocessors/Faces and Poses Estimators",
     "description": "",
     "display_name": "DensePose Estimator",
+    "has_intermediate_output": false,
     "input": {
      "optional": {
       "cmap": [
@@ -1494,6 +1641,7 @@
       "image"
      ]
     },
+    "is_input_list": false,
     "name": "DensePosePreprocessor",
     "output": [
      "IMAGE"
@@ -1505,12 +1653,14 @@
      "IMAGE"
     ],
     "output_node": false,
-    "python_module": "custom_nodes.comfyui_controlnet_aux"
+    "python_module": "custom_nodes.comfyui_controlnet_aux",
+    "search_aliases": []
    },
    "DepthAnythingPreprocessor": {
     "category": "ControlNet Preprocessors/Normal and Depth Estimators",
     "description": "",
     "display_name": "Depth Anything",
+    "has_intermediate_output": false,
     "input": {
      "optional": {
       "ckpt_name": [
@@ -1548,6 +1698,7 @@
       "image"
      ]
     },
+    "is_input_list": false,
     "name": "DepthAnythingPreprocessor",
     "output": [
      "IMAGE"
@@ -1559,12 +1710,14 @@
      "IMAGE"
     ],
     "output_node": false,
-    "python_module": "custom_nodes.comfyui_controlnet_aux"
+    "python_module": "custom_nodes.comfyui_controlnet_aux",
+    "search_aliases": []
    },
    "DepthAnythingV2Preprocessor": {
     "category": "ControlNet Preprocessors/Normal and Depth Estimators",
     "description": "",
     "display_name": "Depth Anything V2 - Relative",
+    "has_intermediate_output": false,
     "input": {
      "optional": {
       "ckpt_name": [
@@ -1603,6 +1756,7 @@
       "image"
      ]
     },
+    "is_input_list": false,
     "name": "DepthAnythingV2Preprocessor",
     "output": [
      "IMAGE"
@@ -1614,12 +1768,14 @@
      "IMAGE"
     ],
     "output_node": false,
-    "python_module": "custom_nodes.comfyui_controlnet_aux"
+    "python_module": "custom_nodes.comfyui_controlnet_aux",
+    "search_aliases": []
    },
    "DiffusionEdge_Preprocessor": {
     "category": "ControlNet Preprocessors/Line Extractors",
     "description": "",
     "display_name": "Diffusion Edge (batch size \u2191 => speed \u2191, VRAM \u2191)",
+    "has_intermediate_output": false,
     "input": {
      "optional": {
       "environment": [
@@ -1667,6 +1823,7 @@
       "image"
      ]
     },
+    "is_input_list": false,
     "name": "DiffusionEdge_Preprocessor",
     "output": [
      "IMAGE"
@@ -1678,59 +1835,14 @@
      "IMAGE"
     ],
     "output_node": false,
-    "python_module": "custom_nodes.comfyui_controlnet_aux"
-   },
-   "ETN_KritaCanvas": {
-    "category": "krita",
-    "description": "",
-    "display_name": "Krita Canvas",
-    "input": {},
-    "input_order": {},
-    "name": "ETN_KritaCanvas",
-    "output": [
-     "IMAGE",
-     "INT",
-     "INT",
-     "INT"
-    ],
-    "output_is_list": [
-     false,
-     false,
-     false,
-     false
-    ],
-    "output_name": [
-     "image",
-     "width",
-     "height",
-     "seed"
-    ],
-    "output_node": false,
-    "python_module": "custom_nodes.comfyui-tooling-nodes"
-   },
-   "ETN_KritaSelection": {
-    "category": "krita",
-    "description": "",
-    "display_name": "Krita Selection",
-    "input": {},
-    "input_order": {},
-    "name": "ETN_KritaSelection",
-    "output": [
-     "MASK"
-    ],
-    "output_is_list": [
-     false
-    ],
-    "output_name": [
-     "mask"
-    ],
-    "output_node": false,
-    "python_module": "custom_nodes.comfyui-tooling-nodes"
+    "python_module": "custom_nodes.comfyui_controlnet_aux",
+    "search_aliases": []
    },
    "ExecuteAllControlNetPreprocessors": {
     "category": "ControlNet Preprocessors",
     "description": "",
     "display_name": "Execute All ControlNet Preprocessors",
+    "has_intermediate_output": false,
     "input": {
      "optional": {
       "resolution": [
@@ -1757,6 +1869,7 @@
       "image"
      ]
     },
+    "is_input_list": false,
     "name": "ExecuteAllControlNetPreprocessors",
     "output": [
      "IMAGE"
@@ -1768,12 +1881,14 @@
      "IMAGE"
     ],
     "output_node": false,
-    "python_module": "custom_nodes.comfyui_controlnet_aux"
+    "python_module": "custom_nodes.comfyui_controlnet_aux",
+    "search_aliases": []
    },
    "FacialPartColoringFromPoseKps": {
     "category": "ControlNet Preprocessors/Pose Keypoint Postprocess",
     "description": "",
     "display_name": "Colorize Facial Parts from PoseKPS",
+    "has_intermediate_output": false,
     "input": {
      "required": {
       "inner_mouth": [
@@ -1852,6 +1967,7 @@
       "lower_lip"
      ]
     },
+    "is_input_list": false,
     "name": "FacialPartColoringFromPoseKps",
     "output": [
      "IMAGE"
@@ -1863,12 +1979,14 @@
      "IMAGE"
     ],
     "output_node": false,
-    "python_module": "custom_nodes.comfyui_controlnet_aux"
+    "python_module": "custom_nodes.comfyui_controlnet_aux",
+    "search_aliases": []
    },
    "FakeScribblePreprocessor": {
     "category": "ControlNet Preprocessors/Line Extractors",
     "description": "",
     "display_name": "Fake Scribble Lines (aka scribble_hed)",
+    "has_intermediate_output": false,
     "input": {
      "optional": {
       "resolution": [
@@ -1905,6 +2023,7 @@
       "image"
      ]
     },
+    "is_input_list": false,
     "name": "FakeScribblePreprocessor",
     "output": [
      "IMAGE"
@@ -1916,12 +2035,14 @@
      "IMAGE"
     ],
     "output_node": false,
-    "python_module": "custom_nodes.comfyui_controlnet_aux"
+    "python_module": "custom_nodes.comfyui_controlnet_aux",
+    "search_aliases": []
    },
    "HEDPreprocessor": {
     "category": "ControlNet Preprocessors/Line Extractors",
     "description": "",
     "display_name": "HED Soft-Edge Lines",
+    "has_intermediate_output": false,
     "input": {
      "optional": {
       "resolution": [
@@ -1958,6 +2079,7 @@
       "image"
      ]
     },
+    "is_input_list": false,
     "name": "HEDPreprocessor",
     "output": [
      "IMAGE"
@@ -1969,12 +2091,14 @@
      "IMAGE"
     ],
     "output_node": false,
-    "python_module": "custom_nodes.comfyui_controlnet_aux"
+    "python_module": "custom_nodes.comfyui_controlnet_aux",
+    "search_aliases": []
    },
    "HintImageEnchance": {
     "category": "ControlNet Preprocessors",
     "description": "",
     "display_name": "Enchance And Resize Hint Images",
+    "has_intermediate_output": false,
     "input": {
      "required": {
       "hint_image": [
@@ -2018,6 +2142,7 @@
       "resize_mode"
      ]
     },
+    "is_input_list": false,
     "name": "HintImageEnchance",
     "output": [
      "IMAGE"
@@ -2029,12 +2154,14 @@
      "IMAGE"
     ],
     "output_node": false,
-    "python_module": "custom_nodes.comfyui_controlnet_aux"
+    "python_module": "custom_nodes.comfyui_controlnet_aux",
+    "search_aliases": []
    },
    "ImageGenResolutionFromImage": {
     "category": "ControlNet Preprocessors",
     "description": "",
     "display_name": "Generation Resolution From Image",
+    "has_intermediate_output": false,
     "input": {
      "required": {
       "image": [
@@ -2047,6 +2174,7 @@
       "image"
      ]
     },
+    "is_input_list": false,
     "name": "ImageGenResolutionFromImage",
     "output": [
      "INT",
@@ -2061,12 +2189,14 @@
      "IMAGE_GEN_HEIGHT (INT)"
     ],
     "output_node": false,
-    "python_module": "custom_nodes.comfyui_controlnet_aux"
+    "python_module": "custom_nodes.comfyui_controlnet_aux",
+    "search_aliases": []
    },
    "ImageGenResolutionFromLatent": {
     "category": "ControlNet Preprocessors",
     "description": "",
     "display_name": "Generation Resolution From Latent",
+    "has_intermediate_output": false,
     "input": {
      "required": {
       "latent": [
@@ -2079,6 +2209,7 @@
       "latent"
      ]
     },
+    "is_input_list": false,
     "name": "ImageGenResolutionFromLatent",
     "output": [
      "INT",
@@ -2093,12 +2224,14 @@
      "IMAGE_GEN_HEIGHT (INT)"
     ],
     "output_node": false,
-    "python_module": "custom_nodes.comfyui_controlnet_aux"
+    "python_module": "custom_nodes.comfyui_controlnet_aux",
+    "search_aliases": []
    },
    "ImageIntensityDetector": {
     "category": "ControlNet Preprocessors/Recolor",
     "description": "",
     "display_name": "Image Intensity",
+    "has_intermediate_output": false,
     "input": {
      "optional": {
       "gamma_correction": [
@@ -2135,6 +2268,7 @@
       "image"
      ]
     },
+    "is_input_list": false,
     "name": "ImageIntensityDetector",
     "output": [
      "IMAGE"
@@ -2146,12 +2280,14 @@
      "IMAGE"
     ],
     "output_node": false,
-    "python_module": "custom_nodes.comfyui_controlnet_aux"
+    "python_module": "custom_nodes.comfyui_controlnet_aux",
+    "search_aliases": []
    },
    "ImageLuminanceDetector": {
     "category": "ControlNet Preprocessors/Recolor",
     "description": "",
     "display_name": "Image Luminance",
+    "has_intermediate_output": false,
     "input": {
      "optional": {
       "gamma_correction": [
@@ -2188,6 +2324,7 @@
       "image"
      ]
     },
+    "is_input_list": false,
     "name": "ImageLuminanceDetector",
     "output": [
      "IMAGE"
@@ -2199,12 +2336,14 @@
      "IMAGE"
     ],
     "output_node": false,
-    "python_module": "custom_nodes.comfyui_controlnet_aux"
+    "python_module": "custom_nodes.comfyui_controlnet_aux",
+    "search_aliases": []
    },
    "InpaintPreprocessor": {
     "category": "ControlNet Preprocessors/others",
     "description": "",
     "display_name": "Inpaint Preprocessor",
+    "has_intermediate_output": false,
     "input": {
      "optional": {
       "black_pixel_for_xinsir_cn": [
@@ -2232,6 +2371,7 @@
       "mask"
      ]
     },
+    "is_input_list": false,
     "name": "InpaintPreprocessor",
     "output": [
      "IMAGE"
@@ -2243,12 +2383,14 @@
      "IMAGE"
     ],
     "output_node": false,
-    "python_module": "custom_nodes.comfyui_controlnet_aux"
+    "python_module": "custom_nodes.comfyui_controlnet_aux",
+    "search_aliases": []
    },
    "KSampler": {
-    "category": "sampling",
+    "category": "model/sampling",
     "description": "Uses the provided model, positive and negative conditioning to denoise the latent image.",
     "display_name": "KSampler",
+    "has_intermediate_output": false,
     "input": {
      "required": {
       "cfg": [
@@ -2304,6 +2446,8 @@
         "euler_ancestral_cfg_pp",
         "heun",
         "heunpp2",
+        "exp_heun_2_x0",
+        "exp_heun_2_x0_sde",
         "dpm_2",
         "dpm_2_ancestral",
         "lms",
@@ -2326,6 +2470,7 @@
         "ipndm",
         "ipndm_v",
         "deis",
+        "cfgpp_ud10_ab",
         "res_multistep",
         "res_multistep_cfg_pp",
         "res_multistep_ancestral",
@@ -2396,6 +2541,7 @@
       "denoise"
      ]
     },
+    "is_input_list": false,
     "name": "KSampler",
     "output": [
      "LATENT"
@@ -2410,12 +2556,22 @@
     "output_tooltips": [
      "The denoised latent."
     ],
-    "python_module": "nodes"
+    "python_module": "nodes",
+    "search_aliases": [
+     "sampler",
+     "sample",
+     "generate",
+     "denoise",
+     "diffuse",
+     "txt2img",
+     "img2img"
+    ]
    },
    "LeReS-DepthMapPreprocessor": {
     "category": "ControlNet Preprocessors/Normal and Depth Estimators",
     "description": "",
     "display_name": "LeReS Depth Map (enable boost for leres++)",
+    "has_intermediate_output": false,
     "input": {
      "optional": {
       "boost": [
@@ -2472,6 +2628,7 @@
       "image"
      ]
     },
+    "is_input_list": false,
     "name": "LeReS-DepthMapPreprocessor",
     "output": [
      "IMAGE"
@@ -2483,12 +2640,14 @@
      "IMAGE"
     ],
     "output_node": false,
-    "python_module": "custom_nodes.comfyui_controlnet_aux"
+    "python_module": "custom_nodes.comfyui_controlnet_aux",
+    "search_aliases": []
    },
    "LineArtPreprocessor": {
     "category": "ControlNet Preprocessors/Line Extractors",
     "description": "",
     "display_name": "Realistic Lineart",
+    "has_intermediate_output": false,
     "input": {
      "optional": {
       "coarse": [
@@ -2525,6 +2684,7 @@
       "image"
      ]
     },
+    "is_input_list": false,
     "name": "LineArtPreprocessor",
     "output": [
      "IMAGE"
@@ -2536,12 +2696,14 @@
      "IMAGE"
     ],
     "output_node": false,
-    "python_module": "custom_nodes.comfyui_controlnet_aux"
+    "python_module": "custom_nodes.comfyui_controlnet_aux",
+    "search_aliases": []
    },
    "LineartStandardPreprocessor": {
     "category": "ControlNet Preprocessors/Line Extractors",
     "description": "",
     "display_name": "Standard Lineart",
+    "has_intermediate_output": false,
     "input": {
      "optional": {
       "guassian_sigma": [
@@ -2588,6 +2750,7 @@
       "image"
      ]
     },
+    "is_input_list": false,
     "name": "LineartStandardPreprocessor",
     "output": [
      "IMAGE"
@@ -2599,12 +2762,14 @@
      "IMAGE"
     ],
     "output_node": false,
-    "python_module": "custom_nodes.comfyui_controlnet_aux"
+    "python_module": "custom_nodes.comfyui_controlnet_aux",
+    "search_aliases": []
    },
    "M-LSDPreprocessor": {
     "category": "ControlNet Preprocessors/Line Extractors",
     "description": "",
     "display_name": "M-LSD Lines",
+    "has_intermediate_output": false,
     "input": {
      "optional": {
       "dist_threshold": [
@@ -2651,6 +2816,7 @@
       "image"
      ]
     },
+    "is_input_list": false,
     "name": "M-LSDPreprocessor",
     "output": [
      "IMAGE"
@@ -2662,12 +2828,14 @@
      "IMAGE"
     ],
     "output_node": false,
-    "python_module": "custom_nodes.comfyui_controlnet_aux"
+    "python_module": "custom_nodes.comfyui_controlnet_aux",
+    "search_aliases": []
    },
    "Manga2Anime_LineArt_Preprocessor": {
     "category": "ControlNet Preprocessors/Line Extractors",
     "description": "",
     "display_name": "Manga Lineart (aka lineart_anime_denoise)",
+    "has_intermediate_output": false,
     "input": {
      "optional": {
       "resolution": [
@@ -2694,6 +2862,7 @@
       "image"
      ]
     },
+    "is_input_list": false,
     "name": "Manga2Anime_LineArt_Preprocessor",
     "output": [
      "IMAGE"
@@ -2705,53 +2874,14 @@
      "IMAGE"
     ],
     "output_node": false,
-    "python_module": "custom_nodes.comfyui_controlnet_aux"
-   },
-   "Mask Batch": {
-    "category": "WAS Suite/Image/Masking",
-    "description": "",
-    "display_name": "Mask Batch",
-    "input": {
-     "optional": {
-      "masks_a": [
-       "MASK"
-      ],
-      "masks_b": [
-       "MASK"
-      ],
-      "masks_c": [
-       "MASK"
-      ],
-      "masks_d": [
-       "MASK"
-      ]
-     }
-    },
-    "input_order": {
-     "optional": [
-      "masks_a",
-      "masks_b",
-      "masks_c",
-      "masks_d"
-     ]
-    },
-    "name": "Mask Batch",
-    "output": [
-     "MASK"
-    ],
-    "output_is_list": [
-     false
-    ],
-    "output_name": [
-     "masks"
-    ],
-    "output_node": false,
-    "python_module": "custom_nodes.was-ns"
+    "python_module": "custom_nodes.comfyui_controlnet_aux",
+    "search_aliases": []
    },
    "MaskOptFlow": {
     "category": "ControlNet Preprocessors/Optical Flow",
     "description": "",
     "display_name": "Mask Optical Flow (DragNUWA)",
+    "has_intermediate_output": false,
     "input": {
      "required": {
       "mask": [
@@ -2768,6 +2898,7 @@
       "mask"
      ]
     },
+    "is_input_list": false,
     "name": "MaskOptFlow",
     "output": [
      "OPTICAL_FLOW",
@@ -2782,12 +2913,14 @@
      "PREVIEW_IMAGE"
     ],
     "output_node": false,
-    "python_module": "custom_nodes.comfyui_controlnet_aux"
+    "python_module": "custom_nodes.comfyui_controlnet_aux",
+    "search_aliases": []
    },
    "MediaPipe-FaceMeshPreprocessor": {
     "category": "ControlNet Preprocessors/Faces and Poses Estimators",
     "description": "",
     "display_name": "MediaPipe Face Mesh",
+    "has_intermediate_output": false,
     "input": {
      "optional": {
       "max_faces": [
@@ -2834,6 +2967,7 @@
       "image"
      ]
     },
+    "is_input_list": false,
     "name": "MediaPipe-FaceMeshPreprocessor",
     "output": [
      "IMAGE"
@@ -2845,12 +2979,14 @@
      "IMAGE"
     ],
     "output_node": false,
-    "python_module": "custom_nodes.comfyui_controlnet_aux"
+    "python_module": "custom_nodes.comfyui_controlnet_aux",
+    "search_aliases": []
    },
    "MeshGraphormer+ImpactDetector-DepthMapPreprocessor": {
     "category": "ControlNet Preprocessors/Normal and Depth Estimators",
     "description": "",
     "display_name": "MeshGraphormer Hand Refiner With External Detector",
+    "has_intermediate_output": false,
     "input": {
      "optional": {
       "bbox_crop_factor": [
@@ -2962,6 +3098,7 @@
       "bbox_detector"
      ]
     },
+    "is_input_list": false,
     "name": "MeshGraphormer+ImpactDetector-DepthMapPreprocessor",
     "output": [
      "IMAGE",
@@ -2976,12 +3113,14 @@
      "INPAINTING_MASK"
     ],
     "output_node": false,
-    "python_module": "custom_nodes.comfyui_controlnet_aux"
+    "python_module": "custom_nodes.comfyui_controlnet_aux",
+    "search_aliases": []
    },
    "MeshGraphormer-DepthMapPreprocessor": {
     "category": "ControlNet Preprocessors/Normal and Depth Estimators",
     "description": "",
     "display_name": "MeshGraphormer Hand Refiner",
+    "has_intermediate_output": false,
     "input": {
      "optional": {
       "detect_thr": [
@@ -3068,6 +3207,7 @@
       "image"
      ]
     },
+    "is_input_list": false,
     "name": "MeshGraphormer-DepthMapPreprocessor",
     "output": [
      "IMAGE",
@@ -3082,12 +3222,14 @@
      "INPAINTING_MASK"
     ],
     "output_node": false,
-    "python_module": "custom_nodes.comfyui_controlnet_aux"
+    "python_module": "custom_nodes.comfyui_controlnet_aux",
+    "search_aliases": []
    },
    "Metric3D-DepthMapPreprocessor": {
     "category": "ControlNet Preprocessors/Normal and Depth Estimators",
     "description": "",
     "display_name": "Metric3D Depth Map",
+    "has_intermediate_output": false,
     "input": {
      "optional": {
       "backbone": [
@@ -3145,6 +3287,7 @@
       "image"
      ]
     },
+    "is_input_list": false,
     "name": "Metric3D-DepthMapPreprocessor",
     "output": [
      "IMAGE"
@@ -3156,12 +3299,14 @@
      "IMAGE"
     ],
     "output_node": false,
-    "python_module": "custom_nodes.comfyui_controlnet_aux"
+    "python_module": "custom_nodes.comfyui_controlnet_aux",
+    "search_aliases": []
    },
    "Metric3D-NormalMapPreprocessor": {
     "category": "ControlNet Preprocessors/Normal and Depth Estimators",
     "description": "",
     "display_name": "Metric3D Normal Map",
+    "has_intermediate_output": false,
     "input": {
      "optional": {
       "backbone": [
@@ -3219,6 +3364,7 @@
       "image"
      ]
     },
+    "is_input_list": false,
     "name": "Metric3D-NormalMapPreprocessor",
     "output": [
      "IMAGE"
@@ -3230,12 +3376,14 @@
      "IMAGE"
     ],
     "output_node": false,
-    "python_module": "custom_nodes.comfyui_controlnet_aux"
+    "python_module": "custom_nodes.comfyui_controlnet_aux",
+    "search_aliases": []
    },
    "MiDaS-DepthMapPreprocessor": {
     "category": "ControlNet Preprocessors/Normal and Depth Estimators",
     "description": "",
     "display_name": "MiDaS Depth Map",
+    "has_intermediate_output": false,
     "input": {
      "optional": {
       "a": [
@@ -3282,6 +3430,7 @@
       "image"
      ]
     },
+    "is_input_list": false,
     "name": "MiDaS-DepthMapPreprocessor",
     "output": [
      "IMAGE"
@@ -3293,12 +3442,14 @@
      "IMAGE"
     ],
     "output_node": false,
-    "python_module": "custom_nodes.comfyui_controlnet_aux"
+    "python_module": "custom_nodes.comfyui_controlnet_aux",
+    "search_aliases": []
    },
    "MiDaS-NormalMapPreprocessor": {
     "category": "ControlNet Preprocessors/Normal and Depth Estimators",
     "description": "",
     "display_name": "MiDaS Normal Map",
+    "has_intermediate_output": false,
     "input": {
      "optional": {
       "a": [
@@ -3345,6 +3496,7 @@
       "image"
      ]
     },
+    "is_input_list": false,
     "name": "MiDaS-NormalMapPreprocessor",
     "output": [
      "IMAGE"
@@ -3356,12 +3508,14 @@
      "IMAGE"
     ],
     "output_node": false,
-    "python_module": "custom_nodes.comfyui_controlnet_aux"
+    "python_module": "custom_nodes.comfyui_controlnet_aux",
+    "search_aliases": []
    },
    "OneFormer-ADE20K-SemSegPreprocessor": {
     "category": "ControlNet Preprocessors/Semantic Segmentation",
     "description": "",
     "display_name": "OneFormer ADE20K Segmentor",
+    "has_intermediate_output": false,
     "input": {
      "optional": {
       "resolution": [
@@ -3388,6 +3542,7 @@
       "image"
      ]
     },
+    "is_input_list": false,
     "name": "OneFormer-ADE20K-SemSegPreprocessor",
     "output": [
      "IMAGE"
@@ -3399,12 +3554,14 @@
      "IMAGE"
     ],
     "output_node": false,
-    "python_module": "custom_nodes.comfyui_controlnet_aux"
+    "python_module": "custom_nodes.comfyui_controlnet_aux",
+    "search_aliases": []
    },
    "OneFormer-COCO-SemSegPreprocessor": {
     "category": "ControlNet Preprocessors/Semantic Segmentation",
     "description": "",
     "display_name": "OneFormer COCO Segmentor",
+    "has_intermediate_output": false,
     "input": {
      "optional": {
       "resolution": [
@@ -3431,6 +3588,7 @@
       "image"
      ]
     },
+    "is_input_list": false,
     "name": "OneFormer-COCO-SemSegPreprocessor",
     "output": [
      "IMAGE"
@@ -3442,12 +3600,14 @@
      "IMAGE"
     ],
     "output_node": false,
-    "python_module": "custom_nodes.comfyui_controlnet_aux"
+    "python_module": "custom_nodes.comfyui_controlnet_aux",
+    "search_aliases": []
    },
    "OpenposePreprocessor": {
     "category": "ControlNet Preprocessors/Faces and Poses Estimators",
     "description": "",
     "display_name": "OpenPose Pose",
+    "has_intermediate_output": false,
     "input": {
      "optional": {
       "detect_body": [
@@ -3514,6 +3674,7 @@
       "image"
      ]
     },
+    "is_input_list": false,
     "name": "OpenposePreprocessor",
     "output": [
      "IMAGE",
@@ -3528,12 +3689,14 @@
      "POSE_KEYPOINT"
     ],
     "output_node": false,
-    "python_module": "custom_nodes.comfyui_controlnet_aux"
+    "python_module": "custom_nodes.comfyui_controlnet_aux",
+    "search_aliases": []
    },
    "PiDiNetPreprocessor": {
     "category": "ControlNet Preprocessors/Line Extractors",
     "description": "",
     "display_name": "PiDiNet Soft-Edge Lines",
+    "has_intermediate_output": false,
     "input": {
      "optional": {
       "resolution": [
@@ -3570,6 +3733,7 @@
       "image"
      ]
     },
+    "is_input_list": false,
     "name": "PiDiNetPreprocessor",
     "output": [
      "IMAGE"
@@ -3581,12 +3745,14 @@
      "IMAGE"
     ],
     "output_node": false,
-    "python_module": "custom_nodes.comfyui_controlnet_aux"
+    "python_module": "custom_nodes.comfyui_controlnet_aux",
+    "search_aliases": []
    },
    "PixelPerfectResolution": {
     "category": "ControlNet Preprocessors",
     "description": "",
     "display_name": "Pixel Perfect Resolution",
+    "has_intermediate_output": false,
     "input": {
      "required": {
       "image_gen_height": [
@@ -3630,6 +3796,7 @@
       "resize_mode"
      ]
     },
+    "is_input_list": false,
     "name": "PixelPerfectResolution",
     "output": [
      "INT"
@@ -3641,12 +3808,14 @@
      "RESOLUTION (INT)"
     ],
     "output_node": false,
-    "python_module": "custom_nodes.comfyui_controlnet_aux"
+    "python_module": "custom_nodes.comfyui_controlnet_aux",
+    "search_aliases": []
    },
    "PyraCannyPreprocessor": {
     "category": "ControlNet Preprocessors/Line Extractors",
     "description": "",
     "display_name": "PyraCanny",
+    "has_intermediate_output": false,
     "input": {
      "optional": {
       "high_threshold": [
@@ -3693,6 +3862,7 @@
       "image"
      ]
     },
+    "is_input_list": false,
     "name": "PyraCannyPreprocessor",
     "output": [
      "IMAGE"
@@ -3704,12 +3874,14 @@
      "IMAGE"
     ],
     "output_node": false,
-    "python_module": "custom_nodes.comfyui_controlnet_aux"
+    "python_module": "custom_nodes.comfyui_controlnet_aux",
+    "search_aliases": []
    },
    "RenderAnimalKps": {
     "category": "ControlNet Preprocessors/Pose Keypoint Postprocess",
     "description": "",
     "display_name": "Render Pose JSON (Animal)",
+    "has_intermediate_output": false,
     "input": {
      "required": {
       "kps": [
@@ -3722,6 +3894,7 @@
       "kps"
      ]
     },
+    "is_input_list": false,
     "name": "RenderAnimalKps",
     "output": [
      "IMAGE"
@@ -3733,12 +3906,14 @@
      "IMAGE"
     ],
     "output_node": false,
-    "python_module": "custom_nodes.comfyui_controlnet_aux"
+    "python_module": "custom_nodes.comfyui_controlnet_aux",
+    "search_aliases": []
    },
    "RenderPeopleKps": {
     "category": "ControlNet Preprocessors/Pose Keypoint Postprocess",
     "description": "",
     "display_name": "Render Pose JSON (Human)",
+    "has_intermediate_output": false,
     "input": {
      "required": {
       "kps": [
@@ -3772,6 +3947,7 @@
       "render_face"
      ]
     },
+    "is_input_list": false,
     "name": "RenderPeopleKps",
     "output": [
      "IMAGE"
@@ -3783,12 +3959,14 @@
      "IMAGE"
     ],
     "output_node": false,
-    "python_module": "custom_nodes.comfyui_controlnet_aux"
+    "python_module": "custom_nodes.comfyui_controlnet_aux",
+    "search_aliases": []
    },
    "SAMPreprocessor": {
     "category": "ControlNet Preprocessors/others",
     "description": "",
     "display_name": "SAM Segmentor",
+    "has_intermediate_output": false,
     "input": {
      "optional": {
       "resolution": [
@@ -3815,6 +3993,7 @@
       "image"
      ]
     },
+    "is_input_list": false,
     "name": "SAMPreprocessor",
     "output": [
      "IMAGE"
@@ -3826,12 +4005,14 @@
      "IMAGE"
     ],
     "output_node": false,
-    "python_module": "custom_nodes.comfyui_controlnet_aux"
+    "python_module": "custom_nodes.comfyui_controlnet_aux",
+    "search_aliases": []
    },
    "SavePoseKpsAsJsonFile": {
     "category": "ControlNet Preprocessors/Pose Keypoint Postprocess",
     "description": "",
     "display_name": "Save Pose Keypoints",
+    "has_intermediate_output": false,
     "input": {
      "required": {
       "filename_prefix": [
@@ -3851,17 +4032,20 @@
       "filename_prefix"
      ]
     },
+    "is_input_list": false,
     "name": "SavePoseKpsAsJsonFile",
     "output": [],
     "output_is_list": [],
     "output_name": [],
     "output_node": true,
-    "python_module": "custom_nodes.comfyui_controlnet_aux"
+    "python_module": "custom_nodes.comfyui_controlnet_aux",
+    "search_aliases": []
    },
    "ScribblePreprocessor": {
     "category": "ControlNet Preprocessors/Line Extractors",
     "description": "",
     "display_name": "Scribble Lines",
+    "has_intermediate_output": false,
     "input": {
      "optional": {
       "resolution": [
@@ -3888,6 +4072,7 @@
       "image"
      ]
     },
+    "is_input_list": false,
     "name": "ScribblePreprocessor",
     "output": [
      "IMAGE"
@@ -3899,12 +4084,14 @@
      "IMAGE"
     ],
     "output_node": false,
-    "python_module": "custom_nodes.comfyui_controlnet_aux"
+    "python_module": "custom_nodes.comfyui_controlnet_aux",
+    "search_aliases": []
    },
    "Scribble_PiDiNet_Preprocessor": {
     "category": "ControlNet Preprocessors/Line Extractors",
     "description": "",
     "display_name": "Scribble PiDiNet Lines",
+    "has_intermediate_output": false,
     "input": {
      "optional": {
       "resolution": [
@@ -3936,6 +4123,7 @@
       "image"
      ]
     },
+    "is_input_list": false,
     "name": "Scribble_PiDiNet_Preprocessor",
     "output": [
      "IMAGE"
@@ -3947,12 +4135,14 @@
      "IMAGE"
     ],
     "output_node": false,
-    "python_module": "custom_nodes.comfyui_controlnet_aux"
+    "python_module": "custom_nodes.comfyui_controlnet_aux",
+    "search_aliases": []
    },
    "Scribble_XDoG_Preprocessor": {
     "category": "ControlNet Preprocessors/Line Extractors",
     "description": "",
     "display_name": "Scribble XDoG Lines",
+    "has_intermediate_output": false,
     "input": {
      "optional": {
       "resolution": [
@@ -3989,6 +4179,7 @@
       "image"
      ]
     },
+    "is_input_list": false,
     "name": "Scribble_XDoG_Preprocessor",
     "output": [
      "IMAGE"
@@ -4000,12 +4191,14 @@
      "IMAGE"
     ],
     "output_node": false,
-    "python_module": "custom_nodes.comfyui_controlnet_aux"
+    "python_module": "custom_nodes.comfyui_controlnet_aux",
+    "search_aliases": []
    },
    "SemSegPreprocessor": {
     "category": "ControlNet Preprocessors/Semantic Segmentation",
     "description": "",
     "display_name": "Semantic Segmentor (legacy, alias for UniFormer)",
+    "has_intermediate_output": false,
     "input": {
      "optional": {
       "resolution": [
@@ -4032,6 +4225,7 @@
       "image"
      ]
     },
+    "is_input_list": false,
     "name": "SemSegPreprocessor",
     "output": [
      "IMAGE"
@@ -4043,12 +4237,14 @@
      "IMAGE"
     ],
     "output_node": false,
-    "python_module": "custom_nodes.comfyui_controlnet_aux"
+    "python_module": "custom_nodes.comfyui_controlnet_aux",
+    "search_aliases": []
    },
    "ShufflePreprocessor": {
     "category": "ControlNet Preprocessors/T2IAdapter-only",
     "description": "",
     "display_name": "Content Shuffle",
+    "has_intermediate_output": false,
     "input": {
      "optional": {
       "resolution": [
@@ -4084,6 +4280,7 @@
       "image"
      ]
     },
+    "is_input_list": false,
     "name": "ShufflePreprocessor",
     "output": [
      "IMAGE"
@@ -4095,12 +4292,14 @@
      "IMAGE"
     ],
     "output_node": false,
-    "python_module": "custom_nodes.comfyui_controlnet_aux"
+    "python_module": "custom_nodes.comfyui_controlnet_aux",
+    "search_aliases": []
    },
    "TEEDPreprocessor": {
     "category": "ControlNet Preprocessors/Line Extractors",
     "description": "",
     "display_name": "TEEDPreprocessor",
+    "has_intermediate_output": false,
     "input": {
      "optional": {
       "resolution": [
@@ -4137,6 +4336,7 @@
       "image"
      ]
     },
+    "is_input_list": false,
     "name": "TEEDPreprocessor",
     "output": [
      "IMAGE"
@@ -4148,12 +4348,14 @@
      "IMAGE"
     ],
     "output_node": false,
-    "python_module": "custom_nodes.comfyui_controlnet_aux"
+    "python_module": "custom_nodes.comfyui_controlnet_aux",
+    "search_aliases": []
    },
    "TTPlanet_TileGF_Preprocessor": {
     "category": "ControlNet Preprocessors/tile",
     "description": "",
     "display_name": "TTPlanet Tile GuidedFilter",
+    "has_intermediate_output": false,
     "input": {
      "optional": {
       "blur_strength": [
@@ -4220,6 +4422,7 @@
       "image"
      ]
     },
+    "is_input_list": false,
     "name": "TTPlanet_TileGF_Preprocessor",
     "output": [
      "IMAGE"
@@ -4231,12 +4434,14 @@
      "IMAGE"
     ],
     "output_node": false,
-    "python_module": "custom_nodes.comfyui_controlnet_aux"
+    "python_module": "custom_nodes.comfyui_controlnet_aux",
+    "search_aliases": []
    },
    "TTPlanet_TileSimple_Preprocessor": {
     "category": "ControlNet Preprocessors/tile",
     "description": "",
     "display_name": "TTPlanet Tile Simple",
+    "has_intermediate_output": false,
     "input": {
      "optional": {
       "blur_strength": [
@@ -4273,6 +4478,7 @@
       "image"
      ]
     },
+    "is_input_list": false,
     "name": "TTPlanet_TileSimple_Preprocessor",
     "output": [
      "IMAGE"
@@ -4284,12 +4490,110 @@
      "IMAGE"
     ],
     "output_node": false,
-    "python_module": "custom_nodes.comfyui_controlnet_aux"
+    "python_module": "custom_nodes.comfyui_controlnet_aux",
+    "search_aliases": []
+   },
+   "TextToLowercase": {
+    "api_node": false,
+    "category": "text",
+    "deprecated": true,
+    "description": "Convert text to lowercase.",
+    "dev_only": false,
+    "display_name": "Convert Text to Lowercase (DEPRECATED)",
+    "essentials_category": null,
+    "experimental": true,
+    "has_intermediate_output": false,
+    "input": {
+     "required": {
+      "texts": [
+       "STRING",
+       {
+        "multiline": false,
+        "tooltip": "Text to process."
+       }
+      ]
+     }
+    },
+    "input_order": {
+     "required": [
+      "texts"
+     ]
+    },
+    "is_input_list": false,
+    "name": "TextToLowercase",
+    "output": [
+     "STRING"
+    ],
+    "output_is_list": [
+     null
+    ],
+    "output_matchtypes": null,
+    "output_name": [
+     "texts"
+    ],
+    "output_node": false,
+    "output_tooltips": [
+     "Processed texts"
+    ],
+    "price_badge": null,
+    "python_module": "comfy_extras.nodes_dataset",
+    "search_aliases": [
+     "lowercase"
+    ]
+   },
+   "TextToUppercase": {
+    "api_node": false,
+    "category": "text",
+    "deprecated": true,
+    "description": "Convert text to uppercase.",
+    "dev_only": false,
+    "display_name": "Convert Text to Uppercase (DEPRECATED)",
+    "essentials_category": null,
+    "experimental": true,
+    "has_intermediate_output": false,
+    "input": {
+     "required": {
+      "texts": [
+       "STRING",
+       {
+        "multiline": false,
+        "tooltip": "Text to process."
+       }
+      ]
+     }
+    },
+    "input_order": {
+     "required": [
+      "texts"
+     ]
+    },
+    "is_input_list": false,
+    "name": "TextToUppercase",
+    "output": [
+     "STRING"
+    ],
+    "output_is_list": [
+     null
+    ],
+    "output_matchtypes": null,
+    "output_name": [
+     "texts"
+    ],
+    "output_node": false,
+    "output_tooltips": [
+     "Processed texts"
+    ],
+    "price_badge": null,
+    "python_module": "comfy_extras.nodes_dataset",
+    "search_aliases": [
+     "uppercase"
+    ]
    },
    "TilePreprocessor": {
     "category": "ControlNet Preprocessors/tile",
     "description": "",
     "display_name": "Tile",
+    "has_intermediate_output": false,
     "input": {
      "optional": {
       "pyrUp_iters": [
@@ -4326,6 +4630,7 @@
       "image"
      ]
     },
+    "is_input_list": false,
     "name": "TilePreprocessor",
     "output": [
      "IMAGE"
@@ -4337,12 +4642,74 @@
      "IMAGE"
     ],
     "output_node": false,
-    "python_module": "custom_nodes.comfyui_controlnet_aux"
+    "python_module": "custom_nodes.comfyui_controlnet_aux",
+    "search_aliases": []
+   },
+   "TruncateText": {
+    "api_node": false,
+    "category": "text",
+    "deprecated": false,
+    "description": "Truncate text to a maximum length.",
+    "dev_only": false,
+    "display_name": "Truncate Text",
+    "essentials_category": null,
+    "experimental": true,
+    "has_intermediate_output": false,
+    "input": {
+     "required": {
+      "max_length": [
+       "INT",
+       {
+        "default": 77,
+        "max": 10000,
+        "min": 1,
+        "tooltip": "Maximum text length."
+       }
+      ],
+      "texts": [
+       "STRING",
+       {
+        "multiline": false,
+        "tooltip": "Text to process."
+       }
+      ]
+     }
+    },
+    "input_order": {
+     "required": [
+      "texts",
+      "max_length"
+     ]
+    },
+    "is_input_list": false,
+    "name": "TruncateText",
+    "output": [
+     "STRING"
+    ],
+    "output_is_list": [
+     null
+    ],
+    "output_matchtypes": null,
+    "output_name": [
+     "texts"
+    ],
+    "output_node": false,
+    "output_tooltips": [
+     "Processed texts"
+    ],
+    "price_badge": null,
+    "python_module": "comfy_extras.nodes_dataset",
+    "search_aliases": [
+     "truncate",
+     "cut",
+     "shorten"
+    ]
    },
    "UniFormer-SemSegPreprocessor": {
     "category": "ControlNet Preprocessors/Semantic Segmentation",
     "description": "",
     "display_name": "UniFormer Segmentor",
+    "has_intermediate_output": false,
     "input": {
      "optional": {
       "resolution": [
@@ -4369,6 +4736,7 @@
       "image"
      ]
     },
+    "is_input_list": false,
     "name": "UniFormer-SemSegPreprocessor",
     "output": [
      "IMAGE"
@@ -4380,12 +4748,14 @@
      "IMAGE"
     ],
     "output_node": false,
-    "python_module": "custom_nodes.comfyui_controlnet_aux"
+    "python_module": "custom_nodes.comfyui_controlnet_aux",
+    "search_aliases": []
    },
    "Unimatch_OptFlowPreprocessor": {
     "category": "ControlNet Preprocessors/Optical Flow",
     "description": "",
     "display_name": "Unimatch Optical Flow",
+    "has_intermediate_output": false,
     "input": {
      "required": {
       "backward_flow": [
@@ -4423,6 +4793,7 @@
       "bidirectional_flow"
      ]
     },
+    "is_input_list": false,
     "name": "Unimatch_OptFlowPreprocessor",
     "output": [
      "OPTICAL_FLOW",
@@ -4437,12 +4808,14 @@
      "PREVIEW_IMAGE"
     ],
     "output_node": false,
-    "python_module": "custom_nodes.comfyui_controlnet_aux"
+    "python_module": "custom_nodes.comfyui_controlnet_aux",
+    "search_aliases": []
    },
    "UpperBodyTrackingFromPoseKps": {
     "category": "ControlNet Preprocessors/Pose Keypoint Postprocess",
     "description": "",
     "display_name": "Upper Body Tracking From PoseKps (InstanceDiffusion)",
+    "has_intermediate_output": false,
     "input": {
      "required": {
       "Head_width_height": [
@@ -4527,6 +4900,7 @@
       "LForearm_width_height"
      ]
     },
+    "is_input_list": false,
     "name": "UpperBodyTrackingFromPoseKps",
     "output": [
      "TRACKING",
@@ -4541,12 +4915,14 @@
      "prompt"
     ],
     "output_node": false,
-    "python_module": "custom_nodes.comfyui_controlnet_aux"
+    "python_module": "custom_nodes.comfyui_controlnet_aux",
+    "search_aliases": []
    },
    "Zoe-DepthMapPreprocessor": {
     "category": "ControlNet Preprocessors/Normal and Depth Estimators",
     "description": "",
     "display_name": "Zoe Depth Map",
+    "has_intermediate_output": false,
     "input": {
      "optional": {
       "resolution": [
@@ -4573,6 +4949,7 @@
       "image"
      ]
     },
+    "is_input_list": false,
     "name": "Zoe-DepthMapPreprocessor",
     "output": [
      "IMAGE"
@@ -4584,12 +4961,14 @@
      "IMAGE"
     ],
     "output_node": false,
-    "python_module": "custom_nodes.comfyui_controlnet_aux"
+    "python_module": "custom_nodes.comfyui_controlnet_aux",
+    "search_aliases": []
    },
    "Zoe_DepthAnythingPreprocessor": {
     "category": "ControlNet Preprocessors/Normal and Depth Estimators",
     "description": "",
     "display_name": "Zoe Depth Anything",
+    "has_intermediate_output": false,
     "input": {
      "optional": {
       "environment": [
@@ -4626,6 +5005,7 @@
       "image"
      ]
     },
+    "is_input_list": false,
     "name": "Zoe_DepthAnythingPreprocessor",
     "output": [
      "IMAGE"
@@ -4637,14 +5017,108 @@
      "IMAGE"
     ],
     "output_node": false,
-    "python_module": "custom_nodes.comfyui_controlnet_aux"
+    "python_module": "custom_nodes.comfyui_controlnet_aux",
+    "search_aliases": []
+   }
+  },
+  "/object_info/ControlNetApplyAdvanced": {
+   "ControlNetApplyAdvanced": {
+    "category": "model/conditioning/controlnet",
+    "description": "",
+    "display_name": "Apply ControlNet",
+    "has_intermediate_output": false,
+    "input": {
+     "optional": {
+      "vae": [
+       "VAE"
+      ]
+     },
+     "required": {
+      "control_net": [
+       "CONTROL_NET"
+      ],
+      "end_percent": [
+       "FLOAT",
+       {
+        "default": 1.0,
+        "max": 1.0,
+        "min": 0.0,
+        "step": 0.001
+       }
+      ],
+      "image": [
+       "IMAGE"
+      ],
+      "negative": [
+       "CONDITIONING"
+      ],
+      "positive": [
+       "CONDITIONING"
+      ],
+      "start_percent": [
+       "FLOAT",
+       {
+        "default": 0.0,
+        "max": 1.0,
+        "min": 0.0,
+        "step": 0.001
+       }
+      ],
+      "strength": [
+       "FLOAT",
+       {
+        "default": 1.0,
+        "max": 10.0,
+        "min": 0.0,
+        "step": 0.01
+       }
+      ]
+     }
+    },
+    "input_order": {
+     "optional": [
+      "vae"
+     ],
+     "required": [
+      "positive",
+      "negative",
+      "control_net",
+      "image",
+      "strength",
+      "start_percent",
+      "end_percent"
+     ]
+    },
+    "is_input_list": false,
+    "name": "ControlNetApplyAdvanced",
+    "output": [
+     "CONDITIONING",
+     "CONDITIONING"
+    ],
+    "output_is_list": [
+     false,
+     false
+    ],
+    "output_name": [
+     "positive",
+     "negative"
+    ],
+    "output_node": false,
+    "python_module": "nodes",
+    "search_aliases": [
+     "controlnet",
+     "apply controlnet",
+     "use controlnet",
+     "control net"
+    ]
    }
   },
   "/object_info/KSampler": {
    "KSampler": {
-    "category": "sampling",
+    "category": "model/sampling",
     "description": "Uses the provided model, positive and negative conditioning to denoise the latent image.",
     "display_name": "KSampler",
+    "has_intermediate_output": false,
     "input": {
      "required": {
       "cfg": [
@@ -4700,6 +5174,8 @@
         "euler_ancestral_cfg_pp",
         "heun",
         "heunpp2",
+        "exp_heun_2_x0",
+        "exp_heun_2_x0_sde",
         "dpm_2",
         "dpm_2_ancestral",
         "lms",
@@ -4722,6 +5198,7 @@
         "ipndm",
         "ipndm_v",
         "deis",
+        "cfgpp_ud10_ab",
         "res_multistep",
         "res_multistep_cfg_pp",
         "res_multistep_ancestral",
@@ -4792,6 +5269,7 @@
       "denoise"
      ]
     },
+    "is_input_list": false,
     "name": "KSampler",
     "output": [
      "LATENT"
@@ -4806,7 +5284,293 @@
     "output_tooltips": [
      "The denoised latent."
     ],
-    "python_module": "nodes"
+    "python_module": "nodes",
+    "search_aliases": [
+     "sampler",
+     "sample",
+     "generate",
+     "denoise",
+     "diffuse",
+     "txt2img",
+     "img2img"
+    ]
+   }
+  },
+  "/object_info/UltimateSDUpscale": {
+   "UltimateSDUpscale": {
+    "category": "image/upscaling",
+    "description": "",
+    "display_name": "Ultimate SD Upscale",
+    "has_intermediate_output": false,
+    "input": {
+     "required": {
+      "cfg": [
+       "FLOAT",
+       {
+        "default": 8.0,
+        "max": 100.0,
+        "min": 0.0
+       }
+      ],
+      "denoise": [
+       "FLOAT",
+       {
+        "default": 0.2,
+        "max": 1.0,
+        "min": 0.0,
+        "step": 0.01
+       }
+      ],
+      "force_uniform_tiles": [
+       "BOOLEAN",
+       {
+        "default": true
+       }
+      ],
+      "image": [
+       "IMAGE"
+      ],
+      "mask_blur": [
+       "INT",
+       {
+        "default": 8,
+        "max": 64,
+        "min": 0,
+        "step": 1
+       }
+      ],
+      "mode_type": [
+       [
+        "Linear",
+        "Chess",
+        "None"
+       ]
+      ],
+      "model": [
+       "MODEL"
+      ],
+      "negative": [
+       "CONDITIONING"
+      ],
+      "positive": [
+       "CONDITIONING"
+      ],
+      "sampler_name": [
+       [
+        "euler",
+        "euler_cfg_pp",
+        "euler_ancestral",
+        "euler_ancestral_cfg_pp",
+        "heun",
+        "heunpp2",
+        "exp_heun_2_x0",
+        "exp_heun_2_x0_sde",
+        "dpm_2",
+        "dpm_2_ancestral",
+        "lms",
+        "dpm_fast",
+        "dpm_adaptive",
+        "dpmpp_2s_ancestral",
+        "dpmpp_2s_ancestral_cfg_pp",
+        "dpmpp_sde",
+        "dpmpp_sde_gpu",
+        "dpmpp_2m",
+        "dpmpp_2m_cfg_pp",
+        "dpmpp_2m_sde",
+        "dpmpp_2m_sde_gpu",
+        "dpmpp_2m_sde_heun",
+        "dpmpp_2m_sde_heun_gpu",
+        "dpmpp_3m_sde",
+        "dpmpp_3m_sde_gpu",
+        "ddpm",
+        "lcm",
+        "ipndm",
+        "ipndm_v",
+        "deis",
+        "cfgpp_ud10_ab",
+        "res_multistep",
+        "res_multistep_cfg_pp",
+        "res_multistep_ancestral",
+        "res_multistep_ancestral_cfg_pp",
+        "gradient_estimation",
+        "gradient_estimation_cfg_pp",
+        "er_sde",
+        "seeds_2",
+        "seeds_3",
+        "sa_solver",
+        "sa_solver_pece",
+        "ddim",
+        "uni_pc",
+        "uni_pc_bh2"
+       ]
+      ],
+      "scheduler": [
+       [
+        "simple",
+        "sgm_uniform",
+        "karras",
+        "exponential",
+        "ddim_uniform",
+        "beta",
+        "normal",
+        "linear_quadratic",
+        "kl_optimal"
+       ]
+      ],
+      "seam_fix_denoise": [
+       "FLOAT",
+       {
+        "default": 1.0,
+        "max": 1.0,
+        "min": 0.0,
+        "step": 0.01
+       }
+      ],
+      "seam_fix_mask_blur": [
+       "INT",
+       {
+        "default": 8,
+        "max": 64,
+        "min": 0,
+        "step": 1
+       }
+      ],
+      "seam_fix_mode": [
+       [
+        "None",
+        "Band Pass",
+        "Half Tile",
+        "Half Tile + Intersections"
+       ]
+      ],
+      "seam_fix_padding": [
+       "INT",
+       {
+        "default": 16,
+        "max": 8192,
+        "min": 0,
+        "step": 8
+       }
+      ],
+      "seam_fix_width": [
+       "INT",
+       {
+        "default": 64,
+        "max": 8192,
+        "min": 0,
+        "step": 8
+       }
+      ],
+      "seed": [
+       "INT",
+       {
+        "default": 0,
+        "max": 18446744073709551615,
+        "min": 0
+       }
+      ],
+      "steps": [
+       "INT",
+       {
+        "default": 20,
+        "max": 10000,
+        "min": 1,
+        "step": 1
+       }
+      ],
+      "tile_height": [
+       "INT",
+       {
+        "default": 512,
+        "max": 8192,
+        "min": 64,
+        "step": 8
+       }
+      ],
+      "tile_padding": [
+       "INT",
+       {
+        "default": 32,
+        "max": 8192,
+        "min": 0,
+        "step": 8
+       }
+      ],
+      "tile_width": [
+       "INT",
+       {
+        "default": 512,
+        "max": 8192,
+        "min": 64,
+        "step": 8
+       }
+      ],
+      "tiled_decode": [
+       "BOOLEAN",
+       {
+        "default": false
+       }
+      ],
+      "upscale_by": [
+       "FLOAT",
+       {
+        "default": 2,
+        "max": 4,
+        "min": 0.05,
+        "step": 0.05
+       }
+      ],
+      "upscale_model": [
+       "UPSCALE_MODEL"
+      ],
+      "vae": [
+       "VAE"
+      ]
+     }
+    },
+    "input_order": {
+     "required": [
+      "image",
+      "model",
+      "positive",
+      "negative",
+      "vae",
+      "upscale_by",
+      "seed",
+      "steps",
+      "cfg",
+      "sampler_name",
+      "scheduler",
+      "denoise",
+      "upscale_model",
+      "mode_type",
+      "tile_width",
+      "tile_height",
+      "mask_blur",
+      "tile_padding",
+      "seam_fix_mode",
+      "seam_fix_denoise",
+      "seam_fix_width",
+      "seam_fix_mask_blur",
+      "seam_fix_padding",
+      "force_uniform_tiles",
+      "tiled_decode"
+     ]
+    },
+    "is_input_list": false,
+    "name": "UltimateSDUpscale",
+    "output": [
+     "IMAGE"
+    ],
+    "output_is_list": [
+     false
+    ],
+    "output_name": [
+     "IMAGE"
+    ],
+    "output_node": false,
+    "python_module": "custom_nodes.ComfyUI_UltimateSDUpscale",
+    "search_aliases": []
    }
   },
   "/queue": {
@@ -4818,25 +5582,53 @@
     {
      "index": 0,
      "name": "cuda:0 NVIDIA GeForce RTX 3080 : cudaMallocAsync",
-     "torch_vram_free": 33554432,
-     "torch_vram_total": 33554432,
+     "torch_vram_free": 0,
+     "torch_vram_total": 0,
      "type": "cuda",
-     "vram_free": 7336427520,
+     "vram_free": 10112729088,
      "vram_total": 12542345216
     }
    ],
    "system": {
     "argv": [],
-    "comfyui_version": "0.3.64",
+    "comfy_package_versions": [
+     {
+      "installed": "1.55.14",
+      "name": "comfyui-frontend-package",
+      "required": "1.55.14"
+     },
+     {
+      "installed": "0.11.78",
+      "name": "comfyui-workflow-templates",
+      "required": "0.11.78"
+     },
+     {
+      "installed": "0.5.13",
+      "name": "comfyui-embedded-docs",
+      "required": "0.5.13"
+     },
+     {
+      "installed": "0.2.37",
+      "name": "comfy-kitchen",
+      "required": "0.2.37"
+     },
+     {
+      "installed": "0.5.6",
+      "name": "comfy-aimdo",
+      "required": "0.5.6"
+     }
+    ],
+    "comfyui_version": "0.39.0",
+    "deploy_environment": "local-git",
     "embedded_python": false,
-    "installed_templates_version": "0.1.95",
-    "os": "posix",
+    "installed_templates_version": "0.11.78",
+    "os": "linux",
     "python_version": "3.11.13 (main, Jun  5 2025, 13:12:00) [GCC 11.2.0]",
     "pytorch_version": "2.7.0+cu126",
-    "ram_free": 12453646336,
+    "ram_free": 16732200960,
     "ram_total": 33546616832,
-    "required_frontend_version": "1.27.10",
-    "required_templates_version": "0.1.95"
+    "required_frontend_version": "1.55.14",
+    "required_templates_version": "0.11.78"
    }
   }
  }

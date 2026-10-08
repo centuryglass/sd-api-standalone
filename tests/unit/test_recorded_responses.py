@@ -102,6 +102,19 @@ def test_each_backend_has_a_recording():
     assert WEBUI_RECORDINGS, f'No WebUI recording in {RECORDED_DIR}; run scripts/capture_fixtures.py'
 
 
+@pytest.mark.parametrize('recording', COMFYUI_RECORDINGS + WEBUI_RECORDINGS)
+def test_capabilities_match_the_live_server(recording):
+    """Every replayed discovery listing parses, and capabilities match what the client reported against the server.
+
+    The recorded capabilities pin what each WebUI fork serves: Forge Neo has no interrogation, for example."""
+    service = _comfy(recording) if recording['meta']['backend'] == 'comfyui' else _webui(recording)
+    assert service.get_capabilities().model_dump() == recording['meta']['capabilities']
+    for list_options in (service.list_checkpoints, service.list_vaes, service.list_loras, service.list_hypernetworks,
+                         service.list_samplers, service.list_schedulers, service.list_upscalers,
+                         service.list_controlnet_models):
+        list_options()
+
+
 # ComfyUI
 
 def _comfy(recording: dict[str, Any]) -> ComfyUiWebservice:

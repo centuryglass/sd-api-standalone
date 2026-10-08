@@ -714,6 +714,15 @@ class A1111Webservice(WebService, Backend):
                 return None
             raise
 
+    def _has_post_route(self, endpoint: str) -> bool:
+        """Whether the server serves the POST-only `endpoint`, probed with a GET that FastAPI answers with 405 if the
+        route exists and 404 if not."""
+        try:
+            self.get(endpoint)
+        except ServerError as err:
+            return err.status_code != 404
+        return True
+
     # Backend discovery methods:
 
     def list_checkpoints(self) -> list[BackendOption]:
@@ -735,8 +744,14 @@ class A1111Webservice(WebService, Backend):
                 for lora in self.get_loras()]
 
     def list_hypernetworks(self) -> list[BackendOption]:
-        """List hypernetworks, implementing `Backend.list_hypernetworks`."""
-        return [BackendOption(name=name) for name in self.get_hypernetworks()]
+        """List hypernetworks, implementing `Backend.list_hypernetworks`.
+
+        Forge Neo has no hypernetwork support or `/sdapi/v1/hypernetworks`, and lists none.
+        """
+        hypernetworks = self._get_if_present(A1111Webservice.Endpoints.HYPERNETWORKS)
+        if hypernetworks is None:
+            return []
+        return [BackendOption(name=hypernetwork['name']) for hypernetwork in hypernetworks]
 
     def list_samplers(self) -> list[BackendOption]:
         """List samplers by shared name, implementing `Backend.list_samplers`. `display_name` is the WebUI name."""
@@ -772,14 +787,15 @@ class A1111Webservice(WebService, Backend):
 
         ControlNet support is detected from `/controlnet/model_list`, which both the sd-webui-controlnet extension and
         Forge's built-in ControlNet serve; Forge has no `/controlnet/version`. Ultimate SD Upscale is detected from the
-        img2img script list, and scheduler support from `/sdapi/v1/schedulers`.
+        img2img script list, scheduler support from `/sdapi/v1/schedulers`, and interrogation from whether
+        `/sdapi/v1/interrogate` exists, which Forge Neo drops.
         """
         img2img_scripts = [script.lower() for script in self.get_scripts().img2img]
         return BackendCapabilities(
             controlnet=self._get_if_present(A1111Webservice.Endpoints.CONTROLNET_MODELS) is not None,
             ultimate_upscale=ULTIMATE_UPSCALE_SCRIPT in img2img_scripts,
             scheduler=self._get_if_present(A1111Webservice.Endpoints.SCHEDULERS) is not None,
-            interrogate=True,
+            interrogate=self._has_post_route(A1111Webservice.Endpoints.INTERROGATE),
             free_memory=False)
 
     def login(self, username: str, password: str) -> requests.Response:

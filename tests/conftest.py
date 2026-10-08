@@ -1,4 +1,4 @@
-"""Shared fixtures for the A1111 / Forge / ReForge live-API integration tests.
+"""Shared fixtures for the A1111 / Forge / reForge / Forge Neo live-API integration tests.
 
 These tests talk to a **real** WebUI instance. They assume:
 
@@ -136,7 +136,7 @@ def controlnet_available(service):
     except (SDBackendError, ValidationError) as err:
         pytest.skip(f'ControlNet extension not installed or returned an unexpected response: {err}')
     if not models.model_list:
-        pytest.skip(f'Unexpected /controlnet/model_list response: {models!r}')
+        pytest.skip('ControlNet is installed but /controlnet/model_list lists no models')
     return service
 
 

@@ -1,4 +1,4 @@
-"""Read-only metadata integration tests against a live A1111 / Forge / ReForge WebUI.
+"""Read-only metadata integration tests against a live A1111 / Forge / reForge / Forge Neo WebUI.
 
 These are fast and non-destructive: they only query the server for its capabilities,
 models, and current state. They exercise the ``get_*`` accessors on
@@ -6,6 +6,8 @@ models, and current state. They exercise the ``get_*`` accessors on
 ``sd_backend_client/api/webui/response_formats.py``.
 """
 import pytest
+
+from sd_backend_client.errors import ServerError
 
 pytestmark = pytest.mark.integration
 
@@ -59,7 +61,13 @@ def test_get_loras(service):
 
 
 def test_get_hypernetworks(service):
-    hypernetworks = service.get_hypernetworks()
+    # Optional endpoint: Forge Neo drops hypernetwork support.
+    try:
+        hypernetworks = service.get_hypernetworks()
+    except ServerError as err:
+        if err.status_code != 404:
+            raise
+        pytest.skip(f'/sdapi/v1/hypernetworks not exposed by this build: {err}')
     assert isinstance(hypernetworks, list)
     assert all(isinstance(name, str) for name in hypernetworks)
 
