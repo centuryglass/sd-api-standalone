@@ -6,6 +6,10 @@ from sd_backend_client.api.comfyui.nodes.comfy_node import NodeConnection, Comfy
 
 NODE_NAME = 'SaveImage'
 
+# Prefix for images the package's workflows save on the server. ComfyUI names files `<prefix>_00001_.png`, so an
+# empty prefix produces hidden dotfiles.
+DEFAULT_FILENAME_PREFIX = 'sd_backend_client'
+
 
 class SaveImageInputs(TypedDict):
     """SaveImage input parameters."""
@@ -19,7 +23,7 @@ class SaveImageNode(ComfyNode):
     # Connection keys:
     IMAGES = 'images'
 
-    def __init__(self, filename_prefix: str) -> None:
+    def __init__(self, filename_prefix: str = DEFAULT_FILENAME_PREFIX) -> None:
         data: SaveImageInputs = {
             'filename_prefix': filename_prefix
         }
