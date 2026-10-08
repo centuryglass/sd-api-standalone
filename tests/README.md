@@ -60,6 +60,8 @@ attributes directly.
 - **`test_image_and_geometry.py`** — base64/PNG round-trips, RGBA normalization, `Size`.
 - **`test_param_parity.py`** - the same `DiffusionParams` serialized for both backends asks for the same
   generation: sampler and scheduler names, size, batch size, denoising strength and checkpoint.
+- **`test_example_scripts.py`** - runs each script in `examples/` against a stand-in client and checks the
+  requests it builds and the files it writes.
 - **`test_readme_examples.py`** - runs every Python example in the top-level `README.md` and the
   docs site (`docs/`), and the scripts in `examples/`, against each recorded server (see below),
   with job submission stubbed out, and checks they import only the public API.
