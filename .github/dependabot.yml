@@ -1,6 +1,6 @@
 version: 2
 updates:
-  # Proposes bumps to the dev tools pinned in requirements-dev.txt, and CI checks each one. The runtime dependencies in
+  # Proposes bumps to the dev and docs tools pinned in requirements-dev.txt and requirements-docs.txt, and CI checks each one. The runtime dependencies in
   # pyproject.toml and requirements.txt have lower bounds only, since a library's pins would constrain its users'
   # environments. increase-if-necessary leaves those floors alone, because every new release already satisfies them.
   - package-ecosystem: pip
@@ -14,6 +14,10 @@ updates:
     groups:
       python-dependencies:
         patterns: ['*']
+    # MkDocs 2.0 drops plugin support, which the documentation site needs (requirements-docs.txt).
+    ignore:
+      - dependency-name: mkdocs
+        versions: ['>=2']
 
   - package-ecosystem: github-actions
     directory: /

@@ -60,6 +60,7 @@ In priority order:
 ```bash
 pip install -e .                    # the package and its runtime dependencies
 pip install -r requirements-dev.txt # for development: adds pytest and pylint
+pip install -r requirements-docs.txt # for the documentation site: `mkdocs serve` previews it
 
 # Offline pure-logic unit tests: no server, no GPU, deterministic (use these by default):
 pytest tests/unit/
@@ -88,7 +89,8 @@ understand.
 
 **The public API is the package root's `__all__`** (`sd_backend_client/__init__.py`); every other module is internal.
 A new class that `Backend`, `GenerationHandle` or an exported model uses gets added there, or
-`tests/unit/test_public_api.py` fails.
+`tests/unit/test_public_api.py` fails. Each name in `__all__` also needs a directive on a `docs/reference/` page, or
+the docs build fails (see "Documentation site").
 
 ### Shared, backend-agnostic layer: `api/shared_data/`
 
@@ -233,6 +235,18 @@ default, non-strict settings, and the package must pass it with zero errors.
   inputs), type it as loosely as it is (`Any`, `object`, a partial `TypedDict`) until there is a real type to write.
   A strict type that fights the code's actual tolerance, a `cast` that asserts something unchecked, or a
   `# type: ignore` that hides a real mismatch is worse than a loose type.
+
+## Documentation site
+
+`mkdocs.yml` builds the site from `docs/`, and `.github/workflows/docs.yml` publishes it to GitHub Pages from `main`.
+CI's `docs` job runs `mkdocs build --strict`, which fails on any warning.
+
+- **Docstrings of public names are the API reference.** mkdocstrings renders them with `docstring_style: numpy`, so
+  a `Parameters` / `Raises` section that breaks numpy layout fails the strict build or renders wrong.
+- **The reference covers the root `__all__` and nothing else.** `scripts/mkdocs_hooks.py` fails the build when a
+  `docs/reference/` page is missing a public name or documents one that isn't public.
+- **Pydantic field limits render from `Field(...)`.** `docs/templates/python/material/attribute.html.jinja` shows
+  `ge`, `gt`, `le`, `lt` and length limits above each field's docstring.
 
 ## Lint
 

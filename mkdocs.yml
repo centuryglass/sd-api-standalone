@@ -1,0 +1,78 @@
+# The documentation site: `mkdocs serve` previews it and `mkdocs build --strict` is CI's docs check. The tools are
+# pinned in requirements-docs.txt, and .github/workflows/docs.yml publishes the site to GitHub Pages from main.
+site_name: sd-backend-client
+site_description: A headless Python client for the ComfyUI and Forge/A1111 WebUI Stable Diffusion APIs
+site_url: https://centuryglass.github.io/sd-backend-client/
+repo_url: https://github.com/centuryglass/sd-backend-client
+repo_name: centuryglass/sd-backend-client
+edit_uri: edit/main/docs/
+
+theme:
+  name: material
+  features:
+    - content.code.copy
+    - navigation.sections
+    - navigation.top
+    - toc.follow
+  palette:
+    - media: '(prefers-color-scheme: light)'
+      scheme: default
+      toggle:
+        icon: material/brightness-7
+        name: Switch to dark mode
+    - media: '(prefers-color-scheme: dark)'
+      scheme: slate
+      toggle:
+        icon: material/brightness-4
+        name: Switch to light mode
+
+nav:
+  - Overview: index.md
+  - Quickstarts:
+      - Forge / A1111 WebUI: quickstart/webui.md
+      - ComfyUI: quickstart/comfyui.md
+  - API reference:
+      - reference/index.md
+      - Clients: reference/clients.md
+      - Generation parameters: reference/parameters.md
+      - ControlNet: reference/controlnet.md
+      - Discovery: reference/discovery.md
+      - Generation handles: reference/generation.md
+      - Errors: reference/errors.md
+
+markdown_extensions:
+  - admonition
+  - pymdownx.highlight
+  - pymdownx.superfences
+  - toc:
+      permalink: true
+
+exclude_docs: |
+  templates/
+
+hooks:
+  - scripts/mkdocs_hooks.py
+
+plugins:
+  - search
+  - mkdocstrings:
+      # Template overrides for the Python handler; exclude_docs keeps them out of the built site.
+      custom_templates: docs/templates
+      handlers:
+        python:
+          # Static analysis of the source tree, so building the site doesn't need the package or its dependencies.
+          paths: [.]
+          options:
+            docstring_style: numpy
+            extensions:
+              - griffe_pydantic
+            show_root_heading: true
+            show_root_full_path: false
+            show_source: false
+            show_bases: true
+            show_signature_annotations: true
+            separate_signature: true
+            members_order: source
+            merge_init_into_class: true
+            filters: ['!^_']
+            heading_level: 2

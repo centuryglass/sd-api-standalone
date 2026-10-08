@@ -1,6 +1,6 @@
 name: ci
 
-# Runs the test suite, the lint check, the type check and the packaging check on every pull request into main and every
+# Runs the test suite, the lint check, the type check, the packaging check and the docs build on every pull request into main and every
 # push to it, so a change's state is known before it merges and main's state is known after. workflow_dispatch also
 # allows running it by hand from the Actions tab, which release-please's pull requests need (see release-please.yml).
 on:
@@ -163,21 +163,46 @@ jobs:
           "$RUNNER_TEMP/venv/bin/python" -c 'import sd_backend_client, sys; print(sd_backend_client.__file__); sys.exit("site-packages" not in sd_backend_client.__file__)'
           "$RUNNER_TEMP/venv/bin/python" -m pytest tests/unit
 
+  docs:
+    name: docs
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-python@v7
+        with:
+          python-version: '3.13'
+          cache: pip
+          cache-dependency-path: requirements*.txt
+
+      - name: Install documentation tools
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements-docs.txt
+
+      - name: Build the documentation site
+        # --strict fails on any warning, such as a broken link or a docstring mkdocstrings can't parse. mkdocs.yml's
+        # hook also fails it when docs/reference/ doesn't document the package root's __all__.
+        run: mkdocs build --strict
+
   # A single check to require for merging, so branch protection doesn't need updating whenever the matrix or the
   # set of jobs changes.
   ci:
     name: ci
     if: always()
-    needs: [test, test-minimum-deps, lint, typecheck, package]
+    needs: [test, test-minimum-deps, lint, typecheck, package, docs]
     runs-on: ubuntu-latest
     steps:
       - name: All checks passed
         if: needs.test.result != 'success' || needs.test-minimum-deps.result != 'success' ||
-          needs.lint.result != 'success' || needs.typecheck.result != 'success' || needs.package.result != 'success'
+          needs.lint.result != 'success' || needs.typecheck.result != 'success' || needs.package.result != 'success' ||
+          needs.docs.result != 'success'
         run: |
           echo "test result: ${{ needs.test.result }}"
           echo "test-minimum-deps result: ${{ needs.test-minimum-deps.result }}"
           echo "lint result: ${{ needs.lint.result }}"
           echo "typecheck result: ${{ needs.typecheck.result }}"
           echo "package result: ${{ needs.package.result }}"
+          echo "docs result: ${{ needs.docs.result }}"
           exit 1
