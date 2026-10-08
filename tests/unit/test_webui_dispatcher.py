@@ -106,7 +106,7 @@ def test_job_moves_pending_to_active_to_finished():
     job.release.set()
     result = handle.wait(timeout=SAFETY_TIMEOUT_S)
     assert handle.poll().status is GenerationStatus.FINISHED
-    assert result.info == 'a'
+    assert result.raw_info == 'a'
     assert result.task_id == 'task(a)'
     assert len(result.images) == 1
 
@@ -184,7 +184,7 @@ def test_cancel_active_uninterruptible_job_is_refused_and_job_finishes():
     assert handle.cancel() is False
     assert service.interrupts == 0
     job.release.set()
-    assert handle.wait(timeout=SAFETY_TIMEOUT_S).info == 'a'
+    assert handle.wait(timeout=SAFETY_TIMEOUT_S).raw_info == 'a'
 
 
 def test_cancel_pending_uninterruptible_job_never_runs_it():
@@ -236,7 +236,7 @@ def test_failed_job_reports_error_and_next_job_still_runs():
     assert error.value.status is GenerationStatus.FAILED
     assert error.value.__cause__ is cause
     assert failed.poll().text_info == str(cause)
-    assert following.wait(timeout=SAFETY_TIMEOUT_S).info == 'next'
+    assert following.wait(timeout=SAFETY_TIMEOUT_S).raw_info == 'next'
 
 
 def test_wait_times_out_while_job_runs():

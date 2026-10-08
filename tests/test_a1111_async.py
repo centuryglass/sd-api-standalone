@@ -8,6 +8,7 @@ run actual diffusion, so they are opt-in like the other generation tests (``--ru
 What is covered:
 - the full async lifecycle (PENDING -> ACTIVE -> FINISHED) and progress callbacks;
 - ``submit_upscale`` and ``submit_preprocessor_preview`` returning their one image through a handle;
+- result contents: one seed per image in a batch, and ControlNet detect maps kept out of ``images``;
 - client-side single-slot serialization of two concurrent submissions;
 - clean cancellation of a still-PENDING job vs. interrupt-based cancellation of an ACTIVE one;
 - ``_await_server_idle``: a submission is held PENDING (not dispatched) while the server is busy with
@@ -28,7 +29,7 @@ from sd_backend_client.api.a1111_webservice import A1111Webservice
 from sd_backend_client.api.shared_data.generation_handle import GenerationError, GenerationStatus
 from sd_backend_client.api.webui.diffusion_request_body import DiffusionRequestBody
 
-from .helpers import make_edge_image, make_structured_image, save_output
+from .helpers import add_controlnet_unit, make_controlnet_unit, make_edge_image, make_structured_image, save_output
 
 pytestmark = [pytest.mark.integration, pytest.mark.generation]
 
@@ -153,6 +154,38 @@ def test_submit_preprocessor_preview_lifecycle(controlnet_available, controlnet_
     save_output(output_dir, f'async_controlnet_preview_{module}', result.images[0])
     extrema = result.images[0].convert('L').getextrema()
     assert extrema[0] != extrema[1], 'preprocessor preview is a flat image; preprocessing likely did nothing'
+
+
+def test_batch_result_has_one_seed_per_image(service, output_dir):
+    """A batch of two returns two images, each with its own consecutive seed, and no grid among them."""
+    body = _body(steps=8, size=256, seed=500)
+    body.batch_size = 2
+    result = service.submit_txt2img(body).wait(timeout=180)
+    assert len(result.images) == 2
+    assert result.seeds == [500, 501] and result.seed == 500
+    for i, image in enumerate(result.images):
+        _assert_valid_image(image, expected_size=256)
+        save_output(output_dir, f'async_batch_{i}', image)
+
+
+@pytest.mark.controlnet
+def test_controlnet_result_keeps_detect_maps_out_of_images(controlnet_available, controlnet_pairing, output_dir):
+    """A ControlNet generation returns exactly its generated image; any detect map the server appends is a control map.
+
+    Whether the server appends a map depends on the ControlNet extension's "do not append detectmap" setting, so
+    either count of control maps passes. The generated image count must not change with it.
+    """
+    module, model = controlnet_pairing
+    body = _body(steps=8, size=256, seed=42)
+    add_controlnet_unit(body, make_controlnet_unit(module, model, make_edge_image()))
+    result = controlnet_available.submit_txt2img(body).wait(timeout=180)
+    assert len(result.images) == 1
+    assert result.seeds == [42]
+    assert len(result.control_maps) <= 1
+    _assert_valid_image(result.images[0], expected_size=256)
+    save_output(output_dir, f'async_controlnet_{module}', result.images[0])
+    for i, control_map in enumerate(result.control_maps):
+        save_output(output_dir, f'async_controlnet_{module}_map_{i}', control_map)
 
 
 # --------------------------------------------------------------------------- #

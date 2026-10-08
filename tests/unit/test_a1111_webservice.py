@@ -386,5 +386,5 @@ def test_submit_preprocessor_preview_sends_overrides_and_mask_and_cannot_be_inte
     assert body['controlnet_module'] == 'canny'
     assert body['controlnet_threshold_a'] == 50
     assert len(body['controlnet_input_images']) == 2
-    assert len(result.images) == 1 and result.info is None
+    assert len(result.images) == 1 and result.raw_info is None
     assert submit.call_args.kwargs['interruptible'] is False

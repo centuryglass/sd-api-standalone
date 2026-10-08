@@ -38,6 +38,7 @@ from PIL import Image  # type: ignore
 from sd_backend_client.api.shared_data.generation_handle import (GenerationError, GenerationHandle,
                                                               GenerationProgress, GenerationResult,
                                                               GenerationStatus, ProgressCallback)
+from sd_backend_client.api.webui.response_formats import GenerationInfoData
 from sd_backend_client.errors import BackendTimeoutError
 from sd_backend_client.util.visual.image_utils import image_from_base64
 
@@ -73,6 +74,29 @@ def create_task_id(task_type: str) -> str:
     """
     suffix = ''.join(random.choices(string.ascii_uppercase + string.digits, k=7))
     return f'task({task_type}-{suffix})'
+
+
+def build_webui_result(images: list[Image.Image], info: Optional[object],
+                       task_id: Optional[str]) -> GenerationResult:
+    """Sort a WebUI response's images into a `GenerationResult`, using `info` to find the generated ones.
+
+    The WebUI returns one flat image list: an optional batch grid at ``info.index_of_first_image``'s offset, then one
+    image per entry of ``info.all_seeds``, then any images extensions appended (ControlNet detect maps, inpainting
+    masks). Without a `GenerationInfoData` (basic upscaling, preprocessor previews), or when the counts don't fit
+    that layout, every image counts as generated and `seeds` stays empty.
+    """
+    if not isinstance(info, GenerationInfoData):
+        return GenerationResult(images=images, task_id=task_id, raw_info=info)
+    first = info.index_of_first_image
+    seed_count = len(info.all_seeds)
+    if seed_count == 0 or first < 0 or first + seed_count > len(images):
+        logger.warning('WebUI job %s returned %d images, which does not match index_of_first_image=%d and %d seeds; '
+                       'treating every image as generated', task_id, len(images), first, seed_count)
+        return GenerationResult(images=images, seed=info.seed, task_id=task_id, raw_info=info)
+    extra = {'grid': images[0]} if first > 0 else {}
+    return GenerationResult(images=images[first:first + seed_count], seeds=list(info.all_seeds),
+                            control_maps=images[first + seed_count:], seed=info.all_seeds[0], task_id=task_id,
+                            raw_info=info, extra=extra)
 
 
 class WebUIGenerationHandle(GenerationHandle):
@@ -115,7 +139,7 @@ class WebUIGenerationHandle(GenerationHandle):
         with self._lock:
             result = self._result
         assert result is not None, '_build_result called before job reached FINISHED'
-        return GenerationResult(images=list(result['images']), info=result.get('info'), task_id=self._task_id)
+        return build_webui_result(list(result['images']), result.get('info'), self._task_id)
 
     def cancel(self) -> bool:
         """Cancel the job. Clean while ``PENDING`` (never dispatched); interrupt-based while ``ACTIVE``.

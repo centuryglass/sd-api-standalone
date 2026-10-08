@@ -108,6 +108,19 @@ def test_submit_txt2img_lifecycle(comfy_service, comfy_checkpoint, output_dir):
     assert seen[-1] is GenerationStatus.FINISHED
 
 
+def test_batch_result_has_one_seed_per_image(comfy_service, comfy_checkpoint, output_dir):
+    """A batch of two returns two images, both reporting the batch's shared seed."""
+    params = _params(comfy_checkpoint, seed=500)
+    params.batch_size = 2
+    result = comfy_service.submit_txt2img(params).wait(timeout=180)
+    assert len(result.images) == 2
+    assert result.seeds == [500, 500] and result.seed == 500
+    assert not result.control_maps
+    for i, image in enumerate(result.images):
+        _assert_valid_image(image, expected_size=256)
+        save_output(output_dir, f'comfy_async_batch_{i}', image)
+
+
 def test_submit_img2img_lifecycle(comfy_service, comfy_checkpoint, output_dir):
     """The img2img submit path round-trips a source image through the async handle."""
     params = _params(comfy_checkpoint, prompt='turn this into an oil painting', seed=7)
