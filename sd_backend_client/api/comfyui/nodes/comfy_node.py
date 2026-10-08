@@ -1,6 +1,14 @@
-"""Abstract interface for all ComfyUI workflow nodes."""
+"""Base model for ComfyUI workflow nodes.
+
+Each `ComfyNode` subclass is a pydantic model for one ComfyUI node type. Its fields are the node's inputs under their
+ComfyUI names, and its `Output` attributes name the node's output slots. Connection inputs hold the `NodeOutput` they
+read from. `ComfyNodeGraph.get_workflow_dict` assigns node keys and turns those into `(node_key, slot)` pairs.
+"""
+from collections.abc import Mapping
 from copy import deepcopy
-from typing import TypeAlias, Any
+from typing import Any, ClassVar, Optional, TypeAlias, overload
+
+from pydantic import BaseModel, ConfigDict
 from typing_extensions import TypedDict
 
 NodeId: TypeAlias = str  # Should be an integer string
@@ -14,55 +22,89 @@ class NodeDict(TypedDict):
     inputs: dict[str, Any]
 
 
-class ComfyNode:
-    """Abstract Node class."""
+class NodeOutput:
+    """One output slot of one node: the value a connection input holds."""
 
-    def __init__(self, class_type: str, input_data: dict[str, Any], node_input_keys: set[str],
-                 output_count: int) -> None:
-        self._class_type = class_type
-        self._inputs = input_data
-        self._node_input_keys = node_input_keys
-        self._output_count = output_count
+    def __init__(self, node: 'ComfyNode', slot: SlotIndex) -> None:
+        self.node = node
+        self.slot = slot
 
-    def __deepcopy__(self, memo: dict[int, Any]) -> 'ComfyNode':
-        # Reconstruct as the concrete subclass without re-invoking __init__ (subclass constructors have varied
-        # signatures). Copying every instance attribute preserves subclass-specific state and, critically, the subclass
-        # type itself, so overrides like UltimateUpscaleNode.add_input survive a graph deepcopy.
-        cls = self.__class__
-        node_copy = cls.__new__(cls)
-        memo[id(self)] = node_copy
-        for key, value in self.__dict__.items():
-            setattr(node_copy, key, deepcopy(value, memo))
-        return node_copy
+    def __eq__(self, other: object) -> bool:
+        return isinstance(other, NodeOutput) and other.node is self.node and other.slot == self.slot
+
+    def __hash__(self) -> int:
+        return hash((id(self.node), self.slot))
+
+    def __repr__(self) -> str:
+        return f'NodeOutput({self.node.class_type}, {self.slot})'
+
+
+Connection: TypeAlias = Optional[NodeOutput]
+"""Type of a node's connection inputs. None leaves the input unconnected, and the workflow omits it."""
+
+
+class Output:
+    """Declares a node output slot. Reading it from a node gives that node's `NodeOutput` for the slot."""
+
+    def __init__(self, slot: SlotIndex) -> None:
+        self.slot = slot
+
+    @overload
+    def __get__(self, instance: None, owner: type) -> 'Output': ...
+
+    @overload
+    def __get__(self, instance: 'ComfyNode', owner: type) -> NodeOutput: ...
+
+    def __get__(self, instance: Optional['ComfyNode'], owner: type) -> 'Output | NodeOutput':
+        if instance is None:
+            return self
+        return NodeOutput(instance, self.slot)
+
+
+class ComfyNode(BaseModel):
+    """Abstract node model. Subclasses set `CLASS_TYPE` and declare inputs as fields and outputs as `Output`s.
+
+    Fields marked `Field(exclude=True)` configure the node without being sent as inputs. Nodes compare and hash by
+    identity, since two nodes with the same inputs are still separate graph vertices.
+    """
+    model_config = ConfigDict(extra='forbid', validate_assignment=True, arbitrary_types_allowed=True,
+                              ignored_types=(Output,), protected_namespaces=())
+
+    CLASS_TYPE: ClassVar[str]
+
+    def __eq__(self, other: object) -> bool:
+        return self is other
+
+    def __hash__(self) -> int:
+        return id(self)
 
     @property
-    def node_name(self) -> str:
+    def class_type(self) -> str:
         """Returns the node's type name used in the API."""
-        return self._class_type
+        return self.CLASS_TYPE
+
+    def inputs(self) -> dict[str, Any]:
+        """Returns the node's set inputs by ComfyUI input name, with connections as `NodeOutput`s."""
+        return {name: getattr(self, name) for name, field in type(self).model_fields.items()
+                if not field.exclude and getattr(self, name) is not None}
+
+    def connections(self) -> list[NodeOutput]:
+        """Returns the outputs of other nodes that this node's inputs are connected to."""
+        return [value for value in self.inputs().values() if isinstance(value, NodeOutput)]
 
     def clear_connections(self) -> None:
-        """Removes all inputs from other nodes."""
-        for input_key in self._node_input_keys:
-            if input_key in self._inputs:
-                del self._inputs[input_key]
+        """Disconnects all inputs from other nodes."""
+        for name in type(self).model_fields.keys():
+            if isinstance(getattr(self, name), NodeOutput):
+                setattr(self, name, None)
 
-    @property
-    def output_count(self) -> int:
-        """Returns the number of outputs the node provides."""
-        return self._output_count
-
-    def add_input(self, connected_node: str, output_slot_index: int, input_key: str):
-        """Connect one of this node's inputs to another node's output.
-
-        This will check the validity of the input key, but doesn't do anything to validate that the output is correct.
-        """
-        if input_key not in self._node_input_keys:
-            raise ValueError(f'Unexpected input key {input_key}')
-        self._inputs[input_key] = (connected_node, output_slot_index)
-
-    def get_dict(self) -> NodeDict:
-        """Returns the node API dict."""
-        return {
-            'class_type': self._class_type,
-            'inputs': deepcopy(self._inputs)
-        }
+    def get_dict(self, node_keys: Mapping['ComfyNode', NodeId]) -> NodeDict:
+        """Returns the node API dict, using `node_keys` to identify connected nodes."""
+        inputs: dict[str, Any] = {}
+        for name, value in self.inputs().items():
+            if isinstance(value, NodeOutput):
+                connection: NodeConnection = (node_keys[value.node], value.slot)
+                inputs[name] = connection
+            else:
+                inputs[name] = deepcopy(value)
+        return {'class_type': self.class_type, 'inputs': inputs}

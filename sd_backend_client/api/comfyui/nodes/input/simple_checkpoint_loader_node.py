@@ -1,25 +1,15 @@
-"""A ComfyUI node used to load a basic Stable Diffusion model."""
-from typing import cast, Any
-from typing_extensions import TypedDict
+"""A ComfyUI node used to load a basic Stable Diffusion model, plus its CLIP and VAE models."""
+from typing import ClassVar
 
-from sd_backend_client.api.comfyui.nodes.comfy_node import ComfyNode
-
-NODE_NAME = 'CheckpointLoaderSimple'
-
-
-class SimpleCheckpointInputs(TypedDict):
-    """Stable Diffusion model loader inputs."""
-    ckpt_name: str
+from sd_backend_client.api.comfyui.nodes.comfy_node import ComfyNode, Output
 
 
 class SimpleCheckpointLoaderNode(ComfyNode):
     """Loads a Stable Diffusion model."""
+    CLASS_TYPE: ClassVar[str] = 'CheckpointLoaderSimple'
 
-    # Output indexes
-    IDX_MODEL = 0
-    IDX_CLIP = 1
-    IDX_VAE = 2
+    ckpt_name: str
 
-    def __init__(self, model_name: str) -> None:
-        data: SimpleCheckpointInputs = {'ckpt_name': model_name}
-        super().__init__(NODE_NAME, cast(dict[str, Any], data), set(), 3)
+    model_out = Output(0)
+    clip_out = Output(1)
+    vae_out = Output(2)

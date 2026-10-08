@@ -1,6 +1,6 @@
 {
   "(repository)": {
-    "duplicate-code": 12
+    "duplicate-code": 7
   },
   "sd_backend_client/api/a1111_webservice.py": {
     "import-outside-toplevel": 2

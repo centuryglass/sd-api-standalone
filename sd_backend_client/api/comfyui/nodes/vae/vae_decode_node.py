@@ -1,31 +1,14 @@
 """A ComfyUI node used to decode latent image data."""
-from typing import NotRequired
-from typing_extensions import TypedDict
+from typing import ClassVar
 
-from sd_backend_client.api.comfyui.nodes.comfy_node import NodeConnection, ComfyNode
-
-NODE_NAME = 'VAEDecode'
-
-
-class VAEDecodeInputs(TypedDict):
-    """Latent image decoding input parameter object definition."""
-    samples: NotRequired[NodeConnection]  # Latent image data, e.g. from KSampler.
-    vae: NotRequired[NodeConnection]  # VAE model used for decoding. May be baked-in to a regular SD model.
+from sd_backend_client.api.comfyui.nodes.comfy_node import ComfyNode, Connection, Output
 
 
 class VAEDecodeNode(ComfyNode):
     """A ComfyUI node used to decode latent image data."""
+    CLASS_TYPE: ClassVar[str] = 'VAEDecode'
 
-    # Connection keys:
-    SAMPLES = 'samples'
-    VAE = 'vae'
+    samples: Connection = None  # Latent image data, e.g. from KSampler.
+    vae: Connection = None  # VAE model used for decoding. May be baked-in to a regular SD model.
 
-    # Output indexes:
-    IDX_IMAGE = 0
-
-    def __init__(self) -> None:
-        connection_params = {
-            VAEDecodeNode.SAMPLES,
-            VAEDecodeNode.VAE
-        }
-        super().__init__(NODE_NAME, {}, connection_params, 1)
+    image_out = Output(0)

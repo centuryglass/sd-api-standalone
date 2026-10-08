@@ -1,44 +1,21 @@
 """A ComfyUI node used to decode latent image data in tiled blocks."""
-from typing import NotRequired, cast, Any
-from typing_extensions import TypedDict
+from typing import ClassVar
 
-from sd_backend_client.api.comfyui.nodes.comfy_node import NodeConnection, ComfyNode
+from pydantic import Field
 
-NODE_NAME = 'VAEDecodeTiled'
-TILE_MIN = 320
-TILE_MAX = 4096
-TILE_STEP = 64
+from sd_backend_client.api.comfyui.nodes.comfy_node import ComfyNode, Connection, Output
+from sd_backend_client.api.comfyui.nodes.vae.vae_encode_tiled_node import TILE_MAX, TILE_MIN, TILE_STEP
+
 OVERLAP_DEFAULT = 64
-
-
-class VAEDecodeTiledInputs(TypedDict):
-    """Latent image tiled decoding input parameter object definition."""
-    samples: NotRequired[NodeConnection]  # Latent image data, e.g. from KSampler.
-    vae: NotRequired[NodeConnection]  # VAE model used for decoding. May be baked-in to a regular SD model.
-    tile_size: int
-    overlap: int
 
 
 class VAEDecodeTiledNode(ComfyNode):
     """A ComfyUI node used to decode latent image data in tiled blocks."""
+    CLASS_TYPE: ClassVar[str] = 'VAEDecodeTiled'
 
-    # Connection keys:
-    SAMPLES = 'samples'
-    VAE = 'vae'
+    tile_size: int = Field(ge=TILE_MIN, le=TILE_MAX, multiple_of=TILE_STEP)
+    overlap: int = OVERLAP_DEFAULT
+    samples: Connection = None  # Latent image data, e.g. from KSampler.
+    vae: Connection = None  # VAE model used for decoding. May be baked-in to a regular SD model.
 
-    # Output indexes:
-    IDX_IMAGE = 0
-
-    def __init__(self, tile_size: int) -> None:
-        if tile_size < TILE_MIN:
-            raise ValueError(f'Tile size {tile_size} is below minimum {TILE_MIN}')
-        if tile_size > TILE_MAX:
-            raise ValueError(f'Tile size {tile_size} is above maximum {TILE_MAX}')
-        if (tile_size % TILE_STEP) != 0:
-            raise ValueError(f'Tile size {tile_size} is not a multiple of {TILE_STEP}')
-        connection_params = {
-            VAEDecodeTiledNode.SAMPLES,
-            VAEDecodeTiledNode.VAE
-        }
-        data: VAEDecodeTiledInputs = {'tile_size': tile_size, 'overlap': OVERLAP_DEFAULT}
-        super().__init__(NODE_NAME, cast(dict[str, Any], data), connection_params, 1)
+    image_out = Output(0)

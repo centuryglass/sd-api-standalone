@@ -1,45 +1,19 @@
-"""A ComfyUI node used to adjust conditioning for a dedicated inpainting model.
+"""A ComfyUI node used to adjust conditioning for a dedicated inpainting model."""
+from typing import ClassVar
 
-Output slots are [positive_conditioning, negative_conditioning, latent_image]
-"""
-from typing import NotRequired
-from typing_extensions import TypedDict
-
-from sd_backend_client.api.comfyui.nodes.comfy_node import NodeConnection, ComfyNode
-
-NODE_NAME = 'InpaintModelConditioning'
-
-
-class InpaintModelConditioningInputs(TypedDict):
-    """Inputs for adjusting conditioning for an inpainting model."""
-    positive: NotRequired[NodeConnection]  # Usually CLIPTextEncode
-    negative: NotRequired[NodeConnection]  # Usually CLIPTextEncode
-    vae: NotRequired[NodeConnection]  # VAE model used for encoding. May be baked-in to a regular SD model.
-    pixels: NotRequired[NodeConnection]  # raw image data, e.g. from LoadImage.
-    mask: NotRequired[NodeConnection]  # Inpainting mask.
+from sd_backend_client.api.comfyui.nodes.comfy_node import ComfyNode, Connection, Output
 
 
 class InpaintModelConditioningNode(ComfyNode):
     """A ComfyUI node used to adjust conditioning for a dedicated inpainting model."""
+    CLASS_TYPE: ClassVar[str] = 'InpaintModelConditioning'
 
-    # Connection keys:
-    POSITIVE = 'positive'
-    NEGATIVE = 'negative'
-    VAE = 'vae'
-    PIXELS = 'pixels'
-    MASK = 'mask'
+    positive: Connection = None  # Usually CLIPTextEncode
+    negative: Connection = None  # Usually CLIPTextEncode
+    vae: Connection = None  # VAE model used for encoding. May be baked-in to a regular SD model.
+    pixels: Connection = None  # raw image data, e.g. from LoadImage.
+    mask: Connection = None  # Inpainting mask.
 
-    # Output indexes
-    IDX_POSITIVE = 0
-    IDX_NEGATIVE = 1
-    IDX_LATENT = 2
-
-    def __init__(self) -> None:
-        connection_params = {
-            InpaintModelConditioningNode.POSITIVE,
-            InpaintModelConditioningNode.NEGATIVE,
-            InpaintModelConditioningNode.VAE,
-            InpaintModelConditioningNode.PIXELS,
-            InpaintModelConditioningNode.MASK
-        }
-        super().__init__(NODE_NAME, {}, connection_params, 3)
+    positive_out = Output(0)
+    negative_out = Output(1)
+    latent_out = Output(2)

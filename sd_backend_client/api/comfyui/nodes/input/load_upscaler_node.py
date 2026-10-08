@@ -1,23 +1,13 @@
 """A ComfyUI node used to load an image upscaling model."""
-from typing import cast, Any
-from typing_extensions import TypedDict
+from typing import ClassVar
 
-from sd_backend_client.api.comfyui.nodes.comfy_node import ComfyNode
-
-NODE_NAME = 'UpscaleModelLoader'
-
-
-class LoadUpscalerInputs(TypedDict):
-    """Upscale model loader inputs."""
-    model_name: str
+from sd_backend_client.api.comfyui.nodes.comfy_node import ComfyNode, Output
 
 
 class LoadUpscalerNode(ComfyNode):
     """A ComfyUI node used to load an image upscaling model."""
+    CLASS_TYPE: ClassVar[str] = 'UpscaleModelLoader'
 
-    # Output indexes
-    IDX_UPSCALE_MODEL = 0
+    model_name: str
 
-    def __init__(self, model_name: str) -> None:
-        data: LoadUpscalerInputs = {'model_name': model_name}
-        super().__init__(NODE_NAME, cast(dict[str, Any], data), set(), 1)
+    upscale_model_out = Output(0)

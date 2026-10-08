@@ -1,40 +1,40 @@
 """A ComfyUI node used to pre-process image data for ControlNet. Rather than a specific node type, this class can
-   stand in for nearly any preprocessor node type, as long as it only has one input connection (type IMAGE) and one
-   output connection (also type IMAGE)."""
+   stand in for nearly any preprocessor node type, as long as it only has one output connection (type IMAGE) and its
+   only connection inputs are an image, a mask, or both."""
 from typing import Any
 
-from sd_backend_client.api.comfyui.nodes.comfy_node import ComfyNode
+from pydantic import Field, model_validator
+
+from sd_backend_client.api.comfyui.nodes.comfy_node import ComfyNode, Connection, Output
 
 
 class DynamicPreprocessorNode(ComfyNode):
-    """A ComfyUI node used to pre-process image data for ControlNet. Rather than a specific node type, this class can
-   stand in for nearly any preprocessor node type, as long as it only has one input connection (type IMAGE) and one
-   output connection (also type IMAGE)."""
+    """A ComfyUI preprocessor node of any type, named by `node_name` with non-connection inputs in `parameters`."""
 
-    # Connection keys:
-    IMAGE = 'image'
-    MASK = 'mask'
+    node_name: str = Field(exclude=True)
+    parameters: dict[str, Any] = Field(exclude=True)
+    has_image_input: bool = Field(True, exclude=True)
+    """Whether this node takes an image input."""
 
-    # Output indexes:
-    IDX_IMAGE = 0
+    has_mask_input: bool = Field(False, exclude=True)
+    """Whether this node takes a mask input."""
 
-    def __init__(self, node_name: str, node_inputs: dict[str, Any], has_image_input: bool = True,
-                 has_mask_input: bool = False) -> None:
-        inputs: set[str] = set()
-        if has_image_input:
-            inputs.add(DynamicPreprocessorNode.IMAGE)
-        if has_mask_input:
-            inputs.add(DynamicPreprocessorNode.MASK)
-        self._has_image_input = has_image_input
-        self._has_mask_input = has_mask_input
-        super().__init__(node_name, node_inputs, inputs, 1)
+    image: Connection = None
+    mask: Connection = None
 
-    @property
-    def has_image_input(self) -> bool:
-        """Returns whether this node requires an image input."""
-        return self._has_image_input
+    image_out = Output(0)
+
+    @model_validator(mode='after')
+    def _check_connections(self) -> 'DynamicPreprocessorNode':
+        if self.image is not None and not self.has_image_input:
+            raise ValueError(f'{self.node_name} takes no image input')
+        if self.mask is not None and not self.has_mask_input:
+            raise ValueError(f'{self.node_name} takes no mask input')
+        return self
 
     @property
-    def has_mask_input(self) -> bool:
-        """Returns whether this node requires a mask input."""
-        return self._has_mask_input
+    def class_type(self) -> str:
+        return self.node_name
+
+    def inputs(self) -> dict[str, Any]:
+        return {**self.parameters, **super().inputs()}

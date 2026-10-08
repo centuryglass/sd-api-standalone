@@ -57,4 +57,4 @@ def test_model_lists_are_fetched_only_for_tagged_prompts() -> None:
         builder = service._build_diffusion_body(  # pylint: disable=protected-access
             ComfyUIDiffusionParams(prompt='a cat', negative_prompt='<lora:detail:0.5>', sd_model_name='m'))
         assert [call.args[0] for call in get_models.call_args_list] == [ComfyModelType.LORA, ComfyModelType.CONFIG]
-    assert [node.get_dict()['inputs']['lora_name'] for node in builder.extension_model_nodes] == ['detail.safetensors']
+    assert [node.lora_name for node in builder.extension_model_nodes] == ['detail.safetensors']

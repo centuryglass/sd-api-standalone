@@ -28,8 +28,8 @@ from sd_backend_client.api.comfyui.controlnet_comfyui_utils import get_all_prepr
 from sd_backend_client.api.comfyui.diffusion_workflow_builder import DiffusionWorkflowBuilder, \
     EXTENSION_MODEL_PATTERN
 from sd_backend_client.api.comfyui.latent_upscale_workflow_builder import LatentUpscaleWorkflowBuilder
-from sd_backend_client.api.comfyui.nodes.controlnet.apply_controlnet_node import NODE_NAME as APPLY_CONTROLNET_NODE_NAME
-from sd_backend_client.api.comfyui.nodes.ksampler_node import KSAMPLER_NAME
+from sd_backend_client.api.comfyui.nodes.controlnet.apply_controlnet_node import ApplyControlNetNode
+from sd_backend_client.api.comfyui.nodes.ksampler_node import KSamplerNode
 from sd_backend_client.api.comfyui.nodes.ultimate_upscale_node import ULTIMATE_UPSCALE_NODE_NAME
 from sd_backend_client.api.comfyui.preprocessor_preview_workflow_builder import PreprocessorPreviewWorkflowBuilder
 from sd_backend_client.api.shared_data.api_datatypes import DiffusionUpscalingParams
@@ -169,8 +169,8 @@ class ComfyUiWebservice(WebService, Backend):
     def _get_ksampler_info_caching(self) -> NodeInfoResponse:
         ksampler_info = self._ksampler_info
         if ksampler_info is None:
-            info_endpoint = f'{ComfyEndpoints.OBJECT_INFO}/{KSAMPLER_NAME}'
-            ksampler_info = NodeInfoResponse.model_validate(self.get(info_endpoint).json()[KSAMPLER_NAME])
+            info_endpoint = f'{ComfyEndpoints.OBJECT_INFO}/{KSamplerNode.CLASS_TYPE}'
+            ksampler_info = NodeInfoResponse.model_validate(self.get(info_endpoint).json()[KSamplerNode.CLASS_TYPE])
             self._ksampler_info = ksampler_info
         return ksampler_info
 
@@ -182,7 +182,7 @@ class ComfyUiWebservice(WebService, Backend):
         # After validation the option param is a tuple whose first element is the list of option names.
         option_param = required_inputs.get(option_key)
         if not isinstance(option_param, tuple) or not isinstance(option_param[0], list):
-            raise UnexpectedResponseError(f'{KSAMPLER_NAME} node info has no option list for {option_key!r}, '
+            raise UnexpectedResponseError(f'{KSamplerNode.CLASS_TYPE} node info has no option list for {option_key!r}, '
                                           f'got {option_param!r}')
         return cast(list[str], option_param[0])
 
@@ -316,7 +316,7 @@ class ComfyUiWebservice(WebService, Backend):
         ControlNet and Ultimate SD Upscale support are detected from the nodes the workflows use.
         """
         return BackendCapabilities(
-            controlnet=self.is_node_available(APPLY_CONTROLNET_NODE_NAME),
+            controlnet=self.is_node_available(ApplyControlNetNode.CLASS_TYPE),
             ultimate_upscale=self.is_node_available(ULTIMATE_UPSCALE_NODE_NAME),
             scheduler=True,
             interrogate=False,

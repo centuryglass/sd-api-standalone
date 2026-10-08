@@ -1,31 +1,14 @@
 """A ComfyUI node used to encode latent image data."""
-from typing import NotRequired
-from typing_extensions import TypedDict
+from typing import ClassVar
 
-from sd_backend_client.api.comfyui.nodes.comfy_node import NodeConnection, ComfyNode
-
-NODE_NAME = 'VAEEncode'
-
-
-class VAEEncodeInputs(TypedDict):
-    """Latent image encoding input parameter object definition."""
-    pixels: NotRequired[NodeConnection]  # raw image data, e.g. from LoadImage.
-    vae: NotRequired[NodeConnection]  # VAE model used for encoding. May be baked-in to a regular SD model.
+from sd_backend_client.api.comfyui.nodes.comfy_node import ComfyNode, Connection, Output
 
 
 class VAEEncodeNode(ComfyNode):
     """A ComfyUI node used to encode images into latent image space."""
+    CLASS_TYPE: ClassVar[str] = 'VAEEncode'
 
-    # Connection keys:
-    PIXELS = 'pixels'
-    VAE = 'vae'
+    pixels: Connection = None  # raw image data, e.g. from LoadImage.
+    vae: Connection = None  # VAE model used for encoding. May be baked-in to a regular SD model.
 
-    # Output indexes:
-    IDX_LATENT = 0
-
-    def __init__(self) -> None:
-        connection_params = {
-            VAEEncodeNode.PIXELS,
-            VAEEncodeNode.VAE
-        }
-        super().__init__(NODE_NAME, {}, connection_params, 1)
+    latent_out = Output(0)

@@ -1,29 +1,14 @@
 """A ComfyUI node used to encode text using CLIP."""
-from typing import NotRequired, cast, Any
-from typing_extensions import TypedDict
+from typing import ClassVar
 
-from sd_backend_client.api.comfyui.nodes.comfy_node import NodeConnection, ComfyNode
-
-NODE_NAME = 'CLIPTextEncode'
-
-
-class ClipTextInputs(TypedDict):
-    """CLIP Text input parameter object definition."""
-    text: str
-    clip:  NotRequired[NodeConnection]
+from sd_backend_client.api.comfyui.nodes.comfy_node import ComfyNode, Connection, Output
 
 
 class ClipTextEncodeNode(ComfyNode):
     """A ComfyUI node used to encode text using CLIP."""
+    CLASS_TYPE: ClassVar[str] = 'CLIPTextEncode'
 
-    # Connection keys:
-    CLIP = 'clip'
+    text: str
+    clip: Connection = None
 
-    # Output indexes:
-    IDX_CONDITIONING = 0
-
-    def __init__(self, text: str) -> None:
-        data: ClipTextInputs = {
-            'text': text
-        }
-        super().__init__(NODE_NAME, cast(dict[str, Any], data), {ClipTextEncodeNode.CLIP}, 1)
+    conditioning_out = Output(0)
