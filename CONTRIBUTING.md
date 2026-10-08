@@ -37,6 +37,19 @@ mypy                             # type check, configured in pyproject.toml's [t
   fixing existing messages, run `python scripts/pylint_check.py --update-baseline` and commit the updated baseline.
 - **Code must run on Python 3.11.** Avoid 3.12-only syntax such as the `type X = ...` statement.
 
+## Documentation
+
+The [documentation site](https://centuryglass.github.io/sd-backend-client/) is built from `docs/` and the public API's
+docstrings. To preview it locally:
+
+```bash
+pip install -r requirements-docs.txt
+mkdocs serve
+```
+
+CI builds it with `mkdocs build --strict`, which fails on any warning. A name added to the package root's `__all__`
+needs a `::: sd_backend_client.NAME` line on one of the `docs/reference/` pages.
+
 ## Tests
 
 - **Unit tests (`tests/unit/`)** are offline and deterministic: no server, no GPU, no network. They cover the code

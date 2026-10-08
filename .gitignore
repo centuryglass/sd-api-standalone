@@ -7,6 +7,9 @@ tests/output/
 build/
 dist/
 
+# Output of `mkdocs build`
+site/
+
 # JetBrains IDE files
 .idea/
 

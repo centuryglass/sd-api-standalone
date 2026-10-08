@@ -1,0 +1,21 @@
+{#- Adds a pydantic field's numeric and length limits above its docstring.
+
+griffe-pydantic records the arguments of each field's `Field(...)` call but its templates don't render them. The keys
+listed here are the limits a caller can violate; other arguments, such as aliases, stay hidden.
+-#}
+{% extends "_base/attribute.html.jinja" %}
+
+{% block docstring scoped %}
+  {% set symbols = {"gt": "> ", "ge": ">= ", "lt": "< ", "le": "<= ", "multiple_of": "multiple of ",
+                     "min_length": "length >= ", "max_length": "length <= "} %}
+  {% set limits = [] %}
+  {% for key, value in (attribute.extra.griffe_pydantic.constraints or {}).items() %}
+    {% if key in symbols %}
+      {% set _ = limits.append(symbols[key] ~ value) %}
+    {% endif %}
+  {% endfor %}
+  {% if limits %}
+    <p>Constraints: {% for limit in limits %}<code>{{ limit }}</code>{% if not loop.last %}, {% endif %}{% endfor %}</p>
+  {% endif %}
+  {{ super() }}
+{% endblock docstring %}

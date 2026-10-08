@@ -40,6 +40,7 @@ dependencies = [
 
 [project.urls]
 Homepage = "https://github.com/centuryglass/sd-backend-client"
+Documentation = "https://centuryglass.github.io/sd-backend-client/"
 Issues = "https://github.com/centuryglass/sd-backend-client/issues"
 Changelog = "https://github.com/centuryglass/sd-backend-client/blob/main/CHANGELOG.md"
 

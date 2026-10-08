@@ -1,0 +1,15 @@
+# Documentation site tools: `pip install -r requirements-docs.txt`, then `mkdocs serve` to preview the site or
+# `mkdocs build --strict` for CI's docs check (mkdocs.yml). Pinned exactly, like requirements-dev.txt. The build reads
+# the package's source statically, so it needs neither the package nor its runtime dependencies.
+
+# MkDocs 2.0 removes the plugin system that mkdocstrings and Material depend on; .github/dependabot.yml ignores 2.x.
+mkdocs==1.6.1
+mkdocs-material==9.7.7
+
+# API reference pages: mkdocstrings renders docstrings, and griffe-pydantic adds pydantic field defaults and limits.
+mkdocstrings==1.0.6
+mkdocstrings-python==2.0.9
+griffe-pydantic==1.3.2
+
+# mkdocstrings formats long signatures with ruff when it is installed.
+ruff==0.16.10

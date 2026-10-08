@@ -7,6 +7,9 @@ and name, including the ComfyUI node graph and workflow builders, the HTTP layer
 A package class that a `Backend` or `GenerationHandle` method takes or returns, or that a field of an exported model
 holds, belongs in `__all__` too; `tests/unit/test_public_api.py` enforces this. The clients' backend-specific methods
 outside `Backend` may use internal types.
+
+Each name in `__all__` needs a directive on a `docs/reference/` page, or the docs build fails (AGENTS.md,
+"Documentation site").
 """
 from sd_backend_client.api.a1111_webservice import A1111Webservice
 from sd_backend_client.api.comfyui.comfyui_diffusion_params import ComfyUIDiffusionParams
