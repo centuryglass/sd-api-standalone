@@ -424,7 +424,7 @@ class A1111Webservice(WebService, Backend):
         if sd_upscale_params is not None and sd_upscale_params.use_stable_diffusion_upscaling:
             # Populate the core diffusion pass (prompt, seed, cfg, sampler, checkpoint, ...) from diffusion_params,
             # then override the upscale-specific bits, which take precedence:
-            request_body = DiffusionRequestBody(**sd_upscale_params.diffusion_params.model_dump())
+            request_body = DiffusionRequestBody.from_params(sd_upscale_params.diffusion_params)
             request_body.init_images = [image]
             request_body.denoising_strength = sd_upscale_params.denoising_strength
             request_body.steps = sd_upscale_params.step_count
