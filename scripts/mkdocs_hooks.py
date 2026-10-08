@@ -8,7 +8,8 @@ import re
 from pathlib import Path
 from typing import Any
 
-from mkdocs.exceptions import PluginError
+# mkdocs comes from requirements-docs.txt, which the lint job does not install.
+from mkdocs.exceptions import PluginError  # pylint: disable=import-error
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
 PACKAGE_INIT = REPO_ROOT / 'sd_backend_client' / '__init__.py'
