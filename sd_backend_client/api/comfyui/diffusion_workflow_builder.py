@@ -343,15 +343,10 @@ class DiffusionWorkflowBuilder:
         """Use the provided parameters to build a complete workflow graph."""
         # Load model(s):
         sd_model, clip, vae = self._load_checkpoint()
-
-        if self.clip_skip > 1:
-            clip = CLIPSkipNode(stop_at_clip_layer=self.clip_skip, clip=clip).clip_out
-
         sd_model, clip = self._apply_extension_models(sd_model, clip)
 
         # Load prompt conditioning:
-        positive = ClipTextEncodeNode(text=self.prompt, clip=clip).conditioning_out
-        negative = ClipTextEncodeNode(text=self.negative_prompt, clip=clip).conditioning_out
+        positive, negative = self._encode_prompts(clip)
 
         # Load image source:
         mask_load_node: Optional[LoadImageMaskNode] = None
@@ -453,6 +448,14 @@ class DiffusionWorkflowBuilder:
         else:
             model_loading_node = CheckpointLoaderNode(ckpt_name=self.sd_model, config_name=self.model_config_path)
         return model_loading_node.model_out, model_loading_node.clip_out, model_loading_node.vae_out
+
+    def _encode_prompts(self, clip: NodeOutput) -> tuple[NodeOutput, NodeOutput]:
+        """Applies CLIP skip to `clip`, and returns the positive and negative prompt conditioning outputs."""
+        if self.clip_skip > 1:
+            clip = CLIPSkipNode(stop_at_clip_layer=self.clip_skip, clip=clip).clip_out
+        positive = ClipTextEncodeNode(text=self.prompt, clip=clip).conditioning_out
+        negative = ClipTextEncodeNode(text=self.negative_prompt, clip=clip).conditioning_out
+        return positive, negative
 
     def _apply_extension_models(self, sd_model: NodeOutput, clip: NodeOutput) -> tuple[NodeOutput, NodeOutput]:
         """Chains the extension model nodes onto the model and CLIP outputs, and returns the final outputs."""
