@@ -404,22 +404,9 @@ class DiffusionWorkflowBuilder:
             else:
                 control_image_node = LoadImageNode(image=control_img_str)
                 loaded_images[control_img_str] = control_image_node
-            control_apply_node = controlnet_unit.control_apply_node
-            control_apply_node.image = control_image_node.image_out
-            preprocessor_node = controlnet_unit.preprocessor_node
-            if preprocessor_node is not None:
-                if preprocessor_node.has_image_input:
-                    preprocessor_node.image = control_image_node.image_out
-                if preprocessor_node.has_mask_input and mask_load_node is not None:
-                    preprocessor_node.mask = mask_load_node.mask_out
-                control_apply_node.image = preprocessor_node.image_out
-            control_apply_node.positive = positive
-            control_apply_node.negative = negative
-            if controlnet_unit.model_node is not None:
-                control_apply_node.control_net = controlnet_unit.model_node.controlnet_out
-            control_apply_node.vae = vae
-            positive = control_apply_node.positive_out
-            negative = control_apply_node.negative_out
+            positive, negative = self._wire_controlnet_unit(
+                controlnet_unit, control_image_node.image_out,
+                mask_load_node.mask_out if mask_load_node is not None else None, positive, negative, vae)
 
         # Core diffusion process in KSamplerNode:
         sampling_node = KSamplerNode(cfg=self.cfg_scale, steps=self.steps, sampler_name=self.sampler,
@@ -448,6 +435,30 @@ class DiffusionWorkflowBuilder:
         else:
             model_loading_node = CheckpointLoaderNode(ckpt_name=self.sd_model, config_name=self.model_config_path)
         return model_loading_node.model_out, model_loading_node.clip_out, model_loading_node.vae_out
+
+    @staticmethod
+    def _wire_controlnet_unit(unit: ControlNetNodeData, control_image: NodeOutput, mask: Optional[NodeOutput],
+                              positive: NodeOutput, negative: NodeOutput,
+                              vae: NodeOutput) -> tuple[NodeOutput, NodeOutput]:
+        """Connects one ControlNet unit's nodes, and returns the conditioning outputs with the unit applied.
+
+        The preprocessor, when present, takes `control_image` (and `mask`, if it has a mask input), and the apply
+        node uses its output. Otherwise the apply node uses `control_image` directly.
+        """
+        apply_node = unit.control_apply_node
+        apply_node.image = control_image
+        if unit.preprocessor_node is not None:
+            if unit.preprocessor_node.has_image_input:
+                unit.preprocessor_node.image = control_image
+            if unit.preprocessor_node.has_mask_input and mask is not None:
+                unit.preprocessor_node.mask = mask
+            apply_node.image = unit.preprocessor_node.image_out
+        apply_node.positive = positive
+        apply_node.negative = negative
+        if unit.model_node is not None:
+            apply_node.control_net = unit.model_node.controlnet_out
+        apply_node.vae = vae
+        return apply_node.positive_out, apply_node.negative_out
 
     def _encode_prompts(self, clip: NodeOutput) -> tuple[NodeOutput, NodeOutput]:
         """Applies CLIP skip to `clip`, and returns the positive and negative prompt conditioning outputs."""
