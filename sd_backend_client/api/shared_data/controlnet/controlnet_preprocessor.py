@@ -22,15 +22,15 @@ class ParameterDef(BaseModel):
     """Defines a ControlNet preprocessor parameter."""
     key: str
     default_value: str|int|float|bool
-    """Reference default for the parameter. Every parameter carries one so there's always a type to validate provided
-       values against, but for optional parameters it's only a fallback — it isn't sent unless the caller sets the
-       value (see `required`)."""
+    """Default for the parameter, sent whenever the caller leaves it unset (see `required`). Every parameter carries
+       one so there's always a type to validate provided values against, too."""
     description: str = ''
     required: bool = False
-    """Whether this parameter's default is auto-applied when the caller leaves it unset. Required parameters are always
-       present in `parameter_values`; optional ones are omitted unless explicitly set, so a backend (notably a dynamic
-       ComfyUI custom node) can treat an absent optional input as undefined rather than receiving a synthesized
-       default it never asked for."""
+    """Whether the backend's schema marks this parameter as required rather than optional.
+
+       `PreprocessorParams.build_params_from_defaults` fills every parameter's default regardless of this flag: some
+       backend nodes (e.g. ComfyUI's `comfyui_controlnet_aux` `TilePreprocessor`) don't apply their own declared
+       default when an optional input is left out of the request entirely, so leaving it unset there isn't safe."""
 
     option_list: Optional[list[str|int|float|bool]] = None
     """List of valid options. If None, all options are valid."""
@@ -77,10 +77,9 @@ class PreprocessorParams(BaseModel):
     @model_validator(mode='before')
     @classmethod
     def build_params_from_defaults(cls, data: Any) -> Any:
-        """Fill in defaults for required parameters left unset by the caller.
+        """Fill in every parameter's default value left unset by the caller, required or optional.
 
-        Optional parameters are deliberately left absent unless explicitly provided, so a backend can distinguish
-        "use the default" from "leave undefined" (see `ParameterDef.required`).
+        See `ParameterDef.required` for why optional parameters are defaulted too, rather than left absent.
         """
         if isinstance(data, dict) and "typedef" in data:
             typedef = data['typedef']
@@ -88,8 +87,7 @@ class PreprocessorParams(BaseModel):
                 typedef = ControlNetPreprocessor.model_validate(typedef)
             param_values = data.setdefault('parameter_values', {})
             for param_def in typedef.parameters:
-                if param_def.required:
-                    param_values.setdefault(param_def.key, param_def.default_value)
+                param_values.setdefault(param_def.key, param_def.default_value)
         return data
 
     @model_validator(mode='after')
@@ -98,7 +96,7 @@ class PreprocessorParams(BaseModel):
         for param_def in self.typedef.parameters:
             expected_keys.add(param_def.key)
             if param_def.key not in self.parameter_values:
-                continue  # optional parameter left undefined by the caller
+                continue  # no value provided for this parameter
             value = self.parameter_values[param_def.key]
             if not _value_type_matches(value, param_def.default_value):
                 raise ValueError(f"Preprocessor {self.typedef.name}.{param_def.key}: expected "

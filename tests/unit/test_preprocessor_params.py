@@ -23,15 +23,15 @@ def test_required_defaults_are_filled_from_typedef():
     assert params.parameter_values == {'low': 100, 'high': 200}
 
 
-def test_optional_params_are_not_auto_filled():
-    # Optional params must stay absent unless explicitly set, so a backend can treat them as undefined.
+def test_optional_params_are_auto_filled_too():
+    # Some backend nodes don't apply their own declared optional defaults when the input is left out entirely
+    # (see ParameterDef.required), so optional params get defaulted the same as required ones.
     typedef = _preprocessor(
         ParameterDef(key='required_one', default_value=1, required=True),
-        ParameterDef(key='optional_path', default_value='', required=False),
+        ParameterDef(key='optional_path', default_value='fallback', required=False),
     )
     params = PreprocessorParams(typedef=typedef)
-    assert params.parameter_values == {'required_one': 1}
-    assert 'optional_path' not in params.parameter_values
+    assert params.parameter_values == {'required_one': 1, 'optional_path': 'fallback'}
 
 
 def test_falsy_required_defaults_are_still_filled():
