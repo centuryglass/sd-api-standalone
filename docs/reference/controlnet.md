@@ -15,3 +15,17 @@ the models and preprocessors a server offers.
 ::: sd_backend_client.ParameterDef
 
 ::: sd_backend_client.ControlTypeDef
+
+## Placeholder values
+
+::: sd_backend_client.PREPROCESSOR_NONE
+
+::: sd_backend_client.CONTROLNET_MODEL_NONE
+
+## WebUI unit-level setting keys
+
+::: sd_backend_client.CONTROL_MODE_PARAM_KEY
+
+::: sd_backend_client.RESIZE_MODE_PARAM_KEY
+
+::: sd_backend_client.PREPROCESSOR_RES_PARAM_KEY

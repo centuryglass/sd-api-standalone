@@ -107,6 +107,8 @@ class ControlNetUnitDict(BaseModel):
 
 # Constants defining the "Control mode" option shared by most preprocessors:
 CONTROL_MODE_PARAM_KEY = 'control_mode'
+"""`ParameterDef.key` of the "Control mode" setting that `Backend.get_controlnet_preprocessors` adds to WebUI
+preprocessors. It is a unit-level ControlNet setting, not an option of the preprocessor itself."""
 CONTROL_MODE_LABEL = 'Control mode'
 CONTROL_MODE_OPTIONS = ['Balanced', 'My prompt is more important', 'ControlNet is more important']
 CONTROL_MODE_DEFAULT = CONTROL_MODE_OPTIONS[0]
@@ -114,6 +116,8 @@ CONTROL_MODE_DEFAULT = CONTROL_MODE_OPTIONS[0]
 # Constants defining the "Resolution" option shared by most preprocessors:
 PREPROCESSOR_RES_PARAM_NAME = 'Resolution'  # For identifying it in an API "sliders" list
 PREPROCESSOR_RES_PARAM_KEY = 'processor_res'
+"""`ParameterDef.key` of the preprocessor "Resolution" setting that `Backend.get_controlnet_preprocessors` adds to WebUI
+preprocessors. It is a unit-level ControlNet setting, not an option of the preprocessor itself."""
 PREPROCESSOR_RES_LABEL = 'Resolution'
 PREPROCESSOR_RES_MIN = 128
 PREPROCESSOR_RES_MAX = 2048
@@ -122,6 +126,8 @@ PREPROCESSOR_RES_STEP = 8
 
 # Constants defining the "Resize mode" option shared by all preprocessors that also accept a resolution:
 RESIZE_MODE_PARAM_KEY = 'resize_mode'
+"""`ParameterDef.key` of the "Resize mode" setting that `Backend.get_controlnet_preprocessors` adds to WebUI
+preprocessors. It is a unit-level ControlNet setting, not an option of the preprocessor itself."""
 RESIZE_MODE_LABEL = 'Resize mode'
 RESIZE_MODE_OPTIONS = ['Just Resize', 'Crop and Resize', 'Resize and Fill']
 RESIZE_MODE_DEFAULT = RESIZE_MODE_OPTIONS[1]
