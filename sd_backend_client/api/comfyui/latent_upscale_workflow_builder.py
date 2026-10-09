@@ -13,7 +13,6 @@ from sd_backend_client.api.comfyui.nodes.apply_upscaler_node import ApplyUpscale
 from sd_backend_client.api.comfyui.nodes.basic_scaling_node import BasicScalingNode
 from sd_backend_client.api.comfyui.nodes.comfy_node_graph import ComfyNodeGraph
 from sd_backend_client.api.comfyui.nodes.image_scale_node import ImageScaleNode
-from sd_backend_client.api.comfyui.nodes.input.clip_text_encode_node import ClipTextEncodeNode
 from sd_backend_client.api.comfyui.nodes.input.load_image_node import LoadImageNode
 from sd_backend_client.api.comfyui.nodes.input.load_upscaler_node import LoadUpscalerNode
 from sd_backend_client.api.comfyui.nodes.ksampler_node import KSamplerNode
@@ -82,8 +81,6 @@ class LatentUpscaleWorkflowBuilder(DiffusionWorkflowBuilder):
         source's is not honored on this path. Without it, the image goes through the upscale model (if any), is
         resized to the exact final size, then refined with tiled img2img.
         """
-        # TODO: lots of code duplication here, and no opportunity to specify particular values for a lot of the
-        #       upscaler options.  Both of those things should be fixed.
         # Load model(s):
         sd_model, clip, vae = self._load_checkpoint()
         sd_model, clip = self._apply_extension_models(sd_model, clip)
@@ -95,29 +92,14 @@ class LatentUpscaleWorkflowBuilder(DiffusionWorkflowBuilder):
         image = LoadImageNode(image=source_image_str).image_out
 
         # Load prompt conditioning:
-        positive = ClipTextEncodeNode(text=self.prompt, clip=clip).conditioning_out
-        negative = ClipTextEncodeNode(text=self.negative_prompt, clip=clip).conditioning_out
+        positive, negative = self._encode_prompts(clip)
 
         # Load tile ControlNet unit, if available:
         controlnet_units = self.controlnet_unit_nodes
         assert len(controlnet_units) <= 1, f'Expected at most one controlNet unit, found {len(controlnet_units)}'
         if len(controlnet_units) > 0:
-            tile_control_unit = controlnet_units[0]
-            tile_preprocessor_node = tile_control_unit.preprocessor_node
-            tile_model_node = tile_control_unit.model_node
-            tile_control_apply_node = tile_control_unit.control_apply_node
-            assert tile_preprocessor_node is not None
-            assert tile_preprocessor_node.has_image_input
-            assert tile_model_node is not None
-
-            tile_preprocessor_node.image = image
-            tile_control_apply_node.image = tile_preprocessor_node.image_out
-            tile_control_apply_node.control_net = tile_model_node.controlnet_out
-            tile_control_apply_node.vae = vae
-            tile_control_apply_node.positive = positive
-            tile_control_apply_node.negative = negative
-            positive = tile_control_apply_node.positive_out
-            negative = tile_control_apply_node.negative_out
+            positive, negative = self._wire_controlnet_unit(controlnet_units[0], image, None, positive, negative,
+                                                            vae)
 
         # Load upscale model node, if available:
         upscale_model_node: Optional[LoadUpscalerNode] = None

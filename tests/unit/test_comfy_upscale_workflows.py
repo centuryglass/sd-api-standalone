@@ -171,6 +171,28 @@ def test_latent_workflow_chains_extension_models(ultimate: bool):
     assert source_class(workflow, sampler['inputs']['model']) == 'HypernetworkLoader'
 
 
+@pytest.mark.parametrize('ultimate', [True, False])
+def test_latent_workflow_applies_clip_skip(ultimate: bool):
+    """CLIP skip routes the checkpoint's CLIP output through CLIPSetLastLayer before both prompt encoders."""
+    builder = latent_builder(ultimate, None)
+    builder.clip_skip = 2
+    workflow = builder.build_workflow().get_workflow_dict()
+
+    skip = single_node(workflow, 'CLIPSetLastLayer')
+    assert skip['inputs']['stop_at_clip_layer'] == -2
+    assert source_class(workflow, skip['inputs']['clip']) == 'CheckpointLoaderSimple'
+    encoders = nodes_of_type(workflow, 'CLIPTextEncode')
+    assert len(encoders) == 2
+    assert all(source_class(workflow, node['inputs']['clip']) == 'CLIPSetLastLayer' for node in encoders)
+
+
+@pytest.mark.parametrize('ultimate', [True, False])
+def test_latent_workflow_without_clip_skip_omits_skip_node(ultimate: bool):
+    """The default CLIP skip adds no CLIPSetLastLayer node."""
+    workflow = latent_builder(ultimate, None).build_workflow().get_workflow_dict()
+    assert not nodes_of_type(workflow, 'CLIPSetLastLayer')
+
+
 def test_latent_workflow_uses_config_loader_when_config_is_set():
     """A model config path switches the checkpoint loader to CheckpointLoader with that config."""
     builder = latent_builder(True, None)
