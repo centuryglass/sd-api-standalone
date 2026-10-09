@@ -1,5 +1,52 @@
 # Changelog
 
+## [0.3.0](https://github.com/centuryglass/sd-backend-client/compare/v0.2.1...v0.3.0) (2026-10-09)
+
+
+### ⚠ BREAKING CHANGES
+
+* reject unknown fields in parameter models ([#93](https://github.com/centuryglass/sd-backend-client/issues/93))
+* give GenerationResult the same seeds, images and control maps on both backends ([#83](https://github.com/centuryglass/sd-backend-client/issues/83))
+* A1111Webservice.submit_img2img takes one DiffusionParams with the image in init_images and the mask in mask, and submit_txt2img's parameter is renamed diffusion_params.
+* validate generation parameters in the pydantic models ([#77](https://github.com/centuryglass/sd-backend-client/issues/77))
+* give sampler, scheduler, img2img size and denoising one meaning on both backends ([#70](https://github.com/centuryglass/sd-backend-client/issues/70))
+* **comfyui:** name uploads by content hash so queued jobs keep their images ([#69](https://github.com/centuryglass/sd-backend-client/issues/69))
+* add a package exception hierarchy ([#67](https://github.com/centuryglass/sd-backend-client/issues/67))
+
+### Features
+
+* add a Backend interface that both clients implement ([#81](https://github.com/centuryglass/sd-backend-client/issues/81)) ([108ad89](https://github.com/centuryglass/sd-backend-client/commit/108ad89652b1ebbaea8226aae4bc3f53879aa20c)), closes [#36](https://github.com/centuryglass/sd-backend-client/issues/36)
+* add a package exception hierarchy ([#67](https://github.com/centuryglass/sd-backend-client/issues/67)) ([f8f8dc8](https://github.com/centuryglass/sd-backend-client/commit/f8f8dc86444798462e25122199d1d9e85286dda7))
+* add command-line example scripts ([#100](https://github.com/centuryglass/sd-backend-client/issues/100)) ([f0f43ea](https://github.com/centuryglass/sd-backend-client/commit/f0f43ea12139b29a7a0a187b73be982407d20a08))
+* export the ControlNet None placeholders and WebUI parameter-key constants ([#104](https://github.com/centuryglass/sd-backend-client/issues/104)) ([d3d8dfc](https://github.com/centuryglass/sd-backend-client/commit/d3d8dfcd518ce300d46f1feb1a46394e725bf9f7))
+* export the supported API from the package root ([#86](https://github.com/centuryglass/sd-backend-client/issues/86)) ([ecd4f31](https://github.com/centuryglass/sd-backend-client/commit/ecd4f31f3420bbaf02d9e3d061053ee58297a1df)), closes [#24](https://github.com/centuryglass/sd-backend-client/issues/24)
+* give GenerationResult the same seeds, images and control maps on both backends ([#83](https://github.com/centuryglass/sd-backend-client/issues/83)) ([8d0c125](https://github.com/centuryglass/sd-backend-client/commit/8d0c12553242f1149dd5422594bd16c64243ee61)), closes [#40](https://github.com/centuryglass/sd-backend-client/issues/40)
+* give sampler, scheduler, img2img size and denoising one meaning on both backends ([#70](https://github.com/centuryglass/sd-backend-client/issues/70)) ([4c82771](https://github.com/centuryglass/sd-backend-client/commit/4c827710b0941f64d8fc888e1ad1914c18fe621d)), closes [#39](https://github.com/centuryglass/sd-backend-client/issues/39)
+* list models, options and capabilities the same way on both backends ([#84](https://github.com/centuryglass/sd-backend-client/issues/84)) ([ecc3ae9](https://github.com/centuryglass/sd-backend-client/commit/ecc3ae9b7f3cd981350496bbf0da2fa0473b1d32))
+* run upscaling and ControlNet preprocessor previews through generation handles ([#82](https://github.com/centuryglass/sd-backend-client/issues/82)) ([3a837ae](https://github.com/centuryglass/sd-backend-client/commit/3a837ae1ba9a0baec0ff2f2666466ad58027190a)), closes [#37](https://github.com/centuryglass/sd-backend-client/issues/37)
+* validate generation parameters in the pydantic models ([#77](https://github.com/centuryglass/sd-backend-client/issues/77)) ([19db2a8](https://github.com/centuryglass/sd-backend-client/commit/19db2a870e92881adf8339aacb0c2ab68050c95e)), closes [#26](https://github.com/centuryglass/sd-backend-client/issues/26)
+* **webui:** support Forge Neo and record contract fixtures for every WebUI fork ([#88](https://github.com/centuryglass/sd-backend-client/issues/88)) ([10d3bd4](https://github.com/centuryglass/sd-backend-client/commit/10d3bd4eee513ed61a16f94422f8edc13d811c54))
+
+
+### Bug Fixes
+
+* allow model fields on supported pydantic versions ([#72](https://github.com/centuryglass/sd-backend-client/issues/72)) ([55595fd](https://github.com/centuryglass/sd-backend-client/commit/55595fdcb7a26f597e4028b6e31d2a19dc06e24c)), closes [#66](https://github.com/centuryglass/sd-backend-client/issues/66)
+* **comfyui:** apply CLIP skip in latent upscale workflows ([#102](https://github.com/centuryglass/sd-backend-client/issues/102)) ([1381899](https://github.com/centuryglass/sd-backend-client/commit/1381899b14eea622300cbbbec42bac685bb396ca))
+* **comfyui:** apply LoRA and hypernetwork prompt tags instead of dropping them ([#76](https://github.com/centuryglass/sd-backend-client/issues/76)) ([93c4f95](https://github.com/centuryglass/sd-backend-client/commit/93c4f95735f859fa7fdc438bbc5e37472e8b8dc5)), closes [#16](https://github.com/centuryglass/sd-backend-client/issues/16)
+* **comfyui:** end waits on lost jobs, report failure reasons and live progress ([#78](https://github.com/centuryglass/sd-backend-client/issues/78)) ([6698c87](https://github.com/centuryglass/sd-backend-client/commit/6698c874c4cafe7b8ce7e026f5cbbae37b776934)), closes [#19](https://github.com/centuryglass/sd-backend-client/issues/19)
+* **comfyui:** name uploads by content hash so queued jobs keep their images ([#69](https://github.com/centuryglass/sd-backend-client/issues/69)) ([e4dcf67](https://github.com/centuryglass/sd-backend-client/commit/e4dcf6783128472f4efb696280cbbb00502895ce)), closes [#15](https://github.com/centuryglass/sd-backend-client/issues/15)
+* **comfyui:** save generated images with a visible filename prefix ([#87](https://github.com/centuryglass/sd-backend-client/issues/87)) ([0ceea6c](https://github.com/centuryglass/sd-backend-client/commit/0ceea6c210fdb6695001e285434d933b6ddf9e32)), closes [#74](https://github.com/centuryglass/sd-backend-client/issues/74)
+* **controlnet:** always send preprocessor defaults for optional parameters ([#101](https://github.com/centuryglass/sd-backend-client/issues/101)) ([d49efa0](https://github.com/centuryglass/sd-backend-client/commit/d49efa07e9539347db1527ca586bb15e912b4d77)), closes [#98](https://github.com/centuryglass/sd-backend-client/issues/98)
+* reject unknown fields in parameter models ([#93](https://github.com/centuryglass/sd-backend-client/issues/93)) ([97b295c](https://github.com/centuryglass/sd-backend-client/commit/97b295c98cbd68d63c7191b09222e4c2006969c4))
+* **webui:** support Forge's sampler, style and built-in ControlNet responses ([#85](https://github.com/centuryglass/sd-backend-client/issues/85)) ([be67768](https://github.com/centuryglass/sd-backend-client/commit/be67768901177be0e5aa083daf46748749f52740))
+
+
+### Documentation
+
+* add a review checklist for the integration tests' saved images ([#73](https://github.com/centuryglass/sd-backend-client/issues/73)) ([7da5d07](https://github.com/centuryglass/sd-backend-client/commit/7da5d07ba2a5a8dfe991765507faab8766756c0f))
+* publish an API documentation site to GitHub Pages ([#91](https://github.com/centuryglass/sd-backend-client/issues/91)) ([5cf60de](https://github.com/centuryglass/sd-backend-client/commit/5cf60de06f94f2dfe5c53a9d4064227cac19575f))
+* rewrite the README around the public API and check its examples in CI ([#89](https://github.com/centuryglass/sd-backend-client/issues/89)) ([7f7a184](https://github.com/centuryglass/sd-backend-client/commit/7f7a184dac32cb4b6105db02310ac9988edde01c))
+
 ## [0.2.1](https://github.com/centuryglass/sd-backend-client/compare/v0.2.0...v0.2.1) (2026-10-06)
 
 
