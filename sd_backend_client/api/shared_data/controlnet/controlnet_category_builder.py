@@ -8,7 +8,12 @@ from sd_backend_client.api.webui.controlnet_webui_constants import ControlTypeDe
 
 # TODO: temp constants, remove or relocate after figuring out how to properly reduce the use of 'None' strings to minimum
 PREPROCESSOR_NONE = 'None'
+"""Placeholder preprocessor name for "no preprocessing". It appears in `ControlTypeDef.module_list`, and as
+`ControlTypeDef.default_option` when a control type has no preferred preprocessor."""
+
 CONTROLNET_MODEL_NONE = 'None'
+"""Placeholder model name for "no model". It appears in `ControlTypeDef.model_list`, and as
+`ControlTypeDef.default_model` when a control type has no preferred model."""
 
 class ControlNetCategoryBuilder:
     """Sorts ControlNet models and preprocessors into categories, automatically filtering out unavailable options."""

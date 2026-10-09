@@ -18,6 +18,8 @@ from sd_backend_client.api.detect import connect_to_backend
 from sd_backend_client.api.shared_data.api_datatypes import DiffusionUpscalingParams
 from sd_backend_client.api.shared_data.backend import Backend
 from sd_backend_client.api.shared_data.backend_options import BackendCapabilities, BackendOption
+from sd_backend_client.api.shared_data.controlnet.controlnet_category_builder import CONTROLNET_MODEL_NONE, \
+    PREPROCESSOR_NONE
 from sd_backend_client.api.shared_data.controlnet.controlnet_constants import ControlTypeDef
 from sd_backend_client.api.shared_data.controlnet.controlnet_model import ControlNetModel
 from sd_backend_client.api.shared_data.controlnet.controlnet_preprocessor import ControlNetPreprocessor, \
@@ -26,6 +28,8 @@ from sd_backend_client.api.shared_data.controlnet.controlnet_unit import Control
 from sd_backend_client.api.shared_data.diffusion_params import DiffusionParams
 from sd_backend_client.api.shared_data.generation_handle import GenerationHandle, GenerationProgress, \
     GenerationResult, GenerationStatus, ProgressCallback
+from sd_backend_client.api.webui.controlnet_webui_constants import CONTROL_MODE_PARAM_KEY, \
+    PREPROCESSOR_RES_PARAM_KEY, RESIZE_MODE_PARAM_KEY
 from sd_backend_client.api.webui.diffusion_request_body import DiffusionRequestBody, InpaintFillOption, ResizeMode
 from sd_backend_client.api.webui.script_info_types import ScriptRequestData
 from sd_backend_client.errors import AuthError, BackendConnectionError, BackendTimeoutError, GenerationError, \
@@ -52,6 +56,11 @@ __all__ = [
     'PreprocessorParams',
     'ParameterDef',
     'ControlTypeDef',
+    'PREPROCESSOR_NONE',
+    'CONTROLNET_MODEL_NONE',
+    'CONTROL_MODE_PARAM_KEY',
+    'RESIZE_MODE_PARAM_KEY',
+    'PREPROCESSOR_RES_PARAM_KEY',
     # Discovery
     'BackendOption',
     'BackendCapabilities',
